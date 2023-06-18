@@ -65,7 +65,7 @@ tdis = p.Toffset;               % time at application of discharge pulse
 tchg = tdis + p.Tp + p.Toffset; % time at application of charge pulse
 dis = tdis<=time&time<tchg;     % logical indicies to discharge interval
 chg = tchg<=time;               % logical indicies to charge interval
-iapp = zeros(size(tt));         % iapp vector [A]
+iapp = zeros(size(time));       % iapp vector [A]
 iapp(dis) = +I;
 iapp(chg) = -I;
 
