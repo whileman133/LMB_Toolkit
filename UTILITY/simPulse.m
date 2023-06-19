@@ -66,8 +66,8 @@ tchg = tdis + p.Tp + p.Toffset; % time at application of charge pulse
 dis = tdis<=time&time<tchg;     % logical indicies to discharge interval
 chg = tchg<=time;               % logical indicies to charge interval
 iapp = zeros(size(time));       % iapp vector [A]
-iapp(dis) = +I;
-iapp(chg) = -I;
+iapp(dis) = +p.I;
+iapp(chg) = -p.I;
 
 % Generate COMSOL model.
 if p.Verbose

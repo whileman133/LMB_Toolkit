@@ -1,10 +1,6 @@
 clear; close all; clc;
-
-if ~exist('assets','dir')
-    % Bootstrap the toolbox.
-    addpath('..');
-    TB.addPaths();
-end
+addpath('..');
+TB.addPaths();
 
 el = MSMR.C6();
 figs = el.plotOCP();
