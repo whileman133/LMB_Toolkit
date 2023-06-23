@@ -384,7 +384,7 @@ function genData = genFOM(cellModel,varargin)
             FOM.func(fn_name).set('fununit', 'J/mol/K');
         case {'F'}
             FOM.func(fn_name).set('fununit', 'C/mol');
-        case {'T'}
+        case {'T','Tref'}
             FOM.func(fn_name).set('fununit', 'K');
         case {'W'}
             FOM.func(fn_name).set('fununit', '');
