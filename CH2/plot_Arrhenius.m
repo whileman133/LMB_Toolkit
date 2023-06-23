@@ -9,7 +9,7 @@
 
 clear; close all; clc;
 addpath('..');
-TB.addPaths();
+TB.addpaths('gen2');
 
 Tref = 25 + 273;                    % reference temperature [K]
 TT = linspace(0, 50, 100) + 273;    % temperature vector [K]

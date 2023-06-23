@@ -1,6 +1,6 @@
 clear; close all; clc;
 addpath('..');
-TB.addPaths();
+TB.addpaths('gen2');
 
 el = MSMR.C6();
 figs = el.plotOCP();
