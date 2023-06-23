@@ -9,24 +9,16 @@ clear; close all; clc;
 addpath(fullfile('..','..'));
 TB.addpaths('gen2');
 
-modelName = 'cellLMO-P2DM';
-socPct = 100;  % initial cell SOC [%]
-TdegC = 25;    % 
+modelName = 'cellLMO-P2DM';  % name of cell spreadsheet file
+soc0Pct = 100;  % initial cell SOC [%]
+socfPct = 80;   % final cell SOC [%]
+Crate = 1;      % discharge current [C-rate]
+TdegC = 25;     % cell temperature [degC]
+
+% Values of warburg resistance factor 
+W = logspace(-1,1,10);
 
 p2dm = loadCellModel(modelName);
 worm = convertCellModel(p2dm,'WORM');
 Q = getCellParam(worm,'const.Q');
-
-simData = simCC
-
-time = 0:0.1:60*10;        % time vector [sec]
-iapp = zeros(size(time));  % applied current vector [A]
-iapp(time>=1) = 1*Q;
-simspec.time = time;
-simspec.Iapp = iapp;
-simspec.SOC0 = socPct;
-simspec.T = TdegC;
-simspec.TSHIFT = 0;
-modelCOMSOL = genFOM(worm);
-
-[~,sim] = simFOM(modelCOMSOL,simspec,'InputType','lut');
+simData = simCC(worm,Crate*Q,soc0Pct,socfPct,TdegC,'Verbose',true);
