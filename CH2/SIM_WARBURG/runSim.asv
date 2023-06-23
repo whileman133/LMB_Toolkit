@@ -1,0 +1,32 @@
+% runSim.m
+%
+% Run simulation study for Warburg resistance and time-constant parameters.
+%
+% -- Changelog --
+% 2023.06.23 | Created | Wesley Hileman <whileman@uccs.edu>
+
+clear; close all; clc;
+addpath(fullfile('..','..'));
+TB.addpaths('gen2');
+
+modelName = 'cellLMO-P2DM';
+socPct = 100;  % initial cell SOC [%]
+TdegC = 25;    % 
+
+p2dm = loadCellModel(modelName);
+worm = convertCellModel(p2dm,'WORM');
+Q = getCellParam(worm,'const.Q');
+
+simData = simCC
+
+time = 0:0.1:60*10;        % time vector [sec]
+iapp = zeros(size(time));  % applied current vector [A]
+iapp(time>=1) = 1*Q;
+simspec.time = time;
+simspec.Iapp = iapp;
+simspec.SOC0 = socPct;
+simspec.T = TdegC;
+simspec.TSHIFT = 0;
+modelCOMSOL = genFOM(worm);
+
+[~,sim] = simFOM(modelCOMSOL,simspec,'InputType','lut');

@@ -37,7 +37,7 @@ function genData = genFOM(cellModel,varargin)
 
   % Convert cell model to legacy Lumped-Parameter Model.
   % (genFOM still works with legacy models.)
-  cellModel = convertCellModel(cellModel,'LLPM');
+  p.cellModel = convertCellModel(p.cellModel,'LLPM');
 
   FOM = [];
   regs = {'const','neg','dll','sep','pos'};
@@ -47,7 +47,7 @@ function genData = genFOM(cellModel,varargin)
   % COMSOL can't handle vector parameters!
   % NOTE: if the model is not an MSMR model, no change occurs, but
   % paramnamesMSMR is still set for use in unit setting below.
-  [cellModel, paramnamesMSMR] = explodeMSMR(cellModel);
+  [cellModel, paramnamesMSMR] = explodeMSMR(p.cellModel);
 
   % Defining default values... these will be replaced by user profiles
   ivec = zeros(10,1); % rest for 10s
@@ -480,7 +480,7 @@ function genData = genFOM(cellModel,varargin)
     % Separator.
     FOM.variable('varsSep1d').set('PARAMETERS', '0', '--------------------------------------------');
     FOM.variable('varsSep1d').set('kappa', 'kappaSepFN(theta_e,T)');
-    FOM.variable('varsSep1d').set('qe', 'tauWSepFN(0.5,T)');
+    FOM.variable('varsSep1d').set('tauW', 'tauWSepFN(0.5,T)');
     FOM.variable('varsSep1d').set('ifdl', '0[A]', 'No flux in separator');
 
     % Porous electrode (pseudo dimension).
@@ -675,7 +675,7 @@ function genData = genFOM(cellModel,varargin)
     FOM.physics('phi_e').prop('ShapeProperty').set('boundaryFlux', false);
     FOM.physics('phi_e').prop('Units').set('SourceTermQuantity', 'current');
     FOM.physics('phi_e').feature('gfeq1').set('f', 'ifdl');
-    FOM.physics('phi_e').feature('gfeq1').set('Ga', '-kappa*(phi_ex-WFCN(0.5,T)*psiFCN(0.5,T)*T*theta_ex)*(xnorm^2)');
+    FOM.physics('phi_e').feature('gfeq1').set('Ga', '-kappa*(phi_ex-WFN(0.5,T)*psiFN(0.5,T)*T*theta_ex)*(xnorm^2)');
     FOM.physics('phi_e').feature('gfeq1').set('da', 0);
     FOM.physics('phi_e').feature('gfeq1').label('General Form PDE');
     FOM.physics('phi_e').feature('init1').set('phi_e', 0);
@@ -738,7 +738,7 @@ function genData = genFOM(cellModel,varargin)
     FOM.physics('theta_e').prop('Units').set('CustomSourceTermUnit', 'A');
     FOM.physics('theta_e').feature('cdeq1').set('f', 'ifdl');
     FOM.physics('theta_e').feature('cdeq1').set('c', 'psiFN(0.5,T)*T*kappa*(xnorm^2)');
-    FOM.physics('theta_e').feature('cdeq1').set('da', 'tauW*kappa*psiFCN(0.5,T)*T');
+    FOM.physics('theta_e').feature('cdeq1').set('da', 'tauW*kappa*psiFN(0.5,T)*T');
     FOM.physics('theta_e').feature('cdeq1').label('Convection-Diffusion Equation');
     FOM.physics('theta_e').feature('init1').set('theta_e', 1);
 
