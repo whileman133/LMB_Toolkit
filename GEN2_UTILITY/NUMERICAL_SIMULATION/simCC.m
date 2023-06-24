@@ -53,7 +53,7 @@ parser.parse(varargin{:});
 arg = parser.Results;  % structure of validated params
 
 % Compute cell capacity to discharge (will be negative for charge).
-Qtot = getCellParam(arg.cellModel,'const.Q');
+Qtot = getCellParams(arg.cellModel,'const.Q');
 Qdis = Qtot*(arg.soc0Pct-arg.socfPct)/100;   % capacity to discharge [Ah] 
 
 % Compute constant-current waveform parameters.

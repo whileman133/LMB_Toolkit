@@ -26,18 +26,7 @@ parser.parse(inModel,outModelType);
 arg = parser.Results; % structure of validated arguments
 
 % Determine the type of model that was input.
-if isfield(inModel,'metadata') && ...
-   isfield(inModel,'type__') && ... 
-   strcmp(inModel.type__,'cellModel')
-    % P2DM, WORM, or RLWORM.
-    inModelType = inModel.metadata.cell.type;
-elseif isfield(inModel,'function')
-    % Legacy lumped-parameter model (LLPM).
-    inModelType = 'LLPM';
-else
-    error(['Unable to determine input model type.\n' ...
-        'Should be P2DM, WORM, RLWORM, or LLPM.']);
-end
+inModelType = getCellModelType(inModel);
 
 % No need to convert if model already in the requested form.
 if strcmp(inModelType,outModelType)

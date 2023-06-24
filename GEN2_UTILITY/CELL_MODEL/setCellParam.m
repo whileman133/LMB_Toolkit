@@ -29,8 +29,7 @@ for s = 1:length(secNames)
         if ~strcmp(param.Value.type,'Numeric')
             error('Type error: %s.%s is not numeric!',secName,paramName);
         end
-        arg.cellModel.parameters.(secName).(paramName).Value.value = ... 
-            newValue;
+        cellModel.parameters.(secName).(paramName).Value.value = newValue;
     end % for param
 end % for section
 
