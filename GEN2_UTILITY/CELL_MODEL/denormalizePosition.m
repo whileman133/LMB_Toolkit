@@ -5,9 +5,9 @@ x = zeros(size(xtilde));
 dll = 0<=xtilde&xtilde<1;
 sep = 1<=xtilde&xtilde<2;
 pos = 2<=xtilde&xtilde<=3;
-p = getCellParam(p2dm,'dll.L sep.L pos.L');
-x(dll) = xtilde(dll)*p.dll.L;
-x(sep) = p.dll.L + (xtilde(sep)-1)*p.sep.L;
-x(pos) = p.dll.L + p.sep.L + (xtilde(pos)-2)*p.pos.L;
+p = getCellParams(p2dm,'*.L');
+x(dll) = xtilde(dll)*p.Ldll;
+x(sep) = p.Ldll + (xtilde(sep)-1)*p.Lsep;
+x(pos) = p.Ldll + p.Lsep + (xtilde(pos)-2)*p.Lpos;
 
 end

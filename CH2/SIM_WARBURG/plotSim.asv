@@ -14,6 +14,7 @@ labelsW = arrayfun( ...
 
 figure; colororder(spring(length(simData.W)));
 for k = 1:length(simData.W)
+    W = simData.W(k);
     data = simData.WSeries(k);
     Thetae = data.output.Thetae;  % dim1=time, dim2=xlocation
     xlocThetae = denormalizePosition(data.output.xLocs.Thetae,simData.p2dm);
@@ -31,6 +32,7 @@ thesisFormat;
 
 figure; colororder(spring(length(simData.W)));
 for k = 1:length(simData.W)
+    W = simData.W(k);
     data = simData.WSeries(k);
     Phie = data.output.Phie;  % dim1=time, dim2=xlocation
     xlocPhie = denormalizePosition(data.output.xLocs.Phie,simData.p2dm);
@@ -46,38 +48,11 @@ ylabel('Electrolyte potential, $\phi_\mathrm{e}$ [V]','Interpreter','latex');
 title('Pseudo-Steady Electrolyte Potential vs. $\bar{W}$','Interpreter','latex');
 thesisFormat;
 
-figure; colororder(spring(length(simData.taud)));
-for k = 1:length(simData.taud)
-    taud = simData.taud(k);
-    data = simData.taudSeries(k);
-    Phie = data.output.Phie;  % dim1=time, dim2=xlocation
-    xlocPhie = data.output.xLocs.Phie;
-    [~,indx] = min(abs(xlocPhie-1));
-    indt = data.time<=max(simData.taud);
-    plot(data.time(indt),Phie(indt,indx)); hold on;
-end % for
-thesisFormat;
-
 figure; colororder(spring(length(simData.taus)));
-for k = 1:length(simData.taus)
-    taus = simData.taus(k);
-    data = simData.tausSeries(k);
+for k = 1:length(simData.W)
+    W = simData.W(k);
+    data = simData.WSeries(k);
     Phie = data.output.Phie;  % dim1=time, dim2=xlocation
-    xlocPhie = data.output.xLocs.Phie;
-    [~,indx] = min(abs(xlocPhie-2));
-    indt = data.time<=max(simData.taus);
-    plot(data.time(indt),Phie(indt,indx)); hold on;
+    xlocTh = denormalizePosition(data.output.xLocs.Thetae,simData.p2dm);
+    plot(1e6*xlocThetae,Thetae(end,:)); hold on;
 end % for
-thesisFormat;
-
-figure; colororder(spring(length(simData.taup)));
-for k = 1:length(simData.taup)
-    taup = simData.taup(k);
-    data = simData.taupSeries(k);
-    Phie = data.output.Phie;  % dim1=time, dim2=xlocation
-    xlocPhie = data.output.xLocs.Phie;
-    [~,indx] = min(abs(xlocPhie-3));
-    indt = data.time<=max(simData.taup);
-    plot(data.time(indt),Phie(indt,indx)); hold on;
-end % for
-thesisFormat;
