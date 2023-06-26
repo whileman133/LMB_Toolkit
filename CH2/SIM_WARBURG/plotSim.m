@@ -10,6 +10,10 @@ clear; close all; clc;
 load('warburgSim.mat');
 labelsW = arrayfun( ...
     @(x)sprintf('$%.3f$',x),simData.W,'UniformOutput',false);
+labelsTaus = arrayfun( ...
+    @(x)sprintf('$%.3f$',x),simData.taus,'UniformOutput',false);
+labelsTaup = arrayfun( ...
+    @(x)sprintf('$%.3f$',x),simData.taup,'UniformOutput',false);
 [Ld,Ls,Lp] = getCellParams(simData.p2dm,'*.L','Output','list');
 
 figure; colororder(spring(length(simData.W)));
@@ -48,38 +52,42 @@ ylabel('Electrolyte potential, $\phi_\mathrm{e}$ [V]','Interpreter','latex');
 title('Pseudo-Steady Electrolyte Potential vs. $\bar{W}$','Interpreter','latex');
 thesisFormat;
 
-figure; colororder(spring(length(simData.taud)));
-for k = 1:length(simData.taud)
-    taud = simData.taud(k);
-    data = simData.taudSeries(k);
-    Phie = data.output.Phie;  % dim1=time, dim2=xlocation
-    xlocPhie = data.output.xLocs.Phie;
-    [~,indx] = min(abs(xlocPhie-1));
-    indt = data.time<=max(simData.taud);
-    plot(data.time(indt),Phie(indt,indx)); hold on;
-end % for
-thesisFormat;
+% figure; colororder(summer(length(simData.taud)));
+% for k = 1:length(simData.taud)
+%     taud = simData.taud(k);
+%     data = simData.taudSeries(k);
+%     Phie = data.output.Phie;  % dim1=time, dim2=xlocation
+%     xlocPhie = data.output.xLocs.Phie;
+%     [~,indx] = min(abs(xlocPhie-1));
+%     indt = data.time<=5*max(simData.taud);
+%     plot(data.time(indt),Phie(indt,indx)); hold on;
+% end % for
+% thesisFormat;
 
-figure; colororder(spring(length(simData.taus)));
+figure; colororder(summer(length(simData.taus)));
 for k = 1:length(simData.taus)
     taus = simData.taus(k);
     data = simData.tausSeries(k);
     Phie = data.output.Phie;  % dim1=time, dim2=xlocation
     xlocPhie = data.output.xLocs.Phie;
     [~,indx] = min(abs(xlocPhie-2));
-    indt = data.time<=max(simData.taus);
+    indt = data.time<=20*max(simData.taus);
     plot(data.time(indt),Phie(indt,indx)); hold on;
 end % for
+legend(labelsTaus{:},'Interpreter','latex','Location','best','NumColumns',5);
 thesisFormat;
+%addInset([0.01 0.1],[0.5 -0.95],2.5);
 
-figure; colororder(spring(length(simData.taup)));
+figure; colororder(summer(length(simData.taup)));
 for k = 1:length(simData.taup)
     taup = simData.taup(k);
     data = simData.taupSeries(k);
     Phie = data.output.Phie;  % dim1=time, dim2=xlocation
     xlocPhie = data.output.xLocs.Phie;
     [~,indx] = min(abs(xlocPhie-3));
-    indt = data.time<=max(simData.taup);
+    indt = data.time<=20*max(simData.taup);
     plot(data.time(indt),Phie(indt,indx)); hold on;
 end % for
+legend(labelsTaup{:},'Interpreter','latex','Location','best','NumColumns',5);
 thesisFormat;
+%addInset([0.1 5],[5 -0.973],2.5);

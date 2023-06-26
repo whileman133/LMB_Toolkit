@@ -11,14 +11,14 @@ TB.addpaths('gen2');
 
 modelName = 'cellLMO-P2DM';  % name of cell spreadsheet file
 soc0Pct = 100;  % initial cell SOC [%]
-socfPct = 99.4; % final cell SOC [%]
+socfPct = 99;   % final cell SOC [%]
 Crate = 1;      % discharge current [C-rate]
 TdegC = 25;     % cell temperature [degC]
 W = logspace(-1,1,10);  % Warburg resistance factor [unitless]
-taud = 0.01:0.02:0.06;  % Warburg time-constant for dll [s]
-taus = 0.1:0.2:0.6;     % Warburg time-constant for sep [s]
+Wtau = 5;               % Warburg resistance factor when varying tau
+taus = 0.1:0.2:0.7;     % Warburg time-constant for sep [s]
 taup = 10:10:40;        % Warburg time-constant for pos [s]
-Ts = min([taud taus taup])/10; % sampling interval [s]
+Ts = min([taus taup])/10; % sampling interval [s]
 
 % Load P2D cell model, convert to WORM.
 p2dm = loadCellModel(modelName);
@@ -34,19 +34,11 @@ for k = length(W):-1:1
         mod,Crate*Q,soc0Pct,socfPct,TdegC,'Ts',Ts,'Verbose',true);
 end
 
-% Run simulations for different taud.
-clear taudSeries;
-for k = length(taus):-1:1
-    p.dll.tauW = taud(k);
-    mod = setCellParam(worm,p);
-    taudSeries(k) = simCC( ...
-        mod,Crate*Q,soc0Pct,socfPct,TdegC,'Ts',Ts,'Verbose',true);
-end
-
 % Run simulations for different taus.
 clear tausSeries;
 for k = length(taus):-1:1
     p.sep.tauW = taus(k);
+    p.const.W = Wtau;
     mod = setCellParam(worm,p);
     tausSeries(k) = simCC( ...
         mod,Crate*Q,soc0Pct,socfPct,TdegC,'Ts',Ts,'Verbose',true);
@@ -56,17 +48,17 @@ end
 clear taupSeries;
 for k = length(taup):-1:1
     p.pos.tauW = taup(k);
+    p.const.W = Wtau;
     mod = setCellParam(worm,p);
     taupSeries(k) = simCC( ...
         mod,Crate*Q,soc0Pct,socfPct,TdegC,'Ts',Ts,'Verbose',true);
 end
 
 simData.W = W;
-simData.taud = taud;
+simData.Wtau = Wtau;
 simData.taus = taus;
 simData.taup = taup;
 simData.WSeries = WSeries;
-simData.taudSeries = taudSeries;
 simData.tausSeries = tausSeries;
 simData.taupSeries = taupSeries;
 simData.p2dm = p2dm;
