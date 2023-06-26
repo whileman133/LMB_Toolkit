@@ -61,7 +61,7 @@ for t0 = timeDesiredPlot
         'Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)], ...
         'FaceColor',[1 1 0 0.1], ...
         'LineStyle',':');
-    xlabel('Position along cell sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
+    xlabel('Position cell along sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
     ylabel('Electrolyte potential, $\phi_\mathrm{e}$ [V]','Interpreter','latex');
     title(sprintf('Electrolyte-Potential Profiles at $t=%.2f\\,\\mathrm{s}$',t0),'Interpreter','latex');
     legend('dll and sep','eff only');
@@ -88,11 +88,11 @@ for t0 = timeDesiredPlot
         'Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)], ...
         'FaceColor',[1 1 0 0.1], ...
         'LineStyle',':');
-    xlabel('Position along cell sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
+    xlabel('Position cell along sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
     ylabel('Salt concentration, $\theta_\mathrm{e}$ [unitless]','Interpreter','latex');
     title(sprintf('Concentration Profiles at $t=%.2f\\,\\mathrm{s}$',t0),'Interpreter','latex');
     legend('dll and sep','eff only');
     thesisFormat;
     print(sprintf('thetae_%dms',t0*1000),'-depsc');
-    print(sprintf('thetae_%dms',t0*1000),'-dpng');
+    print(sprintf('the_%dms',t0*1000),'-dpng');
 end

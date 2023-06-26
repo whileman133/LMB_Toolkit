@@ -19,6 +19,8 @@ Ts = 0.001;
 
 % Load P2D cell model, convert to WORM.
 p2dm = loadCellModel(modelName);
+p.dll.eEps = 0.05;  % make dead-Li layer dense
+p2dm = setCellParam(p2dm,p);
 worm = convertCellModel(p2dm,'WORM');
 rlworm = convertCellModel(worm,'RLWORM');
 Q = getCellParams(worm,'const.Q');

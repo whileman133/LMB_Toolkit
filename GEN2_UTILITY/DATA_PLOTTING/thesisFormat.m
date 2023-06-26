@@ -213,6 +213,12 @@ end
 % Restore figure units.
 fig.Units = figUnits;
 
+% Store metadata to figure.
+metadata.scale = scale;
+metadata.arg = p;
+metadata.origin__ = 'thesisFormat';
+fig.UserData = metadata;
+
 % - Finish up -
 % Handle axes-limit option.
 if strcmpi(p.AxesLimits,'Nyquist')

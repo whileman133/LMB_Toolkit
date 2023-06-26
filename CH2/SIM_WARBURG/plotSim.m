@@ -20,11 +20,12 @@ for k = 1:length(simData.W)
     plot(1e6*xlocThetae,Thetae(end,:)); hold on;
 end % for
 xlim(1e6*[0 Ld+Ls+Lp]);
+ylim(ylim());
 rectangle('Position',[0, gca().YLim(1), Ld*1e6, diff(gca().YLim)],'FaceColor',[0 1 0 0.1],'LineStyle',':');
 rectangle('Position',[Ld*1e6, gca().YLim(1), Ls*1e6, diff(gca().YLim)],'FaceColor',[0 0.5 1 0.1],'LineStyle',':');
-rectangle('Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)],'FaceColor',[1 0.5 0 0.1],'LineStyle',':');
+rectangle('Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)],'FaceColor',[1 1 0 0.1],'LineStyle',':');
 legend(labelsW{:},'Interpreter','latex','Location','best','NumColumns',5);
-xlabel('Position cell along sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
+xlabel('Position along cell sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
 ylabel('Salt concentration, $\theta_\mathrm{e}$ [unitless]','Interpreter','latex');
 title('Pseudo-Steady Concentration Profiles vs. $\bar{W}$','Interpreter','latex');
 thesisFormat;
@@ -37,9 +38,10 @@ for k = 1:length(simData.W)
     plot(1e6*xlocPhie,Phie(end,:)); hold on;
 end % for
 xlim(1e6*[0 Ld+Ls+Lp]);
+ylim(ylim());
 rectangle('Position',[0, gca().YLim(1), Ld*1e6, diff(gca().YLim)],'FaceColor',[0 1 0 0.1],'LineStyle',':');
 rectangle('Position',[Ld*1e6, gca().YLim(1), Ls*1e6, diff(gca().YLim)],'FaceColor',[0 0.5 1 0.1],'LineStyle',':');
-rectangle('Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)],'FaceColor',[1 0.5 0 0.1],'LineStyle',':');
+rectangle('Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)],'FaceColor',[1 1 0 0.1],'LineStyle',':');
 legend(labelsW{:},'Interpreter','latex','Location','best','NumColumns',5);
 xlabel('Position along cell sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
 ylabel('Electrolyte potential, $\phi_\mathrm{e}$ [V]','Interpreter','latex');
