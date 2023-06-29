@@ -1,1 +1,11 @@
+# Don't commit any data.
 *.mat
+*.MAT
+*.dta
+*.DTA
+
+# Don't commit any images.
+*.eps
+*.EPS
+*.png
+*.PNG

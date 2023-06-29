@@ -9,11 +9,13 @@
 clear; close all; clc;
 load('warburgSim.mat');
 labelsW = arrayfun( ...
-    @(x)sprintf('$%.3f$',x),simData.W,'UniformOutput',false);
+    @(x)sprintf('$\\bar{W}=%.3f$',x),simData.W,'UniformOutput',false);
 labelsTaus = arrayfun( ...
-    @(x)sprintf('$%.3f$',x),simData.taus,'UniformOutput',false);
+    @(x)sprintf('$\\bar{\\tau}_\\mathrm{W}^\\mathrm{s}=%.3f$',x), ...
+    simData.taus,'UniformOutput',false);
 labelsTaup = arrayfun( ...
-    @(x)sprintf('$%.3f$',x),simData.taup,'UniformOutput',false);
+    @(x)sprintf('$\\bar{\\tau}_\\mathrm{W}^\\mathrm{p}=%.3f$',x), ...
+    simData.taup,'UniformOutput',false);
 [Ld,Ls,Lp] = getCellParams(simData.p2dm,'*.L','Output','list');
 
 figure; colororder(spring(length(simData.W)));
@@ -25,14 +27,18 @@ for k = 1:length(simData.W)
 end % for
 xlim(1e6*[0 Ld+Ls+Lp]);
 ylim(ylim());
-rectangle('Position',[0, gca().YLim(1), Ld*1e6, diff(gca().YLim)],'FaceColor',[0 1 0 0.1],'LineStyle',':');
-rectangle('Position',[Ld*1e6, gca().YLim(1), Ls*1e6, diff(gca().YLim)],'FaceColor',[0 0.5 1 0.1],'LineStyle',':');
-rectangle('Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)],'FaceColor',[1 1 0 0.1],'LineStyle',':');
-legend(labelsW{:},'Interpreter','latex','Location','best','NumColumns',5);
+r1 = rectangle('Position',[0, gca().YLim(1), Ld*1e6, diff(gca().YLim)],'FaceColor',[0 1 0 0.1],'LineStyle','-');
+r2 = rectangle('Position',[Ld*1e6, gca().YLim(1), Ls*1e6, diff(gca().YLim)],'FaceColor',[0 0.5 1 0.1],'LineStyle','-');
+r3 = rectangle('Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)],'FaceColor',[1 1 0 0.1],'LineStyle','-');
+uistack([r1 r2 r3],'bottom');
+set(gca, 'layer', 'top');
+legend(labelsW{:},'Interpreter','latex','Location','best','NumColumns',2);
 xlabel('Position along cell sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
 ylabel('Salt concentration, $\theta_\mathrm{e}$ [unitless]','Interpreter','latex');
-title('Pseudo-Steady Concentration Profiles vs. $\bar{W}$','Interpreter','latex');
+title('Pseudo-Steady Concentration Profiles','Interpreter','latex');
 thesisFormat;
+print('thetaex-W','-depsc');
+print('thetaex-W','-dpng');
 
 figure; colororder(spring(length(simData.W)));
 for k = 1:length(simData.W)
@@ -43,26 +49,18 @@ for k = 1:length(simData.W)
 end % for
 xlim(1e6*[0 Ld+Ls+Lp]);
 ylim(ylim());
-rectangle('Position',[0, gca().YLim(1), Ld*1e6, diff(gca().YLim)],'FaceColor',[0 1 0 0.1],'LineStyle',':');
-rectangle('Position',[Ld*1e6, gca().YLim(1), Ls*1e6, diff(gca().YLim)],'FaceColor',[0 0.5 1 0.1],'LineStyle',':');
-rectangle('Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)],'FaceColor',[1 1 0 0.1],'LineStyle',':');
-legend(labelsW{:},'Interpreter','latex','Location','best','NumColumns',5);
+r1 = rectangle('Position',[0, gca().YLim(1), Ld*1e6, diff(gca().YLim)],'FaceColor',[0 1 0 0.1],'LineStyle','-');
+r2 = rectangle('Position',[Ld*1e6, gca().YLim(1), Ls*1e6, diff(gca().YLim)],'FaceColor',[0 0.5 1 0.1],'LineStyle','-');
+r3 = rectangle('Position',[(Ld+Ls)*1e6, gca().YLim(1), Lp*1e6, diff(gca().YLim)],'FaceColor',[1 1 0 0.1],'LineStyle','-');
+uistack([r1 r2 r3],'bottom');
+set(gca, 'layer', 'top');
+%legend(labelsW{:},'Interpreter','latex','Location','best','NumColumns',2);
 xlabel('Position along cell sandwich, $x$ [$\mu \mathrm{m}$]','Interpreter','latex');
-ylabel('Electrolyte potential, $\phi_\mathrm{e}$ [V]','Interpreter','latex');
-title('Pseudo-Steady Electrolyte Potential vs. $\bar{W}$','Interpreter','latex');
+ylabel('Liquid-Phase potential, $\phi_\mathrm{e}$ [V]','Interpreter','latex');
+title('Pseudo-Steady Electrolyte-Potential Profiles','Interpreter','latex');
 thesisFormat;
-
-% figure; colororder(summer(length(simData.taud)));
-% for k = 1:length(simData.taud)
-%     taud = simData.taud(k);
-%     data = simData.taudSeries(k);
-%     Phie = data.output.Phie;  % dim1=time, dim2=xlocation
-%     xlocPhie = data.output.xLocs.Phie;
-%     [~,indx] = min(abs(xlocPhie-1));
-%     indt = data.time<=5*max(simData.taud);
-%     plot(data.time(indt),Phie(indt,indx)); hold on;
-% end % for
-% thesisFormat;
+print('phiex-W','-depsc');
+print('phiex-W','-dpng');
 
 figure; colororder(summer(length(simData.taus)));
 for k = 1:length(simData.taus)
@@ -74,9 +72,14 @@ for k = 1:length(simData.taus)
     indt = data.time<=20*max(simData.taus);
     plot(data.time(indt),Phie(indt,indx)); hold on;
 end % for
-legend(labelsTaus{:},'Interpreter','latex','Location','best','NumColumns',5);
+title('Potential at sep-pos Interface vs. Time', ...
+    'Interpreter','latex');
+xlabel('Time, $t$ [s]','Interpreter','latex');
+ylabel('Liquid-Phase Potential, $\phi_\mathrm{e}$ [V]','Interpreter','latex');
+legend(labelsTaus{:},'Interpreter','latex','Location','best');
 thesisFormat;
-%addInset([0.01 0.1],[0.5 -0.95],2.5);
+print('phie2t-taus','-depsc');
+print('phie2t-taus','-dpng');
 
 figure; colororder(summer(length(simData.taup)));
 for k = 1:length(simData.taup)
@@ -88,6 +91,11 @@ for k = 1:length(simData.taup)
     indt = data.time<=20*max(simData.taup);
     plot(data.time(indt),Phie(indt,indx)); hold on;
 end % for
-legend(labelsTaup{:},'Interpreter','latex','Location','best','NumColumns',5);
+title('Potential at pos Current-Collector vs. Time',...
+    'Interpreter','latex');
+xlabel('Time, $t$ [s]','Interpreter','latex');
+ylabel('Liquid-Phase Potential, $\phi_\mathrm{e}$ [V]','Interpreter','latex');
+legend(labelsTaup{:},'Interpreter','latex','Location','best');
 thesisFormat;
-%addInset([0.1 5],[5 -0.973],2.5);
+print('phie3t-taup','-depsc');
+print('phie3t-taup','-dpng');
