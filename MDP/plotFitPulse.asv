@@ -1,0 +1,35 @@
+% plotFitPulse.m
+
+clear; close all; clc;
+if ~exist('TOOLBOX_LMB','dir')
+    % bootstrap the toolbox
+    addpath('..');
+    TB.addPaths();
+end
+
+fileName = 'cellLMO-Lumped-MSMR-50pct-100mA-25degC-fixPsi';
+load(fullfile('fitdata',[fileName '.mat']));
+
+
+
+function compare(est,truth,prefix)
+    if exist('prefix','var')
+        prefix = [' ' prefix];
+    else
+        prefix = '';
+        
+    end
+    paramNames = fieldnames(est);
+    for k = 1:length(paramNames)
+        paramName = paramNames{k};
+        estValue = est.(paramName);
+        trueValue = truth.(paramName);
+        if isstruct(estValue)
+            compare(estValue,trueValue,paramName);
+        else
+            pctError = 100*(trueValue-estValue)/trueValue;
+            fprintf('%s.%s: %.3e %.3e %.3f%%\n', ...
+                prefix,paramName,trueValue,estValue,pctError);
+        end
+    end
+end
