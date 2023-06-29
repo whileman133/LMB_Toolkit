@@ -9,3 +9,6 @@
 *.EPS
 *.png
 *.PNG
+
+# Don't commit MATLAB autosave files.
+*.asv
