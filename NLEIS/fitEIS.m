@@ -6,8 +6,13 @@
 % 2023.06.29 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
-ocpExpirementName = 'SionFresh_0C01';         % file w/ regressed OCP data
+addpath('..');
+TB.addpaths();
+
+% Constants.
 eisExpirementName = '(NL)EIS-SionCell395534'; % directory w/ raw EIS data
+ocpExpirementName = 'SionFresh_0C01';         % file w/ regressed OCP data
+initialCellModelName = 'cellSionGuess-P2DM';  % model w/ initial param values
 
 % Load lab impedance spectra.
 spectra = loadLabNLEIS( ...
@@ -18,11 +23,10 @@ warning('off','MATLAB:dispatcher:UnresolvedFunctionHandle');
 ocpData = load( ...
     fullfile(TB.const.OCPROOT,'labdata','fitstruct',ocpExpirementName));
 [TdegC,indTemp] = max(ocpData.study.testTemperatures);
-ocpmodel = ocpData.study.tests(indTemp).MSMR;
-ocpData = load( ...
-    fullfile(TB.const.OCPROOT,'labdata','builtstruct',ocpExpirementName));
-indTemp = find(ocpData.study.testTemperatures==TdegC,1,'first');
-ocptest = ocpData.study.tests(indTemp);
+ocpfit = ocpData.study.tests(indTemp);
+
+% Load initial model.
+initialModel = loadCellModel(initialCellModelName);
 
 % Perform regression.
-fitLinearEIS(spectra,ocptest,ocpmodel);
+fitLinearEIS(spectra,ocpfit,initialModel);

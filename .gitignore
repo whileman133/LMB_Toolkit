@@ -12,3 +12,5 @@
 
 # Don't commit MATLAB autosave files.
 *.asv
+
+~*

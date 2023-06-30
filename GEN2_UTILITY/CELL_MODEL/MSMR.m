@@ -81,7 +81,7 @@ classdef MSMR < handle
             p.addParameter('TdegC',25);
             p.addParameter('name','');
             p.addParameter('reference','');
-            p.addParameter('sortParams',true,@islogical);
+            p.addParameter('sortParams',false,@islogical);
             p.parse(params, varargin{:});
             TdegC = p.Results.TdegC;
             T = TdegC+273.15;
@@ -241,8 +241,11 @@ classdef MSMR < handle
                 theta = Z;
             end
 
-            data.xj = xj;
+            data.Uocp = Uocp;
+            data.dUocp = dUocp;
             data.d2Uocp = d2Uocp;
+            data.theta = theta;
+            data.xj = xj;
             data.TdegC = TdegC;
             data.f = f;
             data.npoints = npoints;
@@ -400,7 +403,8 @@ classdef MSMR < handle
             obj = MSMR(params,'neg', ...
                 'name','C6 Electrode', ...
                 'reference',['Mark Verbrugge et al. 2017 J. ' ...
-                             'Electrochem. Soc. 164 E3243']);
+                             'Electrochem. Soc. 164 E3243'], ...
+                'sortParams',true);
         end
 
         function obj = NMC622()
@@ -413,7 +417,8 @@ classdef MSMR < handle
             obj = MSMR(params,'pos', ...
                 'name','NMC622 Electrode', ...
                 'reference',['Mark Verbrugge et al. 2017 J. ' ...
-                             'Electrochem. Soc. 164 E3243']);
+                             'Electrochem. Soc. 164 E3243'], ...
+                'sortParams',true);
         end
 
         function obj = LMO()
@@ -426,7 +431,8 @@ classdef MSMR < handle
             obj = MSMR(params,'pos', ...
                 'name','LMO Electrode', ...
                 'reference',['Daniel R. Baker and Mark W. Verbrugge 2021 ' ...
-                             'J. Electrochem. Soc. 168 050526']);
+                             'J. Electrochem. Soc. 168 050526'], ...
+                'sortParams',true);
         end
     end
 end

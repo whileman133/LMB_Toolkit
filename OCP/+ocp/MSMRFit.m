@@ -27,6 +27,8 @@ classdef MSMRFit < handle
             s.MSMR.omega = obj.model.Wj;
             s.MSMR.zmin = obj.model.zmin;
             s.MSMR.zmax = obj.model.zmax;
+            s.MSMR.J = length(obj.model.Xj);
+            s.ocptest = obj.ocpest.ocptest.toStruct();
         end
     end
 end
