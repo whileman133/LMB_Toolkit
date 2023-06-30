@@ -15,6 +15,7 @@
 
 clear; clc; close all;
 addpath('..');
+TB.addpaths();
 
 % Name of the study to build.
 STUDYNAME = 'SionFresh_0C01';

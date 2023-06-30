@@ -2,7 +2,7 @@ function addpaths(varargin)
     %ADDPATHS Add all LMB toolbox directories to the MATLAB path.
 
     parser = inputParser;
-    parser.addOptional('prefix','gen1',@ischar);
+    parser.addOptional('prefix','gen2',@ischar);
     parser.parse(varargin{:});
     prefix = parser.Results.prefix;
     if ~isempty(prefix)

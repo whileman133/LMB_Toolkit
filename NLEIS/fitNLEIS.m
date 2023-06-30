@@ -8,7 +8,7 @@
 
 clear; close all; clc;
 addpath('..');
-TB.addPaths();
+TB.addpaths();
 
 % Load simulated lab spectra.
 simName = 'cellLMO-Lumped-MSMR-30mA-socSeries';
