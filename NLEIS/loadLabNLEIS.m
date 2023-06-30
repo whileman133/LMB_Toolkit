@@ -39,14 +39,14 @@ parser = inputParser;
 parser.addRequired('expDir',@(x)ischar(x)||isstring(x));
 parser.addParameter('MaxFreqBands',10,@(x)isscalar(x)&&isinteger(x)&&x>=1);
 parser.parse(expDir,varargin{:});
-p = parser.Results; % structure of validated arguments
+arg = parser.Results; % structure of validated arguments
 
 expSpec = load(fullfile(expDir,'Parameters.mat'));
 
 % Parse linear EIS --------------------------------------------------------
 
 % Determine number of frequency bands included.
-for j = 1:p.MaxFreqBands
+for j = 1:arg.MaxFreqBands
     fieldname = sprintf('eis%d_filenames',j);
     if ~isfield(expSpec,fieldname)
         break;
@@ -85,7 +85,7 @@ spectra.lin.ocv = [bands.ocv].';
 % Parse nonlinear EIS -----------------------------------------------------
 
 % Determine number of frequency bands included.
-for j = 1:p.MaxFreqBands
+for j = 1:arg.MaxFreqBands
     fieldname = sprintf('nleis%d_filenames',j);
     if ~isfield(expSpec,fieldname)
         break;
@@ -147,9 +147,7 @@ spectra.instrumentName = expSpec.instrument;
 spectra.linDriftCorrect = expSpec.enable_drift_correct;
 
 spectra.experimentSpec = expSpec;
-spectra.param = p;
-spectra.origin__ = 'processLabNLEIS';
+spectra.arg = arg;
+spectra.origin__ = 'loadLabNLEIS';
 
 end
-
-

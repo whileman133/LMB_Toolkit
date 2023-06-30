@@ -78,9 +78,6 @@ classdef MSMR < handle
 
             p = inputParser;
             p.addRequired('params',@(x)isstruct(x));
-            % Depricated, but included for compatibility with legacy code.
-            p.addOptional('electrode','', ...
-                @(x)isempty(x)||strcmpi(x,'pos')||strcmpi(x,'neg'));
             p.addParameter('TdegC',25);
             p.addParameter('name','');
             p.addParameter('reference','');
@@ -92,8 +89,13 @@ classdef MSMR < handle
             reference = p.Results.reference;
             sortParams = p.Results.sortParams;
 
-            zmin = params.theta100;
-            zmax = params.theta0;
+            if all(isfield(params,{'theta0','theta100'}))
+                zmin = params.theta100;
+                zmax = params.theta0;
+            else
+                zmin = params.zmin;
+                zmax = params.zmax;
+            end
             if isa(zmin,'function_handle'), zmin = zmin(0,T); end
             if isa(zmax,'function_handle'), zmax = zmax(0,T); end
             if zmin>zmax
