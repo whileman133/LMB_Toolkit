@@ -25,7 +25,7 @@ zmin = ocpmodel.zmin;
 zmax = ocpmodel.zmax;
 QdisAhCum = cumsum(labSpectra.QdisAh);
 socTrue = 100*(1-QdisAhCum/ocptest.QAh);
-theta = ocpmodel.zmax + (socTrue/100)*(zmin-zmax);
+theta = zmax + (socTrue/100)*(zmin-zmax);
 nsoc = length(socTrue);
 
 % Precompute Uocp, d(Uocp)/d(theta), xj at each SOC setpoint.
@@ -38,7 +38,9 @@ initialModel = convertCellModel(initialModel,'RLWORM');
 initial = getCellParams(initialModel,'TdegC',labSpectra.TdegC);
 
 % Fetch linear impedance measured in the laboratory.
+freqLab = labSpectra.lin.freq;
 Zlab = labSpectra.lin.Z;
+TdegC = labSpectra.TdegC;
 
 % Build model -------------------------------------------------------------
 % Known parameters.
@@ -71,10 +73,10 @@ params.neg.alpha = fastopt.param('fix',0.5);
 % the value predicted by the Einstien relationship.
 params.const.psi = fastopt.param('fix',R/F/(1-tplus0));
 params.const.W = fastopt.param;
-params.pos.tauW = fastopt.param;
-params.pos.kappa = fastopt.param;
-params.eff.tauW = fastopt.param;
-params.eff.kappa = fastopt.param;
+params.pos.tauW = fastopt.param('logscale',true);
+params.pos.kappa = fastopt.param('logscale',true);
+params.eff.tauW = fastopt.param('logscale',true);
+params.eff.kappa = fastopt.param('logscale',true);
 
 % Porous electrode parameters.
 params.pos.Dsref = fastopt.param('logscale',true);
@@ -86,7 +88,7 @@ params.pos.nDL = fastopt.param;
 params.pos.Rf = fastopt.param;
 
 % Lithium-metal electrode parameters.
-params.neg.k0 = fastopt.param;
+params.neg.k0 = fastopt.param('logscale',true);
 params.neg.Cdl = fastopt.param;
 params.neg.nDL = fastopt.param;
 
@@ -102,77 +104,138 @@ init = initial;
 
 % Electrolyte parameters.
 lb.const.W = 0.1;                   ub.const.W = 10;
-lb.eff.tauW = init.eff.tauW/10;     ub.eff.tauW = init.eff.tauW*10;
-lb.pos.tauW = init.pos.tauW/10;     ub.pos.tauW = init.pos.tauW*10;
-lb.eff.kappa = init.eff.kappa/10;   ub.eff.kappa = init.eff.kappa*10;
-lb.pos.kappa = init.pos.kappa/10;   ub.pos.kappa = init.pos.kappa*10;
+lb.eff.tauW = init.eff.tauW/100;    ub.eff.tauW = init.eff.tauW*100;
+lb.pos.tauW = init.pos.tauW/100;    ub.pos.tauW = init.pos.tauW*100;
+lb.eff.kappa = init.eff.kappa/100;  ub.eff.kappa = init.eff.kappa*100;
+lb.pos.kappa = init.pos.kappa/100;  ub.pos.kappa = init.pos.kappa*100;
 
 % Porous-electrode parameters.
-lb.pos.Dsref = init.pos.Dsref/100;  ub.pos.Dsref = init.pos.Dsref*100;
-lb.pos.nF = 0.3;                    ub.pos.nF = 1;
-lb.pos.k0 = init.pos.k0/100;        ub.pos.k0 = init.pos.k0*100;
+lb.pos.Dsref = init.pos.Dsref/1000; ub.pos.Dsref = init.pos.Dsref*1000;
+lb.pos.nF = 0.5;                    ub.pos.nF = 1;
+lb.pos.k0 = 1e-6*ones(ocpmodel.J,1);ub.pos.k0 = 1e6*ones(ocpmodel.J,1);
 lb.pos.sigma = init.pos.sigma/10;   ub.pos.sigma = init.pos.sigma*10;
 lb.pos.Cdl = init.pos.Cdl/10;       ub.pos.Cdl = init.pos.Cdl*10;
-lb.pos.nDL = 0.1;                   ub.pos.nDL = 1;
+lb.pos.nDL = 0.5;                   ub.pos.nDL = 1;
 lb.pos.Rf = init.pos.Rf/100;        ub.pos.Rf = init.pos.Rf*100;
 
 % Lithium-metal electrode parameters.
-lb.neg.k0 = init.neg.k0/100;        ub.neg.k0 = init.neg.k0*100;
+lb.neg.k0 = init.neg.k0/1000;       ub.neg.k0 = init.neg.k0*1000;
 lb.neg.Cdl = init.neg.Cdl/10;       ub.neg.Cdl = init.neg.Cdl*10;
-lb.neg.nDL = 0.1;                   ub.neg.nDL = 1;
+lb.neg.nDL = 0.5;                   ub.neg.nDL = 1;
 
 % Cell package parameters.
-lb.pkg.R0 = init.pkg.R0/10;         ub.pkg.R0 = init.pkg.R0*10;
-lb.pkg.L0 = init.pkg.L0/100;        ub.pkg.L0 = init.pkg.L0*10;
+lb.pkg.R0 = 0;                      ub.pkg.R0 = init.pkg.R0*10;
+lb.pkg.L0 = 0;                      ub.pkg.L0 = init.pkg.L0*10;
+
+% Let the user adjust the initial values and bounds.
+linesNyquist = gobjects(nsoc,1);
+lineRctp = gobjects(1,1);
+linesRctjp = gobjects(ocpmodel.J,1);
+[init,lb,ub] = fastopt.tweekgui( ...
+    modelspec,init,lb,ub,@initializeUIPlot,@updateUIPlot);
 
 % Perform regression ------------------------------------------------------
 
-bestJ = Inf;
-lines = gobjects(nsoc,1);
-figure(1);
-l = tiledlayout(4,ceil(nsoc/4));
-l.Title.String = 'Linear EIS Regression';
-l.YLabel.String = '-Z'''' [\Omega]';
-l.XLabel.String = 'Z'' [\Omega]';
-for k = 1:nsoc
-    nexttile(k);
-    plot(real(Zlab(:,k)),-imag(Zlab(:,k)),'b.'); hold on;
-    lines(k) = plot(NaN,NaN,'r-');
-    title(sprintf('%.0f%% SOC',socTrue(k)));
-    setAxesNyquist;
-end
-thesisFormat('FigSizeInches',[15 9]);
-
-[estimate, trajectory] = fastopt.particleswarm( ...
+estimate = fastopt.particleswarm( ...
     @cost,modelspec, ...
     fastopt.pack(lb,modelspec,'coerce',true), ...
     fastopt.pack(ub,modelspec,'coerce',true), ...
     'initial',fastopt.pack(init,modelspec,'coerce',true), ...
-    'particleCount',5000,'swarmIterations',200, ...
-    'fminconIterations',10000,'trackTrajectory',true);
+    'particleCount',5000,'swarmIterations',10, ...
+    'fminconIterations',1000,'trackTrajectory',false, ...
+    'hybrid','none');
 regressionData.estimate = estimate;
-regressionData.trajectory = trajectory;
+
+[est2,lb2,ub2] = fastopt.tweekgui( ...
+    modelspec,estimate,lb,ub,@initializeUIPlot,@updateUIPlot);
 
 function J = cost(model)
     % Calculate impedance predicted by the linear EIS model.
-    Zmodel = getModelImpedance( ...
-        model,labSpectra.lin.freq,socTrue,labSpectra.TdegC,ocpData);
+    Zmodel = getModelImpedance(model,freqLab,socTrue,TdegC,ocpData);
 
     % Compute total residual between model impedance and measured
     % impedance across all spectra.
     J = sum((abs(Zmodel-Zlab)./abs(Zlab)).^2,'all');
-
-    if J < bestJ
-        bestJ = J;
-        figure(1);
-        for idxSOC = 1:nsoc
-            nexttile(idxSOC);
-            lines(idxSOC).XData = real(Zmodel(:,idxSOC));
-            lines(idxSOC).YData = -imag(Zmodel(:,idxSOC));
-        end
-        drawnow;
-    end % if
 end % cost()
+
+function initializeUIPlot(parent,~,~,~)
+    gridtop = uigridlayout(parent,[1 2]);
+    gridtop.ColumnWidth = {'3x','1x'};
+    gridplots = uigridlayout(gridtop,[5 ceil(nsoc/5)]);
+    for k = 1:nsoc
+        ax = uiaxes(gridplots);
+        ax.PlotBoxAspectRatioMode = 'manual';
+        ax.PlotBoxAspectRatio = [2/(sqrt(5)-1) 1 1];
+        ax.LineWidth = 1;
+        ax.FontName = 'Times';
+        ax.FontSize = 11;
+        ax.TitleFontWeight = 'normal';
+        ax.TitleFontSizeMultiplier = 1.2;
+        ax.LabelFontSizeMultiplier = 1.1;
+        ax.XMinorTick = 'on';
+        ax.YMinorTick = 'on';
+        plot(ax,real(Zlab(:,k)),-imag(Zlab(:,k)),'b.');
+        hold(ax,'on');
+        linesNyquist(k) = plot(ax,NaN,NaN,'r-');
+        title(ax,sprintf('%.0f%% SOC',socTrue(k)));
+        setAxesNyquist('axes',ax);
+    end
+    gridsecplots = uigridlayout(gridtop,[2 1]);
+    ax = uiaxes(gridsecplots);
+    ax.PlotBoxAspectRatioMode = 'manual';
+    ax.PlotBoxAspectRatio = [2/(sqrt(5)-1) 1 1];
+    ax.LineWidth = 1;
+    ax.FontName = 'Times';
+    ax.FontSize = 11;
+    ax.TitleFontWeight = 'normal';
+    ax.TitleFontSizeMultiplier = 1.2;
+    ax.LabelFontSizeMultiplier = 1.1;
+    ax.XMinorTick = 'on';
+    ax.YMinorTick = 'on';
+    lineRctp(1) = semilogy(ax,NaN,NaN,'k-');
+    title(ax,'R_{ct}^p vs SOC');
+    ax = uiaxes(gridsecplots);
+    ax.PlotBoxAspectRatioMode = 'manual';
+    ax.PlotBoxAspectRatio = [2/(sqrt(5)-1) 1 1];
+    ax.LineWidth = 1;
+    ax.FontName = 'Times';
+    ax.FontSize = 11;
+    ax.TitleFontWeight = 'normal';
+    ax.TitleFontSizeMultiplier = 1.2;
+    ax.LabelFontSizeMultiplier = 1.1;
+    ax.XMinorTick = 'on';
+    ax.YMinorTick = 'on';
+    for k = 1:length(linesRctjp)
+        linesRctjp(k) = semilogy(ax,NaN,NaN,'-');
+        hold(ax,'on');
+    end
+    title(ax,'R_{ct,j}^p vs SOC');
+end % initializeUIPlot()
+
+function updateUIPlot(~,model,~,~)
+    % Calculate impedance predicted by the linear EIS model.
+    Zmodel = getModelImpedance(model,freqLab,socTrue,TdegC,ocpData);
+
+    % Calculate Rctp predicted by the perturbation model.
+    socPct = linspace(0,100,100);
+    t = zmax + (socPct/100)*(zmin-zmax);
+    pData = getPerturbationResistance( ...
+        model,t,'TdegC',TdegC,'ComputeRctj',true);
+    Rctp = pData.parts.Rct_p;
+    Rctpj = pData.parts.Rctj_p;
+
+    % Update model predictions on plots.
+    for idxSOC = 1:nsoc
+        linesNyquist(idxSOC).XData = real(Zmodel(:,idxSOC));
+        linesNyquist(idxSOC).YData = -imag(Zmodel(:,idxSOC));
+    end
+    lineRctp.XData = socPct;
+    lineRctp.YData = Rctp;
+    for j = 1:ocpmodel.J
+        linesRctjp(j).XData = socPct;
+        linesRctjp(j).YData = Rctpj(j,:);
+    end
+end % updateUIPlot()
 
 end % fitLinearEIS()
 
@@ -194,7 +257,7 @@ function Zmodel = getModelImpedance(model,freq,socPct,TdegC,ocpData)
     tfData = tfLMB(s,model,'TdegC',TdegC,'Calc11',false,'Calc22',false);
     baseParam = tfData.param;
 
-    parfor k = 1:nsoc
+    for k = 1:nsoc
         param = baseParam;
         ocpdata = ocpData;
         mod = model;

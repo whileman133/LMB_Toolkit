@@ -58,7 +58,7 @@ parser.addParameter( ...
     'edges','inframe',@(x)strcmp(x,'close')||strcmp(x,'inframe'));
 parser.addParameter('padxPct',3,@(x)isscalar(x)&&x>=0);
 parser.addParameter('padyPct',3,@(x)isscalar(x)&&x>=0);
-parser.addParameter('axes',gca);
+parser.addParameter('axes',[]);
 parser.addParameter('xdata',[]);
 parser.addParameter('ydata',[]);
 parser.parse(varargin{:});
@@ -67,6 +67,9 @@ edges = p.edges;
 padxPct = p.padxPct;
 padyPct = p.padyPct;
 ax = p.axes;
+if isempty(ax)
+    ax = gca();
+end
 fig = ax.Parent;
 xdata = p.xdata;
 ydata = p.ydata;
