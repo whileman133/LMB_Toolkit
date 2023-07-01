@@ -91,6 +91,9 @@ for s = 1:length(secNames)
 
     l = struct;
     switch secMeta.type
+        case 'Package'
+            l.R0 = genNumericParam('R0',p.(secName).R0,0,'Ohm');
+            l.L0 = genNumericParam('L0',p.(secName).L0,0,'H');
         case 'Global'
             kD = 2*R*(p.const.t0plus-1)*(1+p.const.dlnfdlnc)/F; % [V/K]
             psi = F*p.const.De*p.const.ce0/p.const.kappa/(1-p.const.t0plus)/p.const.Tref; % [V/K]

@@ -1,6 +1,0 @@
-function newCellModel = setCellParamValues(oldCellModel)
-%SETNUMERICALPARAMS Update reference values of numerical parameters.
-
-
-
-end

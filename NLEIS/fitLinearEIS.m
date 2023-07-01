@@ -23,8 +23,10 @@ ocptest = labOCPFit.ocptest;
 % Compute true SOC and lithiation for each SOC setpoint.
 zmin = ocpmodel.zmin;
 zmax = ocpmodel.zmax;
-socTrue = 100*(1-labSpectra.QdisAh/ocptest.QAh);
+QdisAhCum = cumsum(labSpectra.QdisAh);
+socTrue = 100*(1-QdisAhCum/ocptest.QAh);
 theta = ocpmodel.zmax + (socTrue/100)*(zmin-zmax);
+nsoc = length(socTrue);
 
 % Precompute Uocp, d(Uocp)/d(theta), xj at each SOC setpoint.
 % Later used to compute Rct(p) inside optimization loop.
@@ -34,6 +36,9 @@ theta = ocpmodel.zmax + (socTrue/100)*(zmin-zmax);
 % Fetch initial values of model parameters.
 initialModel = convertCellModel(initialModel,'RLWORM');
 initial = getCellParams(initialModel,'TdegC',labSpectra.TdegC);
+
+% Fetch linear impedance measured in the laboratory.
+Zlab = labSpectra.lin.Z;
 
 % Build model -------------------------------------------------------------
 % Known parameters.
@@ -74,7 +79,7 @@ params.eff.kappa = fastopt.param;
 % Porous electrode parameters.
 params.pos.Dsref = fastopt.param('logscale',true);
 params.pos.nF = fastopt.param;
-params.pos.k0 = fastopt.param('len',ocpmodel.J);
+params.pos.k0 = fastopt.param('len',ocpmodel.J,'logscale',true);
 params.pos.sigma = fastopt.param;
 params.pos.Cdl = fastopt.param;
 params.pos.nDL = fastopt.param;
@@ -120,4 +125,109 @@ lb.neg.nDL = 0.1;                   ub.neg.nDL = 1;
 lb.pkg.R0 = init.pkg.R0/10;         ub.pkg.R0 = init.pkg.R0*10;
 lb.pkg.L0 = init.pkg.L0/100;        ub.pkg.L0 = init.pkg.L0*10;
 
+% Perform regression ------------------------------------------------------
+
+bestJ = Inf;
+lines = gobjects(nsoc,1);
+figure(1);
+l = tiledlayout(4,ceil(nsoc/4));
+l.Title.String = 'Linear EIS Regression';
+l.YLabel.String = '-Z'''' [\Omega]';
+l.XLabel.String = 'Z'' [\Omega]';
+for k = 1:nsoc
+    nexttile(k);
+    plot(real(Zlab(:,k)),-imag(Zlab(:,k)),'b.'); hold on;
+    lines(k) = plot(NaN,NaN,'r-');
+    title(sprintf('%.0f%% SOC',socTrue(k)));
+    setAxesNyquist;
 end
+thesisFormat('FigSizeInches',[15 9]);
+
+[estimate, trajectory] = fastopt.particleswarm( ...
+    @cost,modelspec, ...
+    fastopt.pack(lb,modelspec,'coerce',true), ...
+    fastopt.pack(ub,modelspec,'coerce',true), ...
+    'initial',fastopt.pack(init,modelspec,'coerce',true), ...
+    'particleCount',5000,'swarmIterations',200, ...
+    'fminconIterations',10000,'trackTrajectory',true);
+regressionData.estimate = estimate;
+regressionData.trajectory = trajectory;
+
+function J = cost(model)
+    % Calculate impedance predicted by the linear EIS model.
+    Zmodel = getModelImpedance( ...
+        model,labSpectra.lin.freq,socTrue,labSpectra.TdegC,ocpData);
+
+    % Compute total residual between model impedance and measured
+    % impedance across all spectra.
+    J = sum((abs(Zmodel-Zlab)./abs(Zlab)).^2,'all');
+
+    if J < bestJ
+        bestJ = J;
+        figure(1);
+        for idxSOC = 1:nsoc
+            nexttile(idxSOC);
+            lines(idxSOC).XData = real(Zmodel(:,idxSOC));
+            lines(idxSOC).YData = -imag(Zmodel(:,idxSOC));
+        end
+        drawnow;
+    end % if
+end % cost()
+
+end % fitLinearEIS()
+
+function Zmodel = getModelImpedance(model,freq,socPct,TdegC,ocpData)
+    %GETMODELIMPEDANCE Calculate impedance from TFs at set of frequency and
+    %  SOC points.
+    nfreq = length(freq);
+    nsoc = length(socPct);
+    s = 1j*2*pi*freq;  % Laplace variable
+    Zmodel = zeros(nfreq,nsoc);
+
+    % Evalulate values of SOC-invariant parameters.
+    % Hack to prevent tfLMB from performing expensive calculation
+    % of SOC-variant parameters which are already pre-calculated in the
+    % ocpData structure.
+    tmp = model;
+    tmp.pos.Uocp = NaN;
+    tmp.pos.dUocp = NaN;
+    tfData = tfLMB(s,model,'TdegC',TdegC,'Calc11',false,'Calc22',false);
+    baseParam = tfData.param;
+
+    parfor k = 1:nsoc
+        param = baseParam;
+        ocpdata = ocpData;
+        mod = model;
+        % Update values of SOC-variant parameters.
+        % - SOC and lithiation: socp, thetap.
+        param.socp = socPct(k)/100;
+        param.thetap = ocpdata.theta(k);
+        % - OCP function: Uocp, dUocp.
+        param.Uocpp = ocpdata.Uocp(k);
+        param.dUocpp = ocpdata.dUocp(k);
+        % - Charge-transfer resistance: Rctp.
+        xj = ocpData.xj;
+        k0 = mod.pos.k0;
+        omega = mod.pos.omega;
+        alpha = mod.pos.alpha;
+        X = mod.pos.X;
+        i0j = k0.*xj(:,k).^(omega.*alpha).*(X-xj(:,k)).^(omega.*(1-alpha));
+        i0 = sum(i0j);
+        param.Rctp = 1./i0/ocpData.f;
+        % - Solid diffusivity: Dsp.
+        if isfield(mod.pos,'Dsref')
+            param.Dsp = -mod.pos.Dsref*ocpData.f*...
+                        param.thetap*(1-param.thetap)*param.dUocpp;
+        else
+            % Model does not employ SOC-variant solid diffusivity;
+            % Ds remains the same at all SOC setpoints.
+        end
+
+        % Calculate impedance at this setpoint.
+        tfData = tfLMB(s,mod,'ParameterValues',param);
+        Zmodel(:,k) = tfData.h11.tfVcell();
+    end % for
+
+    % Add impedance contributed by package.
+    Zmodel = Zmodel + model.pkg.R0 + model.pkg.L0*s;
+end % getModelImpedance()

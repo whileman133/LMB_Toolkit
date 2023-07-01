@@ -249,6 +249,9 @@ classdef MSMR < handle
             data.TdegC = TdegC;
             data.f = f;
             data.npoints = npoints;
+            data.U0 = obj.Uj0;
+            data.omega = obj.Wj;
+            data.X = obj.Xj;
         end
 
         function [Rct, Uocp, dUocp, theta, data] = Rct(obj, params, varargin)
