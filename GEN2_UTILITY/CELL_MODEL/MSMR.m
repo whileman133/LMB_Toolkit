@@ -50,6 +50,7 @@ classdef MSMR < handle
     %  Type help MSMR.<method> for additional information on a method.
     %
     % -- Changelog --
+    % 07.02.2023 | Single output structs for ocp(), Rct() | Wesley Hileman
     % 06.23.2023 | Depricate 'electrode' parameter | Wesley Hileman
     % 01.23.2023 | Simplify usage | Wesley Hileman
     % 02.05.2022 | Created | Wesley Hileman <whileman@uccs.edu>
@@ -64,11 +65,12 @@ classdef MSMR < handle
         Xj       % Fraction of sites belonging to each gallery.
         Uj0      % Standard electrode potentials for each reaction.
         Wj       % Nernst equation shape factor for each gallery.
-        zmin     % Minimum lithiation (could be absolute or relative depending on the context).
-        zmax     % Maximum lithiation (could be absolute or relative depending on the context).
+        zmin     % Minimum lithiation.
+        zmax     % Maximum lithiation.
         name     % Model name (if applicable).
         ref      % Citation/reference (if applicable).
-        sortidx
+        sortidx  % Set when 'sortParams' option is true for keeping track
+                 % of sort order of MSMR parameters. 
     end
 
     methods
@@ -92,9 +94,15 @@ classdef MSMR < handle
             if all(isfield(params,{'theta0','theta100'}))
                 zmin = params.theta100;
                 zmax = params.theta0;
-            else
+            elseif all(isfield(params,{'thetamin','thetamax'}))
+                zmin = params.thetamin;
+                zmax = params.thetamax;
+            elseif all(isfield(params,{'zmin','zmax'}))
                 zmin = params.zmin;
                 zmax = params.zmax;
+            else
+                error(['Could not identify thetamin and thetamax from ' ...
+                    'supplied parameters!']);
             end
             if isa(zmin,'function_handle'), zmin = zmin(0,T); end
             if isa(zmax,'function_handle'), zmax = zmax(0,T); end
@@ -130,10 +138,10 @@ classdef MSMR < handle
             end
         end
 
-        function [Uocp, dUocp, theta, data] = ocp(obj, varargin)
+        function ocpData = ocp(obj, varargin)
             %OCP Calculate OCP predicted by the MSMR model.
             %
-            % [Uocp, dUocp, theta] = OCP() computes the MSMR OCP curve 
+            % ocpData = OCP() computes the MSMR OCP curve 
             %   over the default lithiation range (thetamin to thetamax).
             %   Potential points are evenly spaced.
             %
@@ -162,13 +170,17 @@ classdef MSMR < handle
             %   bounds in either potential or lithiation). The default
             %   number of points is 10000.
             %
-            % [..., data] = OCP(...) also returns the partial lithiations of
-            %   the galleries, an intermediate computation, and the second
-            %   derivative of Uocp with respect to theta. DATA is a structure
-            %   containing the a field named XJ for the partial lithiations, 
-            %   a matrix whose rows correspond to galleries and whose columns 
-            %   correspond to individual points, and a field named d2Uocp,
-            %   a vector of the second partial of Uocp w/r/t theta.
+            % Output structure:
+            %   ocpData.Uocp      OCP vector
+            %   ocpData.dUocp     OCP slope vector
+            %   ocpData.d2Uocp    OCP curvature vector
+            %   ocpData.theta     Lithiation vector
+            %   ocpData.xj        Lithiation matix: d1=gallery d2=SOC-point
+            %   ocpData.U0        MSMR U0 vector
+            %   ocpData.X         MSMR X vector
+            %   ocpData.omega     MSMR omega vector
+            %   ocpData.thetamin  Min. lithiation of the electrode
+            %   ocpData.thetamax  Max. lithiation of electrode
 
             p = inputParser;
             p.addOptional('vmin',[]);
@@ -241,43 +253,53 @@ classdef MSMR < handle
                 theta = Z;
             end
 
-            data.Uocp = Uocp;
-            data.dUocp = dUocp;
-            data.d2Uocp = d2Uocp;
-            data.theta = theta;
-            data.xj = xj;
-            data.TdegC = TdegC;
-            data.f = f;
-            data.npoints = npoints;
-            data.U0 = obj.Uj0;
-            data.omega = obj.Wj;
-            data.X = obj.Xj;
+            % Collect output data.
+            ocpData.Uocp = Uocp;
+            ocpData.dUocp = dUocp;
+            ocpData.d2Uocp = d2Uocp;
+            ocpData.theta = theta;
+            ocpData.xj = xj;
+            ocpData.TdegC = TdegC;
+            ocpData.f = f;
+            ocpData.npoints = npoints;
+            ocpData.U0 = obj.Uj0;
+            ocpData.omega = obj.Wj;
+            ocpData.X = obj.Xj;
+            ocpData.thetamin = obj.zmin;
+            ocpData.thetamax = obj.zmax;
+            ocpData.origin__ = 'MSMR.ocp';
         end
 
-        function [Rct, Uocp, dUocp, theta, data] = Rct(obj, params, varargin)
+        function ctData = Rct(obj, params, varargin)
             %RCT Compute the MSMR charge-transfer resistance versus SOC.
             %
-            % Rct = RCT(params,...) computes the MSMR charge-transfer
+            % -- Usage --
+            % ctData = RCT(params,...) computes the MSMR charge-transfer
             %   resistance at the SOC setpoints specified in (...) using
             %   exactly the same input syntax as MSMR.OCP(). PARAMS is
             %   a structure containing vector fields specifying the 
             %   kinetics parameters k0 and alpha.
             %
-            % [..., Uocp, dUocp, theta] = RCT(...) also returns the potential
-            %   and lithiation corresponding to the SOC setpoints.
-            %
-            % [..., data] = RCT(...) also returns the total exchange
-            %   current density i0 and that associated with each gallery i0j
-            %   in the structure DATA.
+            % Output structure: Everying returned by MSMR.ocp plus:
+            %   ctData.Rct   Charge-transfer (CT) resistance vector
+            %   ctData.i0    Exchange-current (EC) vector
+            %   ctData.Rctj  CT resistance matrix: d1=gallery d2=SOC-point
+            %   ctData.i0j   EC matrix: d1=gallery d2=SOC-point
             %
             % This function assumes theta_e=1 to perform the computation.
             % (Holds for small-signal linear approximation used in transfer 
             % function model).
             
-            % Determine partial lithiations xj.
-            [Uocp, dUocp, theta, data] = obj.ocp(varargin{:});
-            xj = data.xj;
-            TdegC = data.TdegC;
+            ocpData = obj.ocp(varargin{:});
+            ctData = RctCachedOCP(obj, params, ocpData);
+        end
+
+        function ctData = RctCachedOCP(obj, params, ocpData)
+            % RCTCACHEDOCP Same as Rct(), but uses provided ocpData instead
+            % of calling obj.OCP(); allows for code optimization.
+
+            xj = ocpData.xj;
+            TdegC = ocpData.TdegC;
             T = TdegC+273.15;
 
             % Collect parameters.
@@ -301,10 +323,15 @@ classdef MSMR < handle
             % Now compute the charge-transfer resistance.
             i0j = k0.*xj.^(omega.*alpha).*(X-xj).^(omega.*(1-alpha));
             i0 = sum(i0j,1);
-            Rct = 1./i0/data.f;
+            Rct = 1./i0/ocpData.f;
 
-            data.i0j = i0j;
-            data.i0 = i0;
+            % Collect output data.
+            ctData = ocpData;
+            ctData.Rct = Rct;
+            ctData.i0 = i0;
+            ctData.Rctj = 1./i0j./ocpData.f;
+            ctData.i0j = i0j;
+            ctData.origin__ = 'MSMR.Rct';
         end
 
         function [Uocp, dUocp, xj, data] = lith2ocp(obj, z, varargin)
@@ -343,12 +370,15 @@ classdef MSMR < handle
         end
 
         function figs = plotOCP(obj, varargin)
-            [Uocp, dUocp, theta, data] = obj.ocp(varargin{:});
+            data = obj.ocp(varargin{:});
+            Uocp = data.Uocp;
+            dUocp = data.dUocp;
+            theta = data.theta;
 
             % Plot formatter function.
             function format
                 if exist('thesisFormat','file')
-                    thesisFormat([0.3 0.1 0.1 0.1],[0 0 0 0.1]);
+                    thesisFormat;
                 end
             end
 
@@ -403,7 +433,7 @@ classdef MSMR < handle
             params.omega = [0.08611 0.08009 0.72469 2.53277 0.09470 5.97354];
             params.theta0 = 0.01;
             params.theta100 = 0.99;
-            obj = MSMR(params,'neg', ...
+            obj = MSMR(params, ...
                 'name','C6 Electrode', ...
                 'reference',['Mark Verbrugge et al. 2017 J. ' ...
                              'Electrochem. Soc. 164 E3243'], ...
@@ -417,7 +447,7 @@ classdef MSMR < handle
             params.omega = [0.96710 1.39712 3.505 5.52757];
             params.theta0 = 0.99;
             params.theta100 = 0.1325;
-            obj = MSMR(params,'pos', ...
+            obj = MSMR(params, ...
                 'name','NMC622 Electrode', ...
                 'reference',['Mark Verbrugge et al. 2017 J. ' ...
                              'Electrochem. Soc. 164 E3243'], ...
@@ -431,7 +461,7 @@ classdef MSMR < handle
             params.omega = [1.12446 1.71031];
             params.theta0 = 0.99;
             params.theta100 = 0.01;
-            obj = MSMR(params,'pos', ...
+            obj = MSMR(params, ...
                 'name','LMO Electrode', ...
                 'reference',['Daniel R. Baker and Mark W. Verbrugge 2021 ' ...
                              'J. Electrochem. Soc. 168 050526'], ...

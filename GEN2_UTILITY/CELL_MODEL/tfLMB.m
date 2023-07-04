@@ -1,32 +1,24 @@
 function data = tfLMB(S, model, varargin)
 %TFLMB Compute the transfer-functions for a full LMB cell. Linear and
 %  second-harmonic response. Faster than using tfXX functions for computing
-%  cell impedance.
+%  cell impedance, but doesn't implement low/high frequency gains.
 %
+% -- Usage --
 % data = TFLMB(S,model) constructs functions for evalulating the LMB
 %   transfer functions at the frequency points specified by the vector S.
-%   The output DATA is a structure with the following fields:
-%      tfThetae(X): a function that returns the values of the
-%                   Thetae(s)/Iapp(s) transfer function at the positions
-%                   specified in the vector X. In particular, the output is
-%                   an ns-by-nx matrix where nx is the number of positions
-%                   in the vector X.
 %
 % data = TFLMB(...,'TdegC',TdegC) performs the computation at temperature 
 %    TdegC instead of the default 25degC.
-%
-% data = TFLMB(...,'ConsolidateLayers','seponly') ignores the dead-lithium
-%   layer, taking into account the separator parameters only.
-%
-% data = TFLMB(...,'ConsolidateLayers','combine') combines the dead-lithium
-%   and separator layers into a single chemically-intert porous layer.
 %
 % data = TFLMB(...,'Calc11',false) disables calculation of the linear
 %   response; only the parameters evalulated at the setpoint are returned.
 %
 % data = TFLMB(...,'Calc22',true) also calculates the second-harmonic
 %   response. The linear response will also be computed, as it is needed to
-%   find the second-harmonic response 
+%   find the second-harmonic response.
+%
+% -- Changelog --
+% 2023.07.02 | Updated for gen2 | Wesley Hileman <whileman@uccs.edu>
 
 parser = inputParser;
 parser.StructExpand = false;
@@ -46,7 +38,7 @@ param = parser.Results.ParameterValues;
 S = S(:);  % force S to be a column vector
 
 if isempty(param)
-    param = getParameterValues(model,TdegC,socPct,S);
+    param = getParameterValues(model,TdegC,socPct,S,calc11,calc22);
 end
 if calc11 || calc22
     data.h11 = tfLMB11(param,S,param.layerReduction);
@@ -58,7 +50,7 @@ data.param = param;
 
 end % tfLMB()
 
-function p = getParameterValues(model,TdegC,socPct,S)
+function p = getParameterValues(model,TdegC,socPct,S,calc11,calc22)
 %GETPARAMETERVALUES
 
 T = TdegC+273.15;
@@ -119,7 +111,8 @@ p.Cdln        = getParam('neg','Cdl');
 p.nDLn        = getParam('neg','nDL');
 p.k0n         = getParam('neg','k0');
 p.alphan      = getParam('neg','alpha');
-% Code below implements Warburg CPE factor for inert layers.
+% Code below implements Warburg CPE factor for inert layers;
+% not presently used, so we set all nE=1.
 p.nEs         = 1;
 p.nEdl        = 1;
 
@@ -151,7 +144,29 @@ if isnan(p.qed)
 end
 
 % Get Uocp, dUocp, and Rct for positive electrode.
-if isParam('pos','Uocp') && isParam('pos','dUocp')
+if isParam('pos','X') && isParam('pos','U0') && isParam('pos','omega')
+    % MSMR model.
+    if ~calc22 && isParam('pos','Uocp') && isParam('pos','dUocp') && isParam('pos','Rct')
+        % Uocp, dUocp, and Rct have been pre-computed for speed.
+        p.Uocpp = getParam('pos','Uocp');
+        p.dUocpp = getParam('pos','dUocp');
+        p.Rctp = getParam('pos','Rct');
+    else
+        electrode = MSMR(getReg('pos'));
+        dataCt = electrode.Rct(getReg('pos'),'npoints',10000,'TdegC',TdegC);
+        RctVect = dataCt.Rct;
+        UocpVect = dataCt.Uocp;
+        dUocpVect = dataCt.dUocp;
+        thetaVect = dataCt.theta;
+        p.Uocpp = interp1(thetaVect,UocpVect,p.thetap,'linear','extrap');
+        p.dUocpp = interp1(thetaVect,dUocpVect,p.thetap,'linear','extrap');
+        p.Rctp = interp1(thetaVect,RctVect,p.thetap,'linear','extrap');
+        alphap = p.alphap(:);
+        Rct2invVect = sum(dataCt.i0j.*((1-alphap).^2-alphap.^2))*dataCt.f;
+        p.d2Uocpp = interp1(thetaVect,dataCt.d2Uocp,p.thetap,'linear','extrap');
+        p.Rct2invp = interp1(thetaVect,Rct2invVect,p.thetap,'linear','extrap');
+    end
+elseif isParam('pos','Uocp') && isParam('pos','dUocp')
     % Non-MSMR model.
     p.Uocpp = getParam('pos','Uocp');
     p.dUocpp = getParam('pos','dUocp');
@@ -179,18 +194,6 @@ if isParam('pos','Uocp') && isParam('pos','dUocp')
     p.i0p = p.k0p.*(1-p.thetap).^(1-p.alphap).*p.thetap.^(p.alphap);
     p.Rctp = R*T/p.i0p/F;
     p.Rct2invp = F*p.i0p*((1-p.alphap).^2-p.alphap.^2)/R/T;
-elseif isParam('pos','X') && isParam('pos','U0') && isParam('pos','omega')
-    % MSMR model.
-    electrode = MSMR(getReg('pos'),'sortParams',false);
-    [RctVect, UocpVect, dUocpVect, thetaVect, dataRct] = electrode.Rct( ...
-        getReg('pos'),'npoints',10000,'TdegC',TdegC);
-    alphap = p.alphap(:);
-    Rct2invVect = sum(dataRct.i0j.*((1-alphap).^2-alphap.^2))*dataRct.f;
-    p.Uocpp = interp1(thetaVect,UocpVect,p.thetap,'linear','extrap');
-    p.dUocpp = interp1(thetaVect,dUocpVect,p.thetap,'linear','extrap');
-    p.d2Uocpp = interp1(thetaVect,dataRct.d2Uocp,p.thetap,'linear','extrap');
-    p.Rctp = interp1(thetaVect,RctVect,p.thetap,'linear','extrap');
-    p.Rct2invp = interp1(thetaVect,Rct2invVect,p.thetap,'linear','extrap');
 else
     error(['Neither the Uocp(pos) and dUocp(pos) functions ' ...
         'or MSMR parameters are provided in the cell model. ' ...

@@ -1,5 +1,5 @@
 function model = unpack(vect, metadata, varargin)
-    %UNPACK Unstuff a pulse model from a vector.
+    %UNPACK Unstuff a model from a vector.
     %
     % model = UNPACK(vect, metadata) converts the vector VECT back into
     %   a model using the metadata METADATA.

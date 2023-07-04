@@ -1,9 +1,14 @@
-function [init,lb,ub] = tweekgui(modelspec,init,lb,ub,initializefcn,updatefcn)
+function [values,lb,ub] = tweekgui(modelspec,values,lb,ub,initializefcn,updatefcn)
 %TWEEKGUI Construct a GUI for adjusting initial parameter values / bounds.
 
-init = fastopt.flattenstruct(init);
+values = fastopt.flattenstruct(values);
 lb = fastopt.flattenstruct(lb);
 ub = fastopt.flattenstruct(ub);
+
+% Save initial values for reset feature.
+values0 = values;
+lb0 = lb;
+ub0 = ub;
 
 % First, fetch all free parameters.
 params = struct;
@@ -23,13 +28,34 @@ paramNames = fieldnames(params);
 fig = uifigure("Name","Optimization Tweeker");
 fig.Units = 'normalized';
 fig.Position = [0.05 0.05 0.9 0.9];
-gridtop = uigridlayout(fig,[1 2]);
+gridtop = uigridlayout(fig,[2 2]);
 gridtop.ColumnWidth = {'1x','2x'};
-panelparam = uipanel(gridtop);
+gridtop.RowHeight = {50,'1x'};
+panelloadsave = uipanel(gridtop);
+panelloadsave.Layout.Row = 1;
+panelloadsave.Layout.Column = 1;
+panelparams = uipanel(gridtop);
+panelparams.Layout.Row = 2;
+panelparams.Layout.Column = 1;
 paneldisplay = uipanel(gridtop);
+paneldisplay.Layout.Row = [1 2];
+paneldisplay.Layout.Column = 2;
+
+% Construct controls ------------------------------------------------------
+% Construct load/save buttons.
+gridloadsave = uigridlayout(panelloadsave,[1 3]);
+btnload = uibutton(gridloadsave, ...
+    "Text","Load Parameter Values", ...
+    "ButtonPushedFcn",@loadButtonPushed);
+btnsave = uibutton(gridloadsave, ...
+    "Text","Save Parameter Values", ...
+    "ButtonPushedFcn",@saveButtonPushed);
+btnreset = uibutton(gridloadsave, ...
+    "Text","Reset Parameter Values", ...
+    "ButtonPushedFcn",@resetButtonPushed);
 
 % Construct parameter panel for adjusting init,lb,ub.
-gridparam = uigridlayout(panelparam,[nparam+1 5]);
+gridparam = uigridlayout(panelparams,[nparam+1 5]);
 gridparam.ColumnWidth = {'1x','2x','1x','1x','1x'};
 h1 = uilabel(gridparam,"Text","Param.","FontWeight","bold");
 h2 = uilabel(gridparam,"Text","Value","FontWeight","bold");
@@ -45,7 +71,7 @@ for indParam = 1:length(paramNames)
     paramName = paramNames{indParam};
     paramNameDisplay = strrep(paramName,'__','.');
     param = params.(paramName);
-    initial = init.(paramName);
+    initial = values.(paramName);
     lower = lb.(paramName);
     upper = ub.(paramName);
     initialPct = toSliderValue(initial,lower,upper,param.logscale);
@@ -55,6 +81,9 @@ for indParam = 1:length(paramNames)
             itemNameDisplay = sprintf('%s%d',paramNameDisplay,indItem);
         else
             itemNameDisplay = paramNameDisplay;
+        end
+        if param.logscale
+            itemNameDisplay = [itemNameDisplay ' (log)'];
         end
         data = struct;
         data.nameDisplay = itemNameDisplay;
@@ -77,6 +106,7 @@ for indParam = 1:length(paramNames)
         sldinit(cursor).Layout.Column = 2;
         sldinit(cursor).UserData = data;
         sldinit(cursor).ValueChangedFcn = @updateSlider;
+        sldinit(cursor).MajorTickLabels = {};
 
         % Initial value editor.
         editinit(cursor) = uieditfield( ...
@@ -104,7 +134,7 @@ for indParam = 1:length(paramNames)
 
         cursor = cursor + 1;
     end % for
-end
+end % for
 
 % Construct display panel.
 initializeDisplay();
@@ -115,11 +145,55 @@ drawnow;
 uiwait(fig);
 
 % Unflatten init,lb,ub structures.
-init = fastopt.unflattenstruct(init);
+values = fastopt.unflattenstruct(values);
 lb = fastopt.unflattenstruct(lb);
 ub = fastopt.unflattenstruct(ub);
 
 % Event handlers ----------------------------------------------------------
+function loadButtonPushed(src,event)
+    [filename,filepath] = uigetfile("*.mat");
+
+    % Prevents ui window from falling into background after uigetfile.
+    drawnow;
+    figure(fig);
+
+    if isnumeric(filename) && filename == 0
+        % User canceled the operation.
+        return;
+    end
+    dat = load([filepath,filename]);
+    lb = dat.lb;
+    ub = dat.ub;
+    values = dat.init;
+    updateParameterValues();
+    updateDisplay();
+end
+
+function saveButtonPushed(src,event)
+    [filename,filepath] = uiputfile("*.mat");
+
+    % Prevents ui window from falling into background after uiputfile.
+    drawnow;
+    figure(fig);
+
+    if isnumeric(filename) && filename == 0
+        % User canceled the operation.
+        return;
+    end
+    dat.lb = lb;
+    dat.ub = ub;
+    dat.init = values;
+    save([filepath,filename],'-struct','dat');
+end
+
+function resetButtonPushed(src,event)
+    lb = lb0;
+    ub = ub0;
+    values = values0;
+    updateParameterValues();
+    updateDisplay();
+end
+
 function updateSlider(src,event)
     p = src.UserData.param;
     pname = src.UserData.paramName;
@@ -133,7 +207,7 @@ function updateSlider(src,event)
     newInit = fromSliderValue(newValuePct,lwr,upr,p.logscale);
 
     % Update initial value.
-    init.(pname)(indI) = newInit;
+    values.(pname)(indI) = newInit;
 
     % Update GUI components.
     editinit(indG).Value = newInit;
@@ -158,7 +232,7 @@ function updateEditInitial(src,event)
     newInitPct = toSliderValue(newInit,lwr,upr,p.logscale);
 
     % Update initial value.
-    init.(pname)(indI) = newInit;
+    values.(pname)(indI) = newInit;
     editinit(indG).Value = newInit;   % in case value was clamped
 
     % Update GUI components.
@@ -175,7 +249,7 @@ function updateEditLower(src,event)
     % Compute slider setting from new lower bound.
     newLwr = event.Value;
     upr = ub.(pname)(indI);
-    newInit = init.(pname)(indI);
+    newInit = values.(pname)(indI);
     if newInit < newLwr
         newInit = newLwr;  % ensure greater than lower bound
     end
@@ -183,7 +257,7 @@ function updateEditLower(src,event)
 
     % Update lower bound.
     lb.(pname)(indI) = newLwr;
-    init.(pname)(indI) = newInit;    % in case value was clamped
+    values.(pname)(indI) = newInit;    % in case value was clamped
 
     % Update GUI components.
     editinit(indG).Value = newInit;
@@ -200,7 +274,7 @@ function updateEditUpper(src,event)
     % Compute slider setting from new lower bound.
     newUpr = event.Value;
     lwr = lb.(pname)(indI);
-    newInit = init.(pname)(indI);
+    newInit = values.(pname)(indI);
     if newInit > newUpr
         newInit = newUpr;  % ensure less than lower bound
     end
@@ -208,7 +282,7 @@ function updateEditUpper(src,event)
 
     % Update upper bound.
     ub.(pname)(indI) = newUpr;
-    init.(pname)(indI) = newInit;    % in case value was clamped
+    values.(pname)(indI) = newInit;    % in case value was clamped
 
     % Update GUI components.
     editinit(indG).Value = newInit;
@@ -220,7 +294,7 @@ end
 function initializeDisplay()
     initializefcn( ...
         paneldisplay, ...
-        fastopt.unflattenstruct(init), ...
+        fastopt.unflattenstruct(values), ...
         fastopt.unflattenstruct(lb), ...
         fastopt.unflattenstruct(ub));
 end
@@ -228,9 +302,31 @@ end
 function updateDisplay()
     updatefcn( ...
         paneldisplay, ...
-        fastopt.unflattenstruct(init), ...
+        fastopt.unflattenstruct(values), ...
         fastopt.unflattenstruct(lb), ...
         fastopt.unflattenstruct(ub));
+end
+
+function updateParameterValues()
+    cur = 1;
+    for k = 1:length(paramNames)
+        pname = paramNames{k};
+        p = params.(pname);
+        for h = 1:p.len
+            svalue = sldinit(cur);
+            evalue = editinit(cur);
+            elower = editlower(cur);
+            eupper = editupper(cur);
+            val = values.(pname)(h);
+            lwr = lb.(pname)(h);
+            upr = ub.(pname)(h);
+            svalue.Value = toSliderValue(val,lwr,upr,p.logscale);
+            evalue.Value = val;
+            elower.Value = lwr;
+            eupper.Value = upr;
+            cur = cur + 1;
+        end % for
+    end % for
 end
 
 function value = fromSliderValue(valueSlider,lwr,upr,logscale)

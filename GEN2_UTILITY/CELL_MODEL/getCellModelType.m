@@ -1,17 +1,24 @@
-function inModelType = getCellModelType(inModel)
+function inModelType = getCellModelType(inModel,throwError)
 %GETCELLMODELTYPE Determine the type of the input cell model.
 
-if isfield(inModel,'metadata') && ...
-   isfield(inModel,'type__') && ... 
-   strcmp(inModel.type__,'cellModel')
-    % Gen2 model: P2DM, WORM, or RLWORM.
-    inModelType = inModel.metadata.cell.type;
+if ~exist('throwError','var')
+    throwError = true;
+end
+
+inModelType = [];
+if isfield(inModel,'type__')
+    if strcmp(inModel.type__,'cellModel')
+        % Gen2 model: P2DM, WORM, or RLWORM.
+        inModelType = inModel.metadata.cell.type;
+    end
 elseif isfield(inModel,'function')
     % Gen1 model: Legacy lumped-parameter model (LLPM).
     inModelType = 'LLPM';
-else
+end
+
+if isempty(inModelType) && throwError
     error(['Unable to determine input model type.\n' ...
-        'Should be P2DM, WORM, RLWORM, or Gen1 LLPM.']);
-end % if
+        'Should be Gen2 P2DM, WORM, or RLWORM; or Gen1 LLPM.']);
+end
 
 end

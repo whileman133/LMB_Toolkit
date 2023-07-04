@@ -22,11 +22,19 @@ spectra = loadLabNLEIS( ...
 warning('off','MATLAB:dispatcher:UnresolvedFunctionHandle');
 ocpData = load( ...
     fullfile(TB.const.OCPROOT,'labdata','fitstruct',ocpExpirementName));
-[TdegC,indTemp] = max(ocpData.study.testTemperatures);
+[TdegC,indTemp] = max(ocpData.study.testTemperatures); % use highest temp.
 ocpfit = ocpData.study.tests(indTemp);
 
 % Load initial model.
 initialModel = loadCellModel(initialCellModelName);
 
 % Perform regression.
-fitLinearEIS(spectra,ocpfit,initialModel);
+fitData = fitLinearEIS(spectra,ocpfit,initialModel);
+
+% Save results to disk.
+fileName = fullfile( ...
+    'labfitdata', ...
+    sprintf('EIS-Cell%s-%.0fdegC',spectra.cellName,spectra.TdegC) ...
+);
+save(fileName,'-struct',"fitData");
+
