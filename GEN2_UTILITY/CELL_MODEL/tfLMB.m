@@ -135,9 +135,9 @@ else
 end
 % Legcacy code expects qe, kD electrolyte parameters; calculate them
 % from tau, W.
-p.qep = R*p.kappap*p.taup/3600/F;
-p.qes = R*p.kappas*p.taus/3600/F;
-p.qed = R*p.kappad*p.taud/3600/F;
+p.qep = p.psi*p.T*p.kappap*p.taup/3600;
+p.qes = p.psi*p.T*p.kappas*p.taus/3600;
+p.qed = p.psi*p.T*p.kappad*p.taud/3600;
 p.kD = -p.psi*p.W;
 if isnan(p.qed)
     p.qed = 0; % dll combined with sep
