@@ -1,4 +1,4 @@
-function data = fitLinearEIS(labSpectra,labOCPFit,initialModel)
+function data = fitLinearEIS(labSpectra,labOCPFit,initialModel,varargin)
 %FITLINEAREIS Regress linear EIS model to laboratory impedance spectra.
 %
 % -- Usage --
@@ -23,6 +23,14 @@ function data = fitLinearEIS(labSpectra,labOCPFit,initialModel)
 %
 % -- Changelog --
 % 2023.06.30 | Created | Wesley Hileman <whileman@uccs.edu>
+
+parser = inputParser;
+parser.addRequired('labSpectra',@isstruct);
+parser.addRequired('labOCPFit',@isstruct);
+parser.addRequired('initialModel',@isstruct);
+parser.addParameter('WeightFcn',[],@(x)isa(x,'function_handle'));
+parser.parse(labSpectra,labOCPFit,initialModel,varargin{:});
+arg = parser.Results;  % structure of validated arguments
 
 % Constants.
 tplus0 = 0.4;    % Li+ transference number, guess for estimating psi
@@ -137,6 +145,17 @@ lb.pkg.L0 = 0;                      ub.pkg.L0 = init.pkg.L0*100;
 
 % Perform regression ------------------------------------------------------
 
+% Collect weight matrix.
+weights = ones(length(freqLab),length(socPctTrue));
+if ~isempty(arg.WeightFcn)
+    for idxSOC = 1:length(socPctTrue)
+        for idxFreq = 1:length(freqLab)
+            weights(idxFreq,idxSOC) = arg.WeightFcn( ...
+                freqLab(idxFreq),socPctTrue(idxSOC));
+        end % for
+    end % for
+end
+
 [plotInit, plotUpdate] = uiImpedanceCallbacks( ...
     modelspec,Zlab,freqLab,socPctTrue,TdegC);
 data = fastopt.uiparticleswarm(@cost,modelspec,init,lb,ub, ...
@@ -156,12 +175,19 @@ data.type__ = 'ParameterEstimate';
 data.origin__ = 'fitLinearEIS';
 
 function J = cost(model)
+    % Ignore singular matrix warnings in solving TF model (usu. occurs at high
+    % frequencies). TODO: find high-frequency TF solution.
+    warning('off','MATLAB:nearlySingularMatrix');
+
     % Calculate impedance predicted by the linear EIS model.
     Zmodel = getLinearImpedance(model,freqLab,socPctTrue,TdegC,ocpData);
 
+    % Re-enable singular matrix warning.
+    warning('on','MATLAB:nearlySingularMatrix');
+
     % Compute total residual between model impedance and measured
     % impedance across all spectra.
-    J = sum((abs(Zmodel-Zlab)./abs(Zlab)).^2,'all');
+    J = sum(weights.*(abs(Zmodel-Zlab)./abs(Zlab)).^2,'all');
 end % cost()
 
 end % fitLinearEIS()

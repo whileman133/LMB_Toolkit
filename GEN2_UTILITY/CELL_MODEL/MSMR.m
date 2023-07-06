@@ -321,13 +321,19 @@ classdef MSMR < handle
             end
 
             % Now compute the charge-transfer resistance.
-            i0j = k0.*xj.^(omega.*alpha).*(X-xj).^(omega.*(1-alpha));
-            i0 = sum(i0j,1);
-            Rct = 1./i0/ocpData.f;
+            % MSMR method.
+%             i0j = k0.*xj.^(omega.*alpha).*(X-xj).^(omega.*(1-alpha));
+%             i0j = i0j./(X/2).^omega;
+%             i0 = sum(i0j,1);
+             % Cubic spline method.
+             i0j = k0(:,ones(1,length(ocpData.theta)));
+             i0 = 10.^spline( ...
+                 linspace(obj.zmin,obj.zmax,obj.J),log10(k0), ...
+                 ocpData.theta);
 
             % Collect output data.
             ctData = ocpData;
-            ctData.Rct = Rct;
+            ctData.Rct = 1./i0/ocpData.f;
             ctData.i0 = i0;
             ctData.Rctj = 1./i0j./ocpData.f;
             ctData.i0j = i0j;

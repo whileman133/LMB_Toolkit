@@ -10,7 +10,7 @@ addpath('..');
 TB.addpaths();
 
 % Constants.
-eisExpirementName = '(NL)EIS-SionCell395534'; % directory w/ raw EIS data
+eisExpirementName = '(NL)EIS-SionCell395534_25degC'; % directory w/ raw EIS data
 ocpExpirementName = 'SionFresh_0C01';         % file w/ regressed OCP data
 initialCellModelName = 'cellSionGuess-P2DM';  % model w/ initial param values
 
@@ -29,7 +29,7 @@ ocpfit = ocpData.study.tests(indTemp);
 initialModel = loadCellModel(initialCellModelName);
 
 % Perform regression.
-fitData = fitLinearEIS(spectra,ocpfit,initialModel);
+fitData = fitLinearEIS(spectra,ocpfit,initialModel,'WeightFcn',@getWeight);
 
 % Save results to disk.
 fileName = fullfile( ...
@@ -37,4 +37,15 @@ fileName = fullfile( ...
     sprintf('EIS-Cell%s-%.0fdegC',spectra.cellName,spectra.TdegC) ...
 );
 save(fileName,'-struct',"fitData");
+
+% Residual weighting function. Returns relative weight corresponding to the
+% specified frequency and SOC setpoint.
+function w = getWeight(freq,socPct)
+    if socPct<=25
+        % Linear derate from 25% to 0% SOC.
+        w = socPct/25;
+    else
+        w = 1;
+    end
+end
 
