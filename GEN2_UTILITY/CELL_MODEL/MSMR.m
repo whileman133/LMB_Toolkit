@@ -298,38 +298,44 @@ classdef MSMR < handle
             % RCTCACHEDOCP Same as Rct(), but uses provided ocpData instead
             % of calling obj.OCP(); allows for code optimization.
 
-            xj = ocpData.xj;
             TdegC = ocpData.TdegC;
             T = TdegC+273.15;
 
-            % Collect parameters.
-            k0 = params.k0;        
-            alpha = params.alpha; 
-            X = obj.Xj(:);
-            omega = obj.Wj(:);
+            if all(isfield(params,{'k0','alpha'}))
+                % Baker-Verbrugge charge-transfer resistance.
+                xj = ocpData.xj;
+                X = obj.Xj(:);
+                omega = obj.Wj(:);
+                k0 = params.k0;        
+                alpha = params.alpha; 
+                if isa(k0,'function_handle'), k0 = k0(0,T); end
+                if isa(alpha,'function_handle'), alpha = alpha(0,T); end
+                k0 = k0(:);
+                alpha = alpha(:);
+                % Make sure to sort k0, alpha in same order as U, X, omega!
+                if ~isempty(obj.sortidx)
+                    k0 = k0(obj.sortidx);
+                    alpha = alpha(obj.sortidx);
+                end
 
-            % If function-based parameters are supplied, evaulate.
-            if isa(k0,'function_handle'), k0 = k0(0,T); end
-            if isa(alpha,'function_handle'), alpha = alpha(0,T); end
-            k0 = k0(:);
-            alpha = alpha(:);
+                i0j = k0.*xj.^(omega.*alpha).*(X-xj).^(omega.*(1-alpha));
+                i0j = i0j./(X/2).^omega; % normalize!
+                i0 = sum(i0j,1);
+            elseif isfield(params,'k0Spline')
+                % Cubic spline charge-transfer resistance.
+                k0Spline = params.k0Spline;
+                if isa(k0Spline,'function_handle')
+                    k0Spline = k0Spline(0,T); 
+                end
+                k0Spline = k0Spline(:);
 
-            % Make sure to sort k0, alpha in same order as U, X, omega!
-            if ~isempty(obj.sortidx)
-                k0 = k0(obj.sortidx);
-                alpha = alpha(obj.sortidx);
+                i0j = k0Spline(:,ones(1,length(ocpData.theta)));
+                i0 = 10.^spline( ...
+                     linspace(obj.zmin,obj.zmax,obj.J),log10(k0Spline), ...
+                     ocpData.theta);
+            else
+                error('k0 or k0Spline parameter values not found!')
             end
-
-            % Now compute the charge-transfer resistance.
-            % MSMR method.
-%             i0j = k0.*xj.^(omega.*alpha).*(X-xj).^(omega.*(1-alpha));
-%             i0j = i0j./(X/2).^omega;
-%             i0 = sum(i0j,1);
-             % Cubic spline method.
-             i0j = k0(:,ones(1,length(ocpData.theta)));
-             i0 = 10.^spline( ...
-                 linspace(obj.zmin,obj.zmax,obj.J),log10(k0), ...
-                 ocpData.theta);
 
             % Collect output data.
             ctData = ocpData;
@@ -338,6 +344,40 @@ classdef MSMR < handle
             ctData.Rctj = 1./i0j./ocpData.f;
             ctData.i0j = i0j;
             ctData.origin__ = 'MSMR.Rct';
+        end
+
+        function dsData = Ds(obj, params, varargin)
+            ocpData = obj.ocp(varargin{:});
+            dsData = DsCachedOCP(obj, params, ocpData);
+        end
+
+        function dsData = DsCachedOCP(obj, params, ocpData)
+            TdegC = ocpData.TdegC;
+            T = TdegC+273.15;
+
+            if isfield(params,'Dsref')
+                % Baker-Verbrugge diffusivity.
+                Dsref = params.Dsref;
+                if isa(Dsref,'function_handle'), Dsref = k0(0,T); end
+                Ds = Dsref*obj.F/obj.R/T*...
+                     ocpData.theta.*(1-ocpData.theta).*ocpData.dUocp;
+            elseif isfield(params,'DsSpline')
+                % Cubic spline diffusivity.
+                DsSpline = params.DsSpline;
+                if isa(DsSpline,'function_handle')
+                    DsSpline = DsSpline(0,T); 
+                end
+                DsSpline = DsSpline(:);
+                Ds = 10.^spline( ...
+                   linspace(obj.zmin,obj.zmax,obj.J),log10(DsSpline), ...
+                   ocpData.theta);
+            else
+                error('Dsref or DsSpline parameter values not found!')
+            end
+
+            dsData = ocpData;
+            dsData.Ds = Ds;
+            dsData.origin__ = 'MSMR.Ds';
         end
 
         function [Uocp, dUocp, xj, data] = lith2ocp(obj, z, varargin)

@@ -41,11 +41,12 @@ save(fileName,'-struct',"fitData");
 % Residual weighting function. Returns relative weight corresponding to the
 % specified frequency and SOC setpoint.
 function w = getWeight(freq,socPct)
-    if socPct<=25
-        % Linear derate from 25% to 0% SOC.
-        w = socPct/25;
-    else
-        w = 1;
-    end
+    w = 1;
+%     if socPct<=25
+%         % Linear derate from 25% to 0% SOC.
+%         w = socPct/25;
+%     else
+%         w = 1;
+%     end
 end
 

@@ -98,7 +98,7 @@ p.kappap      = getParam('pos','kappa');
 p.taup        = getParam('pos','tauW');
 p.nF          = getParam('pos','nF');
 p.Rfp         = getParam('pos','Rf');
-p.k0p         = getParam('pos','k0');
+%p.k0p         = getParam('pos','k0');
 p.alphap      = getParam('pos','alpha');
 p.Rdlp        = getParam('pos','Rdl');
 p.Cdlp        = getParam('pos','Cdl');
@@ -208,12 +208,10 @@ p.Rct2invn = F*p.k0n*((1-p.alphan).^2-p.alphan.^2)/R/T;
 % Get solid diffusivity.
 if isParam('pos','Ds')
     p.Dsp = getParam('pos','Ds');
-elseif isParam('pos','Dsref')
-    Dsrefp = getParam('pos','Dsref');
-    p.Dsp = -Dsrefp*F/R/T*p.thetap*(1-p.thetap)*p.dUocpp;
 else
-    error(['Neither Ds nor Dsref provided by the cell model. ' ...
-        'Please supply one or the other.']);
+    electrode = MSMR(getReg('pos'));
+    dataDs = electrode.Ds(getReg('pos'),'npoints',10000,'TdegC',TdegC);
+    p.Dsp = interp1(dataDs.theta,dataDs.Ds,p.thetap,'linear','extrap');
 end
 
 % Compute Zse.

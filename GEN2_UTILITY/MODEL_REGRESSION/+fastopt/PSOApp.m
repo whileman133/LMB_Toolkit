@@ -218,7 +218,7 @@ methods(Access=protected)
 
     function buildParameterPanel(obj)
         grid = uigridlayout(obj.panel.parameter,[obj.dof+1 5]);
-        grid.ColumnWidth = {'1x','2x','1x','1x','1x'};
+        grid.ColumnWidth = {'1.2x','2x','1x','1x','1x'};
         h1 = uilabel(grid,"Text","Param.","FontWeight","bold");
         h2 = uilabel(grid,"Text","Value","FontWeight","bold");
         h2.Layout.Column = [2 3];

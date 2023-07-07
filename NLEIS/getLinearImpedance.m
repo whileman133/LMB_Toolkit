@@ -28,6 +28,7 @@ useCachedOCP = false;
 if exist('ocpData','var')
     ocpModel = MSMR(ocpData);
     ctData = ocpModel.RctCachedOCP(params.pos,ocpData);
+    dsData = ocpModel.DsCachedOCP(params.pos,ocpData);
     useCachedOCP = true;
 end
 
@@ -35,11 +36,12 @@ end
 Z = zeros(nfreq,nsoc);
 for k = 1:nsoc
     if useCachedOCP
-        % Update OCP and charge-transfer resistance at each SOC setpoint
-        % manually for improved performance.
+        % Update OCP, charge-transfer resistance, and spolid diffusivity 
+        % at each SOC setpoint  manually for improved performance.
         params.pos.Uocp = ocpData.Uocp(k);
         params.pos.dUocp = ocpData.dUocp(k);
         params.pos.Rct = ctData.Rct(k);
+        params.pos.Ds = dsData.Ds(k);
     end
     tfData = tfLMB(s,params,'TdegC',TdegC,'socPct',socPct(k));
     Z(:,k) = tfData.h11.tfVcell();

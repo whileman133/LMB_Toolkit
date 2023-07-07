@@ -36,6 +36,7 @@ arg = parser.Results;  % structure of validated arguments
 tplus0 = 0.4;    % Li+ transference number, guess for estimating psi
 R = TB.const.R;  % molar gas constant [J/mol/K]
 F = TB.const.F;  % Faraday's constant [C/mol]
+T = arg.labSpectra.TdegC+273.15; % absolute temperature [K]
 
 % Fetch OCP parameters fit to laboratory data.
 ocpmodel = MSMR(labOCPFit.MSMR);
@@ -95,9 +96,11 @@ params.eff.tauW = fastopt.param('logscale',true);
 params.eff.kappa = fastopt.param('logscale',true);
 
 % Porous electrode parameters.
-params.pos.Dsref = fastopt.param('logscale',true);
+%params.pos.Dsref = fastopt.param('logscale',true);
+params.pos.DsSpline = fastopt.param('len',ocpmodel.J,'logscale',true);
 params.pos.nF = fastopt.param;
-params.pos.k0 = fastopt.param('len',ocpmodel.J,'logscale',true);
+%params.pos.k0 = fastopt.param('len',ocpmodel.J,'logscale',true);
+params.pos.k0Spline = fastopt.param('len',ocpmodel.J,'logscale',true);
 params.pos.Cdl = fastopt.param;
 params.pos.nDL = fastopt.param;
 params.pos.Rf = fastopt.param;
@@ -116,6 +119,10 @@ modelspec = fastopt.modelspec(params);
 
 % Define optimization bounds ----------------------------------------------
 % Initial guess; pack/unpack to set values of fixed parameters.
+thetaSpline = linspace(ocpData.thetamin,ocpData.thetamax,ocpmodel.J).';
+dUocpSpline = interp1(ocpData.theta,ocpData.dUocp,thetaSpline,'linear','extrap');
+initial.pos.DsSpline = -initial.pos.Dsref*F/R/T*thetaSpline.*(1-thetaSpline).*dUocpSpline;
+initial.pos.k0Spline = ones(ocpmodel.J,1);
 init = fastopt.unpack(fastopt.pack(initial,modelspec),modelspec);
 
 % Electrolyte parameters.
@@ -126,9 +133,11 @@ lb.eff.kappa = init.eff.kappa/100;  ub.eff.kappa = init.eff.kappa*100;
 lb.pos.kappa = init.pos.kappa/100;  ub.pos.kappa = init.pos.kappa*100;
 
 % Porous-electrode parameters.
-lb.pos.Dsref = init.pos.Dsref/1000; ub.pos.Dsref = init.pos.Dsref*1000;
-lb.pos.nF = 0.3;                    ub.pos.nF = 1;
-lb.pos.k0 = 1e-6*ones(ocpmodel.J,1);ub.pos.k0 = 1e6*ones(ocpmodel.J,1);
+%lb.pos.Dsref = init.pos.Dsref/1000; ub.pos.Dsref = init.pos.Dsref*1000;
+lb.pos.DsSpline = init.pos.DsSpline/1000; ub.pos.DsSpline = init.pos.DsSpline*1000;
+lb.pos.nF = 0.1;                    ub.pos.nF = 1;
+%lb.pos.k0 = 1e-6*ones(ocpmodel.J,1);ub.pos.k0 = 1e6*ones(ocpmodel.J,1);
+lb.pos.k0Spline = 1e-6*ones(ocpmodel.J,1);ub.pos.k0Spline = 1e6*ones(ocpmodel.J,1);
 lb.pos.sigma = init.pos.sigma/10;   ub.pos.sigma = init.pos.sigma*10;
 lb.pos.Cdl = init.pos.Cdl/10;       ub.pos.Cdl = init.pos.Cdl*100;
 lb.pos.nDL = 0.5;                   ub.pos.nDL = 1;

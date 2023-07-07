@@ -9,6 +9,7 @@ axZ = gobjects(nsoc,1);
 zplotselect = gobjects(1,1);
 gridz = gobjects(1,1);
 linesZ = gobjects(nsoc,1);
+lineDsp = gobjects(1,1);
 linei0p = gobjects(1,1);
 lineRctp = gobjects(1,1);
 linesRctjp = gobjects(J,1);
@@ -21,7 +22,7 @@ function initializeUIFig(parent)
     % Construct layout.
     gridtop = uigridlayout(parent,[2 2]);
     gridtop.ColumnWidth = {'3.5x','1x'};
-    gridtop.RowHeight = {'1x', '2x'};
+    gridtop.RowHeight = {'1x', '3x'};
     panelz = uipanel(gridtop,'BorderType','none');
     panelz.Layout.Row = [1 2];
     panelz.Layout.Column = 1;
@@ -55,16 +56,20 @@ function initializeUIFig(parent)
     end
 
     % Construct charge-transfer resistance plots.
-    gridct = uigridlayout(panelct,[3 1]);
-    ax = uiaxes(gridct);
+    gridauxplots = uigridlayout(panelct,[4 1]);
+    ax = uiaxes(gridauxplots);
+    formatAxes(ax);
+    lineDsp(1) = semilogy(ax,NaN,NaN,'k-');
+    title(ax,'D_{s}^p vs SOC')
+    ax = uiaxes(gridauxplots);
     formatAxes(ax);
     linei0p(1) = semilogy(ax,NaN,NaN,'k-');
     title(ax,'i_{0}^p vs SOC');
-    ax = uiaxes(gridct);
+    ax = uiaxes(gridauxplots);
     formatAxes(ax);
     lineRctp(1) = semilogy(ax,NaN,NaN,'k-');
     title(ax,'R_{ct}^p vs SOC');
-    ax = uiaxes(gridct);
+    ax = uiaxes(gridauxplots);
     formatAxes(ax);
     for k = 1:length(linesRctjp)
         linesRctjp(k) = semilogy(ax,NaN,NaN,'-');
@@ -81,16 +86,18 @@ function updateUIFig(paramValues)
     % Calculate impedance predicted by the linear EIS model.
     Zmodel = getLinearImpedance(paramValues,freqRef,socPctRef,TdegC);
 
-    % Calculate Rctp.
+    % Calculate Rctp and Dsp.
     socPct = linspace(0,100,100);
     theta0 = paramValues.pos.theta0;
     theta100 = paramValues.pos.theta100;
     t = theta0 + (socPct/100)*(theta100-theta0);
     ocpmodel = MSMR(paramValues.pos);
     ctData = ocpmodel.Rct(paramValues.pos,'theta',t,'TdegC',TdegC);
+    dsData = ocpmodel.Ds(paramValues.pos,'theta',t,'TdegC',TdegC);
     Rctp = ctData.Rct;
     Rctpj = ctData.Rctj;
     i0 = ctData.i0;
+    Ds = dsData.Ds;
 
     % Update model predictions on plots.
     plottype = zplotselect.Value;
@@ -120,6 +127,8 @@ function updateUIFig(paramValues)
             linesZ(idxSOC).YData = imag(Zmodel(:,idxSOC));
         end
     end
+    lineDsp.XData = socPct;
+    lineDsp.YData = Ds;
     lineRctp.XData = socPct;
     lineRctp.YData = Rctp;
     linei0p.XData = socPct;
