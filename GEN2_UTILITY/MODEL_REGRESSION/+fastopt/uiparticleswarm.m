@@ -13,8 +13,10 @@ parser.addRequired('modelspec',@isstruct);
 parser.addRequired('init',@isstruct);
 parser.addRequired('lb',@isstruct);
 parser.addRequired('ub',@isstruct);
-parser.addParameter('PopulationSize',500);
-parser.addParameter('MaximumIterations',100);
+parser.addParameter('SwarmSize',500);
+parser.addParameter('SwarmMaximumIterations',100);
+parser.addParameter('FminMaximumIterations',1000);
+parser.addParameter('FminMaximumFunctionEvals',10000);
 parser.addParameter('PlotInitializeFcn', ...
     @(varargin)[],@(x)isa(x,'function_handle'));
 parser.addParameter('PlotUpdateFcn', ...
@@ -35,35 +37,53 @@ while true
     ub = fastopt.pack(guidata.ub,modelspec);
     init = fastopt.pack(guidata.init,modelspec);
     estimate = init;
-    popsize = guidata.PopulationSize;
-    maxiter = guidata.MaximumIterations;
+    opttype = guidata.OptimizationType;
+    popsize = guidata.SwarmSize;
+    maxiter = guidata.SwarmMaximumIterations;
+    fminmaxiter = guidata.FminMaximumIterations;
+    fminfevals = guidata.FminMaximumFunctionEvals;
     if guidata.stop
         % User canceled the optimization.
         break;
     end
-    [plotFcn, stopFcn] = PSOPlotFcnFactory( ...
-        arg,guidata);
+    [plotFcnPSO, plotFcnFmin, stopFcn] = PSOPlotFcnFactory(arg,guidata);
     gui.lock(stopFcn);  % prevent changes to ui while optimization is running
 
-    % Collect PSO options.
-    swarm = zeros(popsize,modelspec.nvars);
-    swarm(1,:) = init;
-    for k = 1:modelspec.nvars
-        swarm(2:end,k) = (ub(k)-lb(k))*rand(popsize-1,1)+lb(k);
-    end
-    options = optimoptions(@particleswarm,...
-        'Display','iter', ...
-        'UseParallel',true,...
-        'FunctionTolerance',1e-15, ...
-        'SwarmSize',popsize,...
-        'InitialSwarmMatrix',swarm,...
-        'MaxIterations',maxiter, ...
-        'MaxStallIterations',200,...
-        'FunValCheck','off', ...
-        'OutputFcn',plotFcn);  % don't use 'PlotFcn' option, has issues!
+    if strcmpi(opttype,'particleswarm')
+        % Collect PSO options.
+        swarm = zeros(popsize,modelspec.nvars);
+        swarm(1,:) = init;
+        for k = 1:modelspec.nvars
+            swarm(2:end,k) = (ub(k)-lb(k))*rand(popsize-1,1)+lb(k);
+        end
+        options = optimoptions(@particleswarm,...
+            'Display','iter', ...
+            'UseParallel',true,...
+            'FunctionTolerance',1e-15, ...
+            'SwarmSize',popsize,...
+            'InitialSwarmMatrix',swarm,...
+            'MaxIterations',maxiter, ...
+            'MaxStallIterations',200,...
+            'FunValCheck','off', ...
+            'OutputFcn',plotFcnPSO);  % don't use 'PlotFcn' option, has issues!
+    
+        % Run PSO.
+        estimate = particleswarm(costFcn,modelspec.nvars,lb,ub,options);
+    elseif strcmpi(opttype,'fmincon')
+        % Collect fmincon options.
+        options = optimoptions(@fmincon, ...
+            'Display','iter',...
+            'UseParallel',true,...
+            'MaxFunEvals',fminfevals, ...
+            'MaxIter',fminmaxiter,...
+            'TolFun',1e-15, ...
+            'TolX',1e-15, ...
+            'TolCon',1e-15, ...
+            'OutputFcn',plotFcnFmin);
 
-    % Run PSO.
-    estimate = particleswarm(costFcn,modelspec.nvars,lb,ub,options);
+        % Run fmincon.
+        estimate = fmincon(costFcn,init,[],[],[],[],lb,ub,[],options);
+    end
 
     % Update GUI with new estimate.
     gui.update(fastopt.unpack(estimate,arg.modelspec));
@@ -80,7 +100,7 @@ guidata.origin__ = 'fastopt.uiparticleswarm';
 
 end
 
-function [plotFcn, stopFcn] = PSOPlotFcnFactory(arg,guidata)
+function [plotFcnPSO, plotFcnFmin, stopFcn] = PSOPlotFcnFactory(arg,guidata)
     plotUpdateIntervalSec = 0.5;
     modelspec = arg.modelspec;
     updatePlotFcn = arg.PlotUpdateFcn;
@@ -88,9 +108,11 @@ function [plotFcn, stopFcn] = PSOPlotFcnFactory(arg,guidata)
     updateStatusFcn = guidata.updateStatusFcn;
     updateMark = tic;
     bestJ = Inf;
+    bestEstimate = [];
     stop = false;
-    plotFcn = @PSOPlot;
-    stopFcn = @PSOStop;
+    plotFcnPSO = @PSOPlot;
+    plotFcnFmin = @FminPlot;
+    stopFcn = @OptimStop;
 
     function halt = PSOPlot(optimValues,state)
         halt = stop;
@@ -116,7 +138,31 @@ function [plotFcn, stopFcn] = PSOPlotFcnFactory(arg,guidata)
         drawnow;
     end % PSOPlot()
 
-    function PSOStop()
+    function halt = FminPlot(x,optimValues,state)
+        halt = stop;
+        if halt
+            return;
+        end
+        if ~strcmp(state,'iter')
+            return;
+        end
+        if toc(updateMark) > plotUpdateIntervalSec
+            if optimValues.fval < bestJ
+                bestJ = optimValues.fval;
+                bestEstimate = fastopt.unpack(x,modelspec);
+                updatePlotFcn(bestEstimate);
+                updateControlsFcn(bestEstimate);
+                updateMark = tic;
+            end
+        end % if
+        statusString = sprintf( ...
+            "Iteration: %d   BestJ: %.3g   Evals: %d", ...
+            optimValues.iteration,bestJ,optimValues.funccount);
+        updateStatusFcn(statusString);
+        drawnow;
+    end % PSOPlot()
+
+    function OptimStop()
         % Send stop signal.
         stop = true;
     end

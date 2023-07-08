@@ -10,7 +10,9 @@ zplotselect = gobjects(1,1);
 gridz = gobjects(1,1);
 linesZ = gobjects(nsoc,1);
 lineDsp = gobjects(1,1);
+lineDspSpline = gobjects(1,1);
 linei0p = gobjects(1,1);
+linei0pSpline = gobjects(1,1);
 lineRctp = gobjects(1,1);
 linesRctjp = gobjects(J,1);
 lastParamValues = [];
@@ -60,10 +62,14 @@ function initializeUIFig(parent)
     ax = uiaxes(gridauxplots);
     formatAxes(ax);
     lineDsp(1) = semilogy(ax,NaN,NaN,'k-');
+    hold(ax,'on');
+    lineDspSpline(1) = semilogy(ax,NaN,NaN,'ro');
     title(ax,'D_{s}^p vs SOC')
     ax = uiaxes(gridauxplots);
     formatAxes(ax);
     linei0p(1) = semilogy(ax,NaN,NaN,'k-');
+    hold(ax,'on');
+    linei0pSpline(1) = semilogy(ax,NaN,NaN,'ro');
     title(ax,'i_{0}^p vs SOC');
     ax = uiaxes(gridauxplots);
     formatAxes(ax);
@@ -87,10 +93,14 @@ function updateUIFig(paramValues)
     Zmodel = getLinearImpedance(paramValues,freqRef,socPctRef,TdegC);
 
     % Calculate Rctp and Dsp.
+    DsSplineTheta = paramValues.pos.DsSplineTheta;
+    k0SplineTheta = paramValues.pos.k0SplineTheta;
     socPct = linspace(0,100,100);
     theta0 = paramValues.pos.theta0;
     theta100 = paramValues.pos.theta100;
     t = theta0 + (socPct/100)*(theta100-theta0);
+    DsSplineSOCPct = 100*(DsSplineTheta-theta0)/(theta100-theta0);
+    k0SplineSOCPct = 100*(k0SplineTheta-theta0)/(theta100-theta0);
     ocpmodel = MSMR(paramValues.pos);
     ctData = ocpmodel.Rct(paramValues.pos,'theta',t,'TdegC',TdegC);
     dsData = ocpmodel.Ds(paramValues.pos,'theta',t,'TdegC',TdegC);
@@ -129,10 +139,14 @@ function updateUIFig(paramValues)
     end
     lineDsp.XData = socPct;
     lineDsp.YData = Ds;
+    lineDspSpline.XData = DsSplineSOCPct;
+    lineDspSpline.YData = paramValues.pos.DsSpline;
     lineRctp.XData = socPct;
     lineRctp.YData = Rctp;
     linei0p.XData = socPct;
     linei0p.YData = i0;
+    linei0pSpline.XData = k0SplineSOCPct;
+    linei0pSpline.YData = paramValues.pos.k0Spline;
     for j = 1:J
         linesRctjp(j).XData = socPct;
         linesRctjp(j).YData = Rctpj(j,:);

@@ -321,20 +321,23 @@ classdef MSMR < handle
                 i0j = k0.*xj.^(omega.*alpha).*(X-xj).^(omega.*(1-alpha));
                 i0j = i0j./(X/2).^omega; % normalize!
                 i0 = sum(i0j,1);
-            elseif isfield(params,'k0Spline')
+            elseif all(isfield(params,{'k0Spline','k0SplineTheta'}))
                 % Cubic spline charge-transfer resistance.
+                thetaSpline = params.k0SplineTheta;
                 k0Spline = params.k0Spline;
+                if isa(thetaSpline,'function_handle')
+                    thetaSpline = thetaSpline(0,T); 
+                end
                 if isa(k0Spline,'function_handle')
                     k0Spline = k0Spline(0,T); 
                 end
+                thetaSpline = thetaSpline(:);
                 k0Spline = k0Spline(:);
 
                 i0j = k0Spline(:,ones(1,length(ocpData.theta)));
-                i0 = 10.^spline( ...
-                     linspace(obj.zmin,obj.zmax,obj.J),log10(k0Spline), ...
-                     ocpData.theta);
+                i0 = 10.^spline(thetaSpline,log10(k0Spline),ocpData.theta);
             else
-                error('k0 or k0Spline parameter values not found!')
+                error('k0 or k0Spline/k0SplineTheta parameter values not found!')
             end
 
             % Collect output data.
@@ -359,20 +362,23 @@ classdef MSMR < handle
                 % Baker-Verbrugge diffusivity.
                 Dsref = params.Dsref;
                 if isa(Dsref,'function_handle'), Dsref = k0(0,T); end
-                Ds = Dsref*obj.F/obj.R/T*...
+                Ds = -Dsref*obj.F/obj.R/T*...
                      ocpData.theta.*(1-ocpData.theta).*ocpData.dUocp;
-            elseif isfield(params,'DsSpline')
+            elseif all(isfield(params,{'DsSpline','DsSplineTheta'}))
                 % Cubic spline diffusivity.
+                thetaSpline = params.DsSplineTheta;
                 DsSpline = params.DsSpline;
+                if isa(thetaSpline,'function_handle')
+                    thetaSpline = thetaSpline(0,T); 
+                end
                 if isa(DsSpline,'function_handle')
                     DsSpline = DsSpline(0,T); 
                 end
+                thetaSpline = thetaSpline(:);
                 DsSpline = DsSpline(:);
-                Ds = 10.^spline( ...
-                   linspace(obj.zmin,obj.zmax,obj.J),log10(DsSpline), ...
-                   ocpData.theta);
+                Ds = 10.^spline(thetaSpline,log10(DsSpline),ocpData.theta);
             else
-                error('Dsref or DsSpline parameter values not found!')
+                error('Dsref or DsSpline/DsSplineTheta parameter values not found!')
             end
 
             dsData = ocpData;

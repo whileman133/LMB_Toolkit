@@ -10,8 +10,9 @@ function data = fitLinearEIS(labSpectra,labOCPFit,initialModel,varargin)
 %   parameter values for the cell.
 %
 % Output structure:
-%   .estimate    Structure of estimated parameter values
+%   .estimate    Cell model containing estimated parameter values
 %   .modelspec   fastopt specification for EIS model
+%   .values      Structure of estimated parameter values
 %   .initial     Structure of initial parameter values
 %   .lb          Structure of lower bounds for parameters
 %   .ub          Structure of upper bounds for parameters
@@ -57,9 +58,17 @@ thetaTrue = zmax + (socPctTrue/100)*(zmin-zmax);
 % Precompute OCP parameters at each SOC setpoint.
 ocpData = ocpmodel.ocp('theta',thetaTrue,'TdegC',TdegC);
 
+% Load OCP estimate into initial model.
 % Convert initial model to reduced-layer Warburg-resistance model.
 % Fetch initial values of model parameters.
-initialModel = convertCellModel(initialModel,'RLWORM');
+p = struct;
+p.pos.U0 = ocpmodel.Uj0;
+p.pos.X = ocpmodel.Xj;
+p.pos.omega = ocpmodel.Wj;
+p.pos.theta0 = ocpmodel.zmax;
+p.pos.theta100 = ocpmodel.zmin;
+initialModel = setCellParam(initialModel,p);
+initialModel = convertCellModel(initialModel,'RLSWRM');
 initial = getCellParams(initialModel,'TdegC',labSpectra.TdegC);
 
 % Build model -------------------------------------------------------------
@@ -84,6 +93,9 @@ params.pos.alpha = fastopt.param('fix',0.5*ones(ocpmodel.J,1));
 params.neg.alpha = fastopt.param('fix',0.5);
 % Solid conductance does not influence impedance significatly.
 params.pos.sigma = fastopt.param('fix',initial.pos.sigma);
+% Fix lithiation of spline points.
+params.pos.k0SplineTheta = fastopt.param('fix',initial.pos.k0SplineTheta);
+params.pos.DsSplineTheta = fastopt.param('fix',initial.pos.DsSplineTheta);
 
 % Electrolyte parameters.
 % psi,W,tauW are not separately identifiable, so we fix psi=R/(F*(1-t+0)), 
@@ -96,10 +108,8 @@ params.eff.tauW = fastopt.param('logscale',true);
 params.eff.kappa = fastopt.param('logscale',true);
 
 % Porous electrode parameters.
-%params.pos.Dsref = fastopt.param('logscale',true);
 params.pos.DsSpline = fastopt.param('len',ocpmodel.J,'logscale',true);
 params.pos.nF = fastopt.param;
-%params.pos.k0 = fastopt.param('len',ocpmodel.J,'logscale',true);
 params.pos.k0Spline = fastopt.param('len',ocpmodel.J,'logscale',true);
 params.pos.Cdl = fastopt.param;
 params.pos.nDL = fastopt.param;
@@ -119,10 +129,6 @@ modelspec = fastopt.modelspec(params);
 
 % Define optimization bounds ----------------------------------------------
 % Initial guess; pack/unpack to set values of fixed parameters.
-thetaSpline = linspace(ocpData.thetamin,ocpData.thetamax,ocpmodel.J).';
-dUocpSpline = interp1(ocpData.theta,ocpData.dUocp,thetaSpline,'linear','extrap');
-initial.pos.DsSpline = -initial.pos.Dsref*F/R/T*thetaSpline.*(1-thetaSpline).*dUocpSpline;
-initial.pos.k0Spline = ones(ocpmodel.J,1);
 init = fastopt.unpack(fastopt.pack(initial,modelspec),modelspec);
 
 % Electrolyte parameters.
@@ -133,11 +139,9 @@ lb.eff.kappa = init.eff.kappa/100;  ub.eff.kappa = init.eff.kappa*100;
 lb.pos.kappa = init.pos.kappa/100;  ub.pos.kappa = init.pos.kappa*100;
 
 % Porous-electrode parameters.
-%lb.pos.Dsref = init.pos.Dsref/1000; ub.pos.Dsref = init.pos.Dsref*1000;
-lb.pos.DsSpline = init.pos.DsSpline/1000; ub.pos.DsSpline = init.pos.DsSpline*1000;
+lb.pos.DsSpline = 1e-9*ones(ocpmodel.J,1);ub.pos.DsSpline = 1*ones(ocpmodel.J,1);
 lb.pos.nF = 0.1;                    ub.pos.nF = 1;
-%lb.pos.k0 = 1e-6*ones(ocpmodel.J,1);ub.pos.k0 = 1e6*ones(ocpmodel.J,1);
-lb.pos.k0Spline = 1e-6*ones(ocpmodel.J,1);ub.pos.k0Spline = 1e6*ones(ocpmodel.J,1);
+lb.pos.k0Spline = 1e-8*ones(ocpmodel.J,1);ub.pos.k0Spline = 1e6*ones(ocpmodel.J,1);
 lb.pos.sigma = init.pos.sigma/10;   ub.pos.sigma = init.pos.sigma*10;
 lb.pos.Cdl = init.pos.Cdl/10;       ub.pos.Cdl = init.pos.Cdl*100;
 lb.pos.nDL = 0.5;                   ub.pos.nDL = 1;

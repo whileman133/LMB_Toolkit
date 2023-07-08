@@ -7,8 +7,10 @@ function outModel = convertCellModel(inModel,outModelType)
 % Supported model formats:
 %
 %   'P2DM'    Psuedo-two-dimensional model
-%   'WORM'    Warburg resistance model
-%   'RLWORM'  Reduced-layer WORM
+%   'WRM'     Warburg resistance model
+%   'SWRM'    Spline WRM
+%   'RLWRM'   Reduced-layer WRM
+%   'RLSWRM'  Reduced-layer SWRM
 %   'LLPM'    Legacy lumped-parameter model
 %
 % Note: this function can only down-convert models in this list;
@@ -17,7 +19,7 @@ function outModel = convertCellModel(inModel,outModelType)
 % -- Changelog --
 % 2023.06.22 | Created | Wesley Hileman <whileman@uccs.edu>
 
-isModelType = @(x)any(strcmp(x,{'P2DM','WORM','RLWORM','LLPM'}));
+isModelType = @(x)any(strcmp(x,{'P2DM','WRM','SWRM','RLWRM','RLSWRM','LLPM'}));
 parser = inputParser;
 parser.addRequired('inStruct',@isstruct);
 parser.addRequired('outModelType',isModelType);
@@ -35,30 +37,44 @@ if strcmp(inModelType,outModelType)
 end
 
 % Map models to "reduction" factor; we can't perform
-% the conversion when redfac.(outModelType) < redfac.(inModelType).
-redfac.P2DM = 0;   % pseuso-two-dimensional model
-redfac.WORM = 1;   % lumped-parameter Warburg-oriented-resistance model
-redfac.RLWORM = 2; % reduced-layer WORM
-redfac.LLPM = 3;   % legacy lumped-parameter model
+% the conversion when redfac.(outModelType) <= redfac.(inModelType).
+redfac.P2DM = 0;
+redfac.WRM = 1;
+redfac.SWRM = 2;
+redfac.RLWRM = 2;
+redfac.RLSWRM = 3;
+redfac.LLPM = 4;
 redfacIN = redfac.(inModelType);
 redfacOUT = redfac.(outModelType);
-if redfacOUT < redfacIN
+if redfacOUT <= redfacIN
     error('Upconversion: Cannot convert model type from %s to %s.', ...
         inModelType,outModelType);
 end
 
 % OK to convert.
-if strcmp(inModelType,'P2DM') && strcmp(outModelType,'WORM')
-    outModel = genWORM(inModel);
-elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'RLWORM')
-    tmpWORM = genWORM(inModel);
-    outModel = genRLWORM(tmpWORM);
-elseif strcmp(inModelType,'WORM') && strcmp(outModelType,'RLWORM')
-    outModel = genRLWORM(inModel);
+if strcmp(inModelType,'P2DM') && strcmp(outModelType,'WRM')
+    outModel = genWRM(inModel);
+elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'RLWRM')
+    tmpWRM = genWRM(inModel);
+    outModel = genRLWRM(tmpWRM);
+elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'SWRM')
+    tmpWRM = genWRM(inModel);
+    outModel = genSWRM(tmpWRM);
+elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'RLSWRM')
+    tmpWRM = genWRM(inModel);
+    tmpRLWRM = genRLWRM(tmpWRM);
+    outModel = genSWRM(tmpRLWRM);
+elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'RLWRM')
+    outModel = genRLWRM(inModel);
+elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'SWRM')
+    outModel = genSWRM(inModel);
+elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'RLSWRM')
+    tmpRLWRM = genRLWRM(inModel);
+    outModel = genSWRM(tmpRLWRM);
 elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'LLPM')
-    tmp = genWORM(inModel);
+    tmp = genWRM(inModel);
     outModel = genLLPM(tmp,arg);
-elseif any(strcmp(inModelType,{'WORM','RLWORM'})) && strcmp(outModelType,'LLPM')
+elseif any(strcmp(inModelType,{'WRM','RLWRM'})) && strcmp(outModelType,'LLPM')
     outModel = genLLPM(inModel,arg);
 else
     error('Not implemented: cannot convert %s to %s.', ...
@@ -71,17 +87,17 @@ outModel.arg__ = arg;
 
 end
 
-function WORM = genWORM(P2DM)
-%GENWORM Convert P2DM to WORM.
+function WRM = genWRM(P2DM)
+%GENWORM Convert P2DM to WRM.
 
 R = TB.const.R;
 F = TB.const.F;
 
-WORM = struct;
-WORM.metadata = P2DM.metadata;
-WORM.metadata.cell.type = 'WORM';
-WORM.metadata.cell.lumpedParams = true;
-WORM.parameters = struct;
+WRM = struct;
+WRM.metadata = P2DM.metadata;
+WRM.metadata.cell.type = 'WRM';
+WRM.metadata.cell.lumpedParams = true;
+WRM.parameters = struct;
 
 p = getNumericParams(P2DM.parameters);
 secNames = fieldnames(P2DM.metadata.section);
@@ -127,55 +143,124 @@ for s = 1:length(secNames)
             l.kappa = genNumericParam('kappa',p.const.A*p.const.kappa*(p.(secName).eEps)^p.(secName).brugDeKappa/p.(secName).L,0,'1/Ohm');
             l.tauW = genNumericParam('tauW',p.(secName).eEps*(p.(secName).L)^2/p.const.De/(p.(secName).eEps)^p.(secName).brugDeKappa,0,'s');
     end % switch
-    WORM.parameters.(secName) = l;
+    WRM.parameters.(secName) = l;
 
     if strcmp(secMeta.type,'Electrode3D')
         % Copy OCP.
         if isfield(P2DM.parameters.(secName),'Uocv')
-            WORM.parameters.(secName).Uocv = P2DM.parameters.(secName).Uocv;
+            WRM.parameters.(secName).Uocv = P2DM.parameters.(secName).Uocv;
         end
         if isfield(P2DM.parameters.(secName),'dUocv')
-            WORM.parameters.(secName).dUocv = P2DM.parameters.(secName).dUocv;
+            WRM.parameters.(secName).dUocv = P2DM.parameters.(secName).dUocv;
         end
         if isfield(P2DM.parameters.(secName),'d2Uocv')
-            WORM.parameters.(secName).d2Uocv = P2DM.parameters.(secName).d2Uocv;
+            WRM.parameters.(secName).d2Uocv = P2DM.parameters.(secName).d2Uocv;
         end
         if isfield(P2DM.parameters.(secName),'U0')
-            WORM.parameters.(secName).U0 = P2DM.parameters.(secName).U0;
+            WRM.parameters.(secName).U0 = P2DM.parameters.(secName).U0;
         end
         if isfield(P2DM.parameters.(secName),'X')
-            WORM.parameters.(secName).X = P2DM.parameters.(secName).X;
+            WRM.parameters.(secName).X = P2DM.parameters.(secName).X;
         end
         if isfield(P2DM.parameters.(secName),'omega')
-            WORM.parameters.(secName).omega = P2DM.parameters.(secName).omega;
+            WRM.parameters.(secName).omega = P2DM.parameters.(secName).omega;
         end
     end
 end % for sec
 
 end
 
-function RLWORM = genRLWORM(WORM)
-%GENRLWORM Convert WORM to RLWORM (Reduced-Layer WORM).
+function RLWRM = genRLWRM(WRM)
+%GENRLWORM Convert WRM to RLWRM (Reduced-Layer WRM).
 
-RLWORM = WORM;
-RLWORM.metadata.cell.type = 'RLWORM';
+RLWRM = WRM;
+RLWRM.metadata.cell.type = 'RLWRM';
 
 % Combine dll/sep layers into single eff layer.
-p = getNumericParams(RLWORM.parameters);
+p = getNumericParams(RLWRM.parameters);
 k1 = 1+p.dll.kappa/p.sep.kappa;
 k2 = 1+p.sep.kappa/p.dll.kappa;
 eff.tauW = genNumericParam('tauW',p.dll.tauW*k1+p.sep.tauW*k2,0);
 eff.kappa = genNumericParam('kappa', ...
     p.dll.kappa*p.sep.kappa/(p.dll.kappa+p.sep.kappa),0);
-RLWORM.parameters.sep = eff;
-RLWORM.parameters = renameStructField(RLWORM.parameters,'sep','eff');
-RLWORM.parameters = rmfield(RLWORM.parameters,'dll');
+RLWRM.parameters.sep = eff;
+RLWRM.parameters = renameStructField(RLWRM.parameters,'sep','eff');
+RLWRM.parameters = rmfield(RLWRM.parameters,'dll');
 
 % Update metadata.
-RLWORM.metadata.section = renameStructField( ...
-    RLWORM.metadata.section,'sep','eff');
-RLWORM.metadata.section = rmfield(RLWORM.metadata.section,'dll');
-RLWORM.metadata.section.eff.name = 'eff';
+RLWRM.metadata.section = renameStructField( ...
+    RLWRM.metadata.section,'sep','eff');
+RLWRM.metadata.section = rmfield(RLWRM.metadata.section,'dll');
+RLWRM.metadata.section.eff.name = 'eff';
+
+end
+
+function SWRM = genSWRM(WRM)
+%GENSWRM Convert WRM (or RLWRM) to SWRM (or RLSWRM).
+
+SWRM = WRM;
+if strcmpi(WRM.metadata.cell.type,'WRM')
+    SWRM.metadata.cell.type = 'SWRM';
+elseif strcmpi(WRM.metadata.cell.type,'RLWRM')
+    SWRM.metadata.cell.type = 'RLSWRM';
+else
+    error('Invalid cell model type. Must be WRM or RLWRM.');
+end
+
+params = getNumericParams(WRM.parameters);
+if isfield(params.const,'Tref')
+    TrefdegC = params.const.Tref-273.15;
+else
+    TrefdegC = 25;
+end
+secNames = fieldnames(WRM.metadata.section);
+for s = 1:length(secNames)
+    secName = secNames{s};
+    secMeta = WRM.metadata.section.(secName);
+
+    if strcmp(secMeta.type,'Electrode3D')
+        if ~strcmpi(secMeta.ocp.type,'msmr') || ...
+           ~strcmpi(secMeta.kinetics,'msmr') || ...
+           ~strcmpi(secMeta.solidDiffusion,'msmr')
+            error(['Not implemented: cannot generate spline model from ' ...
+                'non-MSMR model (OCP, kinetics, and Ds must be MSMR).'])
+        end
+
+        electrode = MSMR(params.(secName));
+        thetaSpline = linspace( ...
+            electrode.zmin,electrode.zmax,electrode.J).';
+
+        % Convert MSMR kinetics.
+        % Add spline kinetics parameters.
+        ctData = electrode.Rct(params.(secName), ...
+            'theta',thetaSpline,'TdegC',TrefdegC);
+        k0Spline = ctData.i0;
+        SWRM.parameters.(secName).k0SplineTheta = genNumericParam( ...
+            'k0SplineTheta',thetaSpline(:),0,'unitless');
+        SWRM.parameters.(secName).k0Spline = genNumericParam( ...
+            'k0Spline',k0Spline(:),0,'A');
+        % Remove MSMR kinetics parameters.
+        SWRM.parameters.(secName) = rmfield( ...
+            SWRM.parameters.(secName),'k0');
+
+        % Convert MSMR solid diffusivity.
+        % Add spline diffusivity parameters.
+        dsData = electrode.Ds(params.(secName), ...
+            'theta',thetaSpline(:),'TdegC',TrefdegC);
+        DsSpline = dsData.Ds;
+        SWRM.parameters.(secName).DsSplineTheta = genNumericParam( ...
+            'DsSplineTheta',thetaSpline(:),0,'unitless');
+        SWRM.parameters.(secName).DsSpline = genNumericParam( ...
+            'DsSpline',DsSpline(:),0,'1/s');
+        % Remove MSMR diffusivity parameters.
+        SWRM.parameters.(secName) = rmfield( ...
+            SWRM.parameters.(secName),'Dsref');
+
+        % Update metadata.
+        SWRM.metadata.section.(secName).kinetics = 'spline';
+        SWRM.metadata.section.(secName).solidDiffusion = 'spline';
+    end
+end % for
 
 end
 
@@ -224,7 +309,7 @@ function LLPM = genLLPM(WORM,arg)
 %GENLLPM Convert WORM or RLWORM to LLPM.
 
 cellModel = WORM;
-if strcmp(WORM.metadata.cell.type,'RLWORM')
+if strcmp(WORM.metadata.cell.type,'RLWRM')
     % Expand eff into dll and sep for legacy implemtation
     % of genFOM. The layers will have identical parameters
     % to emulate a single eff layer.

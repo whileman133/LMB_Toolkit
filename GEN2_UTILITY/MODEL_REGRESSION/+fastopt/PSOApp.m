@@ -33,8 +33,10 @@ methods
         parser.addRequired('init',@isstruct);
         parser.addRequired('lb',@isstruct);
         parser.addRequired('ub',@isstruct);
-        parser.addParameter('PopulationSize',500);
-        parser.addParameter('MaximumIterations',100);
+        parser.addParameter('SwarmSize',500);
+        parser.addParameter('SwarmMaximumIterations',100);
+        parser.addParameter('FminMaximumIterations',1000);
+        parser.addParameter('FminMaximumFunctionEvals',10000);
         parser.addParameter('PlotInitializeFcn', ...
             @(varargin)[],@(x)isa(x,'function_handle'));
         parser.addParameter('PlotUpdateFcn', ...
@@ -65,11 +67,13 @@ methods
     function data = run(obj)
         % Run main GUI loop.
         obj.status.Text = "Idle";
+        opttype = [];
         while ishandle(obj.fig)
             pause(0.01);
             drawnow;
-            if obj.startFlag
-                obj.startFlag = false;
+            if ~isempty(obj.startFlag)
+                opttype = obj.startFlag;
+                obj.startFlag = [];
                 break;
             end
         end % while
@@ -80,14 +84,20 @@ methods
         data.ub = fastopt.unflattenstruct(obj.ub);
         if ~ishandle(obj.fig)
             % User canceled the optimization.
-            data.PopulationSize = [];
-            data.MaximumIterations = [];
+            data.OptimizationType = [];
+            data.SwarmSize = [];
+            data.SwarmMaximumIterations = [];
+            data.FminMaximumIterations = [];
+            data.FminMaximumFunctionEvals = [];
             data.updateControlsFcn = [];
             data.updateStatusFcn = [];
             data.stop = true;
         else
-            data.PopulationSize = round(abs(obj.edt.popsize.Value));
-            data.MaximumIterations = round(abs(obj.edt.maxiter.Value));
+            data.OptimizationType = opttype;
+            data.SwarmSize = round(abs(obj.edt.popsize.Value));
+            data.SwarmMaximumIterations = round(abs(obj.edt.maxiter.Value));
+            data.FminMaximumIterations = round(abs(obj.edt.fminmaxiter.Value));
+            data.FminMaximumFunctionEvals = round(abs(obj.edt.fminmaxevals.Value));
             [data.updateControlsFcn, data.updateStatusFcn] = obj.updateGUIFactory(obj);
             data.stop = false;
         end
@@ -174,7 +184,7 @@ methods(Access=protected)
         obj.fig.Position = [0.05 0.05 0.9 0.9];
         grid = uigridlayout(obj.fig,[2 2]);
         grid.ColumnWidth = {'1x','2x'};
-        grid.RowHeight = {120,'1x'};
+        grid.RowHeight = {150,'1x'};
         obj.panel.control = uipanel(grid);
         obj.panel.control.Layout.Row = 1;
         obj.panel.control.Layout.Column = 1;
@@ -187,8 +197,8 @@ methods(Access=protected)
     end % buildToplevelGUI()
 
     function buildControlPanel(obj)
-        grid = uigridlayout(obj.panel.control,[2 6]);
-        grid.RowHeight = {'1.5x','1.5x','1x'};
+        grid = uigridlayout(obj.panel.control,[4 6]);
+        grid.RowHeight = {'1.5x','1.5x','1.5x','1x'};
         obj.btn.load = uibutton(grid, ...
             "Text","Load Parameter Values", ...
             "ButtonPushedFcn",@obj.loadButtonPushed);
@@ -201,17 +211,38 @@ methods(Access=protected)
             "Text","Reset Parameter Values", ...
             "ButtonPushedFcn",@obj.resetButtonPushed);
         obj.btn.reset.Layout.Column = [5 6];
-        obj.lab.popsize = uilabel(grid,"Text","Popul. Size");
+        obj.lab.popsize = uilabel(grid,"Text","Swarm Size");
         obj.edt.popsize = uieditfield(grid,'numeric', ...
-            "Value",obj.arg.PopulationSize);
+            "Value",obj.arg.SwarmSize);
         obj.lab.maxiter = uilabel(grid,"Text","Max. Iterations");
         obj.edt.maxiter = uieditfield(grid,'numeric', ...
-            "Value",obj.arg.MaximumIterations);
+            "Value",obj.arg.SwarmMaximumIterations);
         obj.btn.start = uibutton(grid, ...
             "Text","Start", ...
             "ButtonPushedFcn",@obj.startButtonPushed);
         obj.btn.stop = uibutton(grid, ...
             "Text","Stop","Enable","off");
+        obj.btn.stop.Layout.Row = [2 3];
+        obj.btn.stop.Layout.Column = 6;
+        obj.lab.fminmaxiter = uilabel(grid,"Text","Fmin Max. Iter.");
+        obj.lab.fminmaxiter.Layout.Row = 3;
+        obj.lab.fminmaxiter.Layout.Column = 1;
+        obj.edt.fminmaxiter = uieditfield(grid,'numeric', ...
+            "Value",obj.arg.FminMaximumIterations);
+        obj.edt.fminmaxiter.Layout.Row = 3;
+        obj.edt.fminmaxiter.Layout.Column = 2;
+        obj.lab.fminmaxevals = uilabel(grid,"Text","Max. F-Evals");
+        obj.lab.fminmaxevals.Layout.Row = 3;
+        obj.lab.fminmaxevals.Layout.Column = 3;
+        obj.edt.fminmaxevals = uieditfield(grid,'numeric', ...
+            "Value",obj.arg.FminMaximumFunctionEvals);
+        obj.edt.fminmaxevals.Layout.Row = 3;
+        obj.edt.fminmaxevals.Layout.Column = 4;
+        obj.btn.start2 = uibutton(grid, ...
+            "Text","Start", ...
+            "ButtonPushedFcn",@obj.start2ButtonPushed);
+        obj.btn.start2.Layout.Row = 3;
+        obj.btn.start2.Layout.Column = 5;
         obj.status = uilabel(grid,"Text","Idle");
         obj.status.Layout.Column = [1 6];
     end % buildControlPanel()
@@ -235,6 +266,8 @@ methods(Access=protected)
             initial = obj.init0.(paramName);
             lower = obj.lb0.(paramName);
             upper = obj.ub0.(paramName);
+            initial(initial<lower) = lower(initial<lower);
+            initial(initial>upper) = upper(initial>upper);
             initialPct = obj.toSliderValue(initial,lower,upper,param.logscale);
         
             % Iterate degrees of freedom within free parameter.
@@ -359,7 +392,11 @@ methods(Access=protected)
 
     % Event handlers ------------------------------------------------------
     function startButtonPushed(obj,~,~)
-        obj.startFlag = true;
+        obj.startFlag = 'particleswarm';
+    end
+
+    function start2ButtonPushed(obj,~,~)
+        obj.startFlag = 'fmincon';
     end
 
     function stopButtonPushed(obj,~,~)

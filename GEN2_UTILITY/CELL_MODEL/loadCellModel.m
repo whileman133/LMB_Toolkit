@@ -202,7 +202,7 @@ modelStruct.metadata.cell.chemistry = 'LMB';
 % Determine if this is a standard or lumped model.
 if isfield(modelStruct.parameters.const,'W')
     % Lumped-parameter Warburg-oriented-resistance model (WORM).
-    modelStruct.metadata.cell.type = 'WORM';
+    modelStruct.metadata.cell.type = 'WRM';
     modelStruct.metadata.cell.lumpedParams = true;
 else
     % Standard-parameter pseudo-two-dimensional model.
@@ -263,10 +263,34 @@ for s = 1:length(sectionNames)
                      'Otherwise k0 should be a scalar.'], ...
                     sec.name,sec.type);
             end
+        elseif all(isfield(modelStruct.parameters.(sec.name),{'k0Spline','k0SplineTheta'}))
+            modelStruct.metadata.section.(sec.name).kinetics = 'spline';
         else
             error( ...
                 ['Kinetics improperly configured: ''%s'' (%s).\n' ...
-                 'Specify the lumped reaction rate-constant k0.'], ...
+                 'Specify the lumped reaction rate-constant k0 or ' ...
+                 'k0Spline and k0SplineTheta.'], ...
+                sec.name,sec.type);
+        end % if
+
+        % Validate diffusivity / collect diffusivity metadata.
+        if isfield(modelStruct.parameters.(sec.name),'Dsref')
+            if ~isMSMR
+                error( ...
+                    ['Diffusivity improperly configured: ''%s'' (%s).\n' ...
+                     'Non-MSMR models cannot use Dsref; specify Ds instead.'], ...
+                    sec.name,sec.type);
+            end
+             modelStruct.metadata.section.(sec.name).solidDiffusion = 'msmr';
+        elseif isfield(modelStruct.parameters.(sec.name),'Ds')
+            modelStruct.metadata.section.(sec.name).solidDiffusion = 'fixed';
+        elseif all(isfield(modelStruct.parameters.(sec.name),{'DsSpline','DsSplineTheta'}))
+            modelStruct.metadata.section.(sec.name).solidDiffusion = 'spline';
+        else
+            error( ...
+                ['Diffusivity improperly configured: ''%s'' (%s).\n' ...
+                 'Specify the diffusivity coefficient Dsref or ' ...
+                 'fixed diffusivity Ds.'], ...
                 sec.name,sec.type);
         end % if
     end % if Electrode3D
