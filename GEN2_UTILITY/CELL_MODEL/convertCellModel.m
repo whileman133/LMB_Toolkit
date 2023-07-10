@@ -425,8 +425,11 @@ function [Uocp, dUocp] = makeOCP(sec)
 
 electrode = MSMR(sec);
 SOCvec = 0.001:0.0001:0.999;  % (stoichiometry, theta)
-[OCVvec1, dOCVvec] = electrode.ocp('theta',SOCvec,'TdegC',25);
-[OCVvec2, ~] = electrode.ocp('theta',SOCvec,'TdegC',26); 
+ocpData = electrode.ocp('theta',SOCvec,'TdegC',25);
+OCVvec1 = ocpData.Uocp;
+dOCVvec = ocpData.dUocp;
+ocpData = electrode.ocp('theta',SOCvec,'TdegC',26);
+OCVvec2 = ocpData.Uocp;
 
 SOCstr = ['[',sprintf('%g;',SOCvec),']'];
 OCVstr1 = ['[',sprintf('%g;',OCVvec1),']'];

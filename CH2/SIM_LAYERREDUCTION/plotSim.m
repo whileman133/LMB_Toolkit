@@ -7,7 +7,7 @@
 
 clear; close all; clc;
 addpath(fullfile('..','..'));
-TB.addpaths('gen2');
+TB.addpaths;
 load('layerReductionSim.mat');
 
 timeDesiredPlot = [0.1 62];  % times at which to plot conc. profiles
@@ -25,7 +25,7 @@ PhieRLWORM = simData.resultsRLWORM.output.Phie;
 ThetaeWORM = simData.resultsWORM.output.Thetae;
 ThetaeRLWORM = simData.resultsRLWORM.output.Thetae;
 
-colors = summer(10);
+colors = winter(10);
 colors = colors([1 6],:);
 figure; colororder(colors);
 plot(simData.resultsWORM.time, simData.resultsWORM.vcell,'-'); hold on;
@@ -40,7 +40,7 @@ addInset([62 63],[48 3.22],2.7);
 print('vcell','-depsc');
 print('vcell','-dpng');
 
-colors = spring(10);
+colors = copper(10);
 colors = colors([2 9],:);
 for t0 = timeDesiredPlot
     [~,indtime] = min(abs(time-t0));

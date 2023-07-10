@@ -7,6 +7,9 @@
 % 2023.06.23 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
+addpath(fullfile('..','..'));
+TB.addpaths;
+
 load('warburgSim.mat');
 labelsW = arrayfun( ...
     @(x)sprintf('$\\bar{W}=%.3f$',x),simData.W,'UniformOutput',false);
@@ -18,7 +21,7 @@ labelsTaup = arrayfun( ...
     simData.taup,'UniformOutput',false);
 [Ld,Ls,Lp] = getCellParams(simData.p2dm,'*.L','Output','list');
 
-figure; colororder(spring(length(simData.W)));
+figure; colororder(copper(length(simData.W)));
 for k = 1:length(simData.W)
     data = simData.WSeries(k);
     Thetae = data.output.Thetae;  % dim1=time, dim2=xlocation
@@ -40,7 +43,7 @@ thesisFormat;
 print('thetaex-W','-depsc');
 print('thetaex-W','-dpng');
 
-figure; colororder(spring(length(simData.W)));
+figure; colororder(copper(length(simData.W)));
 for k = 1:length(simData.W)
     data = simData.WSeries(k);
     Phie = data.output.Phie;  % dim1=time, dim2=xlocation
@@ -62,7 +65,7 @@ thesisFormat;
 print('phiex-W','-depsc');
 print('phiex-W','-dpng');
 
-figure; colororder(summer(length(simData.taus)));
+figure; colororder(winter(length(simData.taus)));
 for k = 1:length(simData.taus)
     taus = simData.taus(k);
     data = simData.tausSeries(k);
@@ -81,7 +84,7 @@ thesisFormat;
 print('phie2t-taus','-depsc');
 print('phie2t-taus','-dpng');
 
-figure; colororder(summer(length(simData.taup)));
+figure; colororder(winter(length(simData.taup)));
 for k = 1:length(simData.taup)
     taup = simData.taup(k);
     data = simData.taupSeries(k);
