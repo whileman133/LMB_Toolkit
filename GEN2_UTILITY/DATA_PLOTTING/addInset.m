@@ -1,4 +1,4 @@
-function addInset(varargin)
+function insetAx = addInset(varargin)
 %ADDINSET Place inset detail inside of the current axes.
 %
 % Call this function after thesisFormat to place a "zoomed in" detail view

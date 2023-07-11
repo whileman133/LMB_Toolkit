@@ -181,6 +181,7 @@ data.Zlab = Zlab;
 data.freq = freqLab;
 data.socPctTrue = socPctTrue;
 data.TdegC = TdegC;
+data.arg = struct;
 data.arg.labSpectra = labSpectra;
 data.arg.labOCPFit = labOCPFit;
 data.arg.initialModel = initialModel;
