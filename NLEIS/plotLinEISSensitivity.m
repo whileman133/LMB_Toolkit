@@ -1,57 +1,63 @@
-% plotNonlinEISSensitivity.m
+% plotLinEISSensitivity.m
 
 clear; close all; clc;
-addpath(fullfile("..","TFS"));
-addpath(fullfile("..","UTILITY"));
-addpath(fullfile("..","XLSX_CELLDEFS"));
-addpath(fullfile("..","MAT_CELLDEFS"));
-modelname = 'cellLMO';
-load([modelname '.mat']);
+addpath(fullfile('..'));
+TB.addpaths;
+modelName = 'cellLMO-P2DM';
+p2dm = loadCellModel(modelName);
+wrm = convertCellModel(p2dm,'WRM');
 
 ff = logspace(-3,5,100);
 socPct = 5;
 TdegC = 25;
+lumped = getCellParams(wrm,'TdegC',25);
+lumped.const.W = 10;
+lumped.pos.kappa = 10000;
 sensStudy.defaults = lumped;
-sensStudy.singl.values.pos.alpha = ...
-    [0.2 0.8; 0.4 0.8; 0.6 0.8; 0.8 0.8; 0.8 0.6; 0.8 0.4; 0.8 0.2];
-sensStudy.singl.multiplier.pos.k0 = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.pos.Dsref = [1/5; 1/2; 2; 5];
-sensStudy.singl.values.pos.nF = (0.5:0.1:1).';
-sensStudy.singl.values.pos.nDL = (0.5:0.1:1).';
-sensStudy.singl.multiplier.pos.sigma = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.pos.kappa = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.sep.kappa = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.DL.kappa = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.pos.qe = [0.1; 1/2; 2; 10];
-sensStudy.singl.multiplier.sep.qe = [0.1; 1/2; 2; 10];
-sensStudy.singl.multiplier.DL.qe = [0.1; 1/2; 2; 10];
-sensStudy.singl.values.neg.alpha = (0.2:0.2:0.8).';
-sensStudy.singl.multiplier.neg.k0 = [1/5; 1/2; 2; 5];
-sensStudy.singl.values.neg.nDL = (0.5:0.1:1).';
-sensStudy.singl.multiplier.const.psi = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.const.kD = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikD.const.psi = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikD.const.kD = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.const.psi = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.const.kD = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.pos.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.sep.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.DL.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psiqe.const.psi = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psiqe.pos.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psiqe.sep.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psiqe.DL.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.kDqe.const.kD = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.kDqe.pos.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.kDqe.sep.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.kDqe.DL.qe = [1/5; 1/2; 2; 5];
+% sensStudy.singl.values.pos.alpha = ...
+%     [0.2 0.8; 0.4 0.8; 0.6 0.8; 0.8 0.8; 0.8 0.6; 0.8 0.4; 0.8 0.2];
+% sensStudy.singl.multiplier.pos.k0 = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.pos.Dsref = [1/5; 1/2; 2; 5];
+% sensStudy.singl.values.pos.nF = (0.5:0.1:1).';
+% sensStudy.singl.values.pos.nDL = (0.5:0.1:1).';
+% sensStudy.singl.multiplier.pos.sigma = [1/100; 1/10; 10; 100];
+% sensStudy.singl.multiplier.pos.kappa = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.sep.kappa = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.dll.kappa = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.pos.tauW = [0.1; 1/2; 2; 10];
+% sensStudy.singl.multiplier.sep.tauW = [0.1; 1/2; 2; 10];
+% sensStudy.singl.multiplier.dll.tauW = [0.1; 1/2; 2; 10];
+% sensStudy.singl.values.neg.alpha = (0.2:0.2:0.8).';
+% sensStudy.singl.multiplier.neg.k0 = [1/5; 1/2; 2; 5];
+% sensStudy.singl.values.neg.nDL = (0.5:0.1:1).';
+% sensStudy.singl.multiplier.const.psi = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.const.W = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psiW.const.psi = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psiW.const.W = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psiWtauW.const.psi = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psiWtauW.const.W = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psiWtauW.pos.tauW = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psiWtauW.sep.tauW = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psiWtauW.dll.tauW = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psitauW.const.psi = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psitauW.pos.tauW = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psitauW.sep.tauW = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psitauW.dll.tauW = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.WtauW.const.W = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.WtauW.pos.tauW = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.WtauW.sep.tauW = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.WtauW.dll.tauW = [1/5; 1/2; 2; 5];
+sensStudy.joint.multiplier.kappaW.const.W = [1/2; 2; 5; 20];
+sensStudy.joint.multiplier.kappaW.pos.kappa = [1/2; 2; 5; 20];
+sensStudy.joint.multiplier.kappaW.sep.kappa = [1/2; 2; 5; 20];
+sensStudy.joint.multiplier.kappaW.dll.kappa = [1/2; 2; 5; 20];
 sensData = fastopt.runSensitivityStudy( ...
     sensStudy,@(params)calcZ(params,ff,socPct,TdegC));
 
 % Make plot directory.
 plotdir = fullfile( ...
     'plots', ...
-    sprintf('%s-SENS-H1-%dpct-%ddegC',modelname,socPct,TdegC));
+    sprintf('SEN1_%s-%dpct-%ddegC',modelName,socPct,TdegC));
 if ~isfolder(plotdir)
     mkdir(plotdir);
 end
@@ -59,21 +65,21 @@ end
 for data = sensData.results
     Z = [data.output.Z];
     Zb = sensData.baseline.Z;
-    if strcmp(data.basename,'kappa')
+    if contains(data.basename,{'sigma','kappa'})
         % subtract out Z(inf) to show how curve shape changes
         Z = Z - Z(end,:);
         Zb = Zb - Zb(end);
     end
     figure();
     if strcmp(data.perturbType,'multiplier')
-        colororder([0 0 0; spring(size(Z,2))]);
+        colororder([0 0 0; winter(size(Z,2))]);
         plot(real(Zb),-imag(Zb),':'); hold on;
         plot(real(Z),-imag(Z));
     else
-        colororder(spring(size(Z,2)));
+        colororder(winter(size(Z,2)));
         plot(real(Z),-imag(Z))
     end
-    if strcmp(data.basename,'kappa')
+    if contains(data.basename,{'sigma','kappa'})
         labx = '$(\tilde{Z}_\mathrm{1,1}-\tilde{Z}_\mathrm{1,1}(\infty))''$';
         laby = '$(\tilde{Z}_\mathrm{1,1}-\tilde{Z}_\mathrm{1,1}(\infty))''''$';
     else

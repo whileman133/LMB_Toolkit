@@ -98,7 +98,6 @@ p.kappap      = getParam('pos','kappa');
 p.taup        = getParam('pos','tauW');
 p.nF          = getParam('pos','nF');
 p.Rfp         = getParam('pos','Rf');
-%p.k0p         = getParam('pos','k0');
 p.alphap      = getParam('pos','alpha');
 p.Rdlp        = getParam('pos','Rdl');
 p.Cdlp        = getParam('pos','Cdl');
@@ -111,7 +110,7 @@ p.Cdln        = getParam('neg','Cdl');
 p.nDLn        = getParam('neg','nDL');
 p.k0n         = getParam('neg','k0');
 p.alphan      = getParam('neg','alpha');
-% Code below implements Warburg CPE factor for inert layers;
+% Code later in this file implements Warburg CPE factor for inert layers;
 % not presently used, so we set all nE=1.
 p.nEs         = 1;
 p.nEdl        = 1;
