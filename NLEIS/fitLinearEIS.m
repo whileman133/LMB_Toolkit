@@ -142,7 +142,7 @@ lb.pos.kappa = init.pos.kappa/100;  ub.pos.kappa = init.pos.kappa*100;
 lb.pos.DsSpline = 1e-9*ones(ocpmodel.J,1);ub.pos.DsSpline = 1*ones(ocpmodel.J,1);
 lb.pos.nF = 0.1;                    ub.pos.nF = 1;
 lb.pos.k0Spline = 1e-8*ones(ocpmodel.J,1);ub.pos.k0Spline = 1e6*ones(ocpmodel.J,1);
-lb.pos.sigma = init.pos.sigma/10;   ub.pos.sigma = init.pos.sigma*10;
+lb.pos.sigma = init.pos.sigma/1000; ub.pos.sigma = init.pos.sigma*1000;
 lb.pos.Cdl = init.pos.Cdl/10;       ub.pos.Cdl = init.pos.Cdl*100;
 lb.pos.nDL = 0.5;                   ub.pos.nDL = 1;
 lb.pos.Rf = init.pos.Rf/100;        ub.pos.Rf = init.pos.Rf*100;
