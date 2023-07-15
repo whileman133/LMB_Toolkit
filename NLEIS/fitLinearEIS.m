@@ -21,6 +21,7 @@ function data = fitLinearEIS(labSpectra,labOCPFit,initialModel,varargin)
 %   .freq        Cyclic frequency vector
 %   .socPctTrue  SOC vector, calculated from QdisAh
 %   .TdegC       Temperature
+%   .arg         Structure of arguments supplied to the function.
 %
 % -- Changelog --
 % 2023.06.30 | Created | Wesley Hileman <whileman@uccs.edu>
@@ -181,10 +182,7 @@ data.Zlab = Zlab;
 data.freq = freqLab;
 data.socPctTrue = socPctTrue;
 data.TdegC = TdegC;
-data.arg = struct;
-data.arg.labSpectra = labSpectra;
-data.arg.labOCPFit = labOCPFit;
-data.arg.initialModel = initialModel;
+data.arg = arg;
 data.type__ = 'ParameterEstimate';
 data.origin__ = 'fitLinearEIS';
 

@@ -15,7 +15,7 @@ wrm = convertCellModel(p2dm,'RLWRM');
 socPct = 60;
 TdegC = 25;
 p = getCellParams(wrm,'TdegC',25);
-p.const.W = 1;
+p.const.W = 2;
 freq = logspace(-5,5,1000);
 s = 1j*2*pi*freq;
 
@@ -28,6 +28,8 @@ Zw1 = +1/p.eff.kappa + 2*(p.const.W/p.eff.kappa)*tanh(L1/2)./L1;
 L3 = sqrt(p.pos.tauW*s);
 Zw3 = +1/p.pos.kappa/2 + (p.const.W/p.pos.kappa)*tanh(L3/2)./L3;
 ZelW = Zw1 + Zw3;
+f3 = 1/2/pi/p.pos.tauW;
+[~,indf3] = min(abs(freq-f3));
 
 figure;
 plot(real(Zel),-imag(Zel),'k'); hold on;
@@ -40,3 +42,14 @@ setAxesNyquist;
 thesisFormat;
 print(fullfile('plots','APPROX',sprintf('WarburgElectrolyte_W%.0f',p.const.W)),'-depsc');
 print(fullfile('plots','APPROX',sprintf('WarburgElectrolyte_W%.0f',p.const.W)),'-dpng');
+
+figure;
+plot(real(Zw3),-imag(Zw3),'b'); hold on;
+plot(0,0,'k+');
+xlabel("Z_{W}' [\Omega]");
+ylabel("-Z_{W}'' [\Omega]");
+title("Nyquist: Warburg impedance");
+setAxesNyquist;
+thesisFormat;
+print(fullfile('plots','APPROX','FLW-Impedance'),'-depsc');
+print(fullfile('plots','APPROX','FLW-Impedance'),'-dpng');
