@@ -235,13 +235,18 @@ for s = 1:length(secNames)
         ctData = electrode.Rct(params.(secName), ...
             'theta',thetaSpline,'TdegC',TrefdegC);
         k0Spline = ctData.i0;
+        alphaSpline = 0.5*ones(size(k0Spline),1);
         SWRM.parameters.(secName).k0SplineTheta = genNumericParam( ...
             'k0SplineTheta',thetaSpline(:),0,'unitless');
         SWRM.parameters.(secName).k0Spline = genNumericParam( ...
             'k0Spline',k0Spline(:),0,'A');
+        SWRM.parameters.(secName).alphaSplineTheta = genNumericParam( ...
+            'alphaSplineTheta',thetaSpline(:),0,'unitless');
+        SWRM.parameters.(secName).alphaSpline = genNumericParam( ...
+            'alphaSpline',alphaSpline(:),0,'unitless');
         % Remove MSMR kinetics parameters.
         SWRM.parameters.(secName) = rmfield( ...
-            SWRM.parameters.(secName),'k0');
+            SWRM.parameters.(secName),{'k0','alpha'});
 
         % Convert MSMR solid diffusivity.
         % Add spline diffusivity parameters.
