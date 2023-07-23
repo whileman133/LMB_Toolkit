@@ -254,10 +254,10 @@ classdef MSMR < handle
             end
 
             % Collect output data.
-            ocpData.Uocp = Uocp;
-            ocpData.dUocp = dUocp;
-            ocpData.d2Uocp = d2Uocp;
-            ocpData.theta = theta;
+            ocpData.Uocp = Uocp(:);
+            ocpData.dUocp = dUocp(:);
+            ocpData.d2Uocp = d2Uocp(:);
+            ocpData.theta = theta(:);
             ocpData.xj = xj;
             ocpData.TdegC = TdegC;
             ocpData.f = f;
@@ -342,8 +342,8 @@ classdef MSMR < handle
 
             % Collect output data.
             ctData = ocpData;
-            ctData.Rct = 1./i0/ocpData.f;
-            ctData.i0 = i0;
+            ctData.Rct = 1./i0(:)/ocpData.f;
+            ctData.i0 = i0(:);
             ctData.Rctj = 1./i0j./ocpData.f;
             ctData.i0j = i0j;
             ctData.origin__ = 'MSMR.Rct';

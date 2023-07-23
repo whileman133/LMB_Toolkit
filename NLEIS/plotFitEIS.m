@@ -5,7 +5,7 @@
 clear; close all; clc;
 addpath(fullfile('..','..'));
 TB.addpaths;
-fitData = load(fullfile('labfitdata','EIS-Cell395534-26degC.mat'));
+fitData = load(fullfile('labfitdata','EIS-Cell395524-42degC.mat'));
 nsoc = length(fitData.socPctTrue);
 indSOC = [1 2 3:2:nsoc-2 nsoc-1 nsoc];
 nsocPlot = length(indSOC);
