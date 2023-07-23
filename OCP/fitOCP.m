@@ -1,6 +1,15 @@
 % fitOCP.m
 %
 % Fit MSMR model(s) to laboratory-derived OCP estimates.
+% This implementation uses ga.m (genetic algorithm) followed by fmincon.m
+% to regress the MSMR model to laboratory OCP collected at several
+% temperatures (T=0degC, T=15degC, T=25degC, T=40degC, T=55degC).
+% **We consider the T=40degC dataset most indicative of the true OCP.**
+%
+% XPD data from the literature (Friedrich et al.) is also used to extend 
+% the range of OCP measurements over lower lithiation than can be permitted 
+% by our laboratory tests. This allows for better fitting of the MSMR 
+% galleries.
 %
 % -- Changelog --
 % 2023.07.23 | Update for gen2 toolkit | Wesley Hileman
@@ -8,13 +17,16 @@
 % 2023.07.05 | Opt. to fit one MSMR model to multiple lab | Wesley Hileman
 % 2022.03.25 | Created | Wesley Hileman <whileman@uccs.edu>
 
-clearvars -except study; clc; close all;
+clear; clc; close all;
+addpath('..');
+TB.addpaths;
 
 % Name of the study to load.
-STUDYNAME = 'SionFresh_0C01';
+STUDYNAME = 'SionFresh_0C01';  % C/100 quasi-equilibrium cycling
 
 % Directory in which to place fit models.
-OUTDIR = fullfile(com.const.OCPROOT, 'labdata', 'fit');
+OUTDIR = fullfile(TB.const.OCPROOT, 'labdata', 'fit');
+OUTNAME = ['Fit-' STUDYNAME];
 
 % Directory in which to place output plots.
 PLOTDIR = fullfile('..', 'plots');
@@ -29,6 +41,10 @@ VMIN = 2; VMAX = 6;
 
 % Number of MSMR galleries to fit.
 J = 7;
+
+% Number of times to run the ga/fmincon optimization at each temperature.
+% The run with the best cost will be used as the final result.
+NUMBER_OF_ATTEMPTS = 1;
 
 % Load study data.
 ocp.load(STUDYNAME,'built');
@@ -104,7 +120,7 @@ for idxEstimate = 1:length(estimates)
     % Take best of several optimization attempts.
     bestFit = []; 
     bestCost = Inf;
-    for k = 1:10
+    for k = 1:NUMBER_OF_ATTEMPTS
         [fit, cost] = ocp.MSMR.fit(estimate,J,VMIN,VMAX, ...
             'fix',opts.fix,'lb',opts.lb,'ub',opts.ub,'Usep',opts.Usep,'w',opts.w, ...
             'gaPopulationSize',opts.gaPopulationSize,'gaIterations',opts.gaIterations, ...
@@ -124,5 +140,12 @@ for idxEstimate = 1:length(estimates)
     bestFit.print('Model Fit (Diagonal Estimate)');
 end
 
+% Save regressed models to disk.
 fitstudy = ocp.FitStudy(builtstudy.name, models);
-save(fullfile(OUTDIR,builtstudy.name),'fitstudy');
+save(fullfile(OUTDIR,OUTNAME),'fitstudy');
+
+% Convert to plain MATLAB structure and save to disk.
+study = fitstudy.toStruct();
+studyFile = fullfile( ...
+    TB.const.OCPROOT,'labdata','fitstruct',sprintf('%s.mat',OUTNAME));
+save(studyFile,'study');

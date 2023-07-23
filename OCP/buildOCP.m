@@ -6,6 +6,7 @@
 % Type `help ocp.build` for more information.
 %
 % -- Changelog --
+% 07.23.2023 | Update for gen2 toolkit | Wesley Hileman
 % 08.10.2022 | Move OCP data directory, various cleanup | Wesley Hileman
 % 08.04.2022 | Collect into package, rename to buildOCP | Wesley Hileman
 % 06.29.2022 | Parse a single study at a time | Wesley Hileman

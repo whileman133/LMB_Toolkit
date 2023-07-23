@@ -74,7 +74,7 @@ elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'RLSWRM')
 elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'LLPM')
     tmp = genWRM(inModel);
     outModel = genLLPM(tmp,arg);
-elseif any(strcmp(inModelType,{'WRM','RLWRM'})) && strcmp(outModelType,'LLPM')
+elseif any(strcmp(inModelType,{'WRM','RLWRM','SWRM','RLSWRM'})) && strcmp(outModelType,'LLPM')
     outModel = genLLPM(inModel,arg);
 else
     error('Not implemented: cannot convert %s to %s.', ...
@@ -235,7 +235,7 @@ for s = 1:length(secNames)
         ctData = electrode.Rct(params.(secName), ...
             'theta',thetaSpline,'TdegC',TrefdegC);
         k0Spline = ctData.i0;
-        alphaSpline = 0.5*ones(size(k0Spline),1);
+        alphaSpline = 0.5*ones(size(k0Spline));
         SWRM.parameters.(secName).k0SplineTheta = genNumericParam( ...
             'k0SplineTheta',thetaSpline(:),0,'unitless');
         SWRM.parameters.(secName).k0Spline = genNumericParam( ...
@@ -314,7 +314,7 @@ function LLPM = genLLPM(WORM,arg)
 %GENLLPM Convert WORM or RLWORM to LLPM.
 
 cellModel = WORM;
-if strcmp(WORM.metadata.cell.type,'RLWRM')
+if strcmp(WORM.metadata.cell.type,{'RLWRM','RLSWRM'})
     % Expand eff into dll and sep for legacy implemtation
     % of genFOM. The layers will have identical parameters
     % to emulate a single eff layer.
