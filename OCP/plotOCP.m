@@ -1,4 +1,10 @@
 % plotOCP.m
+%
+% Plot regressed MSMR OCP curve.
+%
+% -- Changelog --
+% 07.23.2023 | Update for gen2 toolkit | Wesley Hileman
+% 10.12.2022 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
 addpath('..');
