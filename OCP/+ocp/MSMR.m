@@ -768,18 +768,18 @@ classdef MSMR < handle
 
             % Parse input.
             parser = inputParser;
-            parser.addOptional('initial',[],@(x)isa(x,'ocp.MSMR')||isempty(x));
-            parser.addOptional('eps',0.5,@(x)isstruct(x)||x>=0);
-            parser.addOptional('lb',struct,@isstruct);
-            parser.addOptional('ub',struct,@isstruct);
-            parser.addOptional('fix',struct,@isstruct);
-            parser.addOptional('Usep',0,@(x)x>=0);
-            parser.addOptional('w',0.001,@(x)x>=0);
-            parser.addOptional('gaPopulationSize',200,@(x)x>10);
-            parser.addOptional('gaIterations',500,@(x)x>10);
-            parser.addOptional('fminconIterations',500,@(x)x>10);
-            parser.addOptional('verbose',true,@islogical);
-            parser.addOptional('weighting',[],@isstruct);
+            parser.addParameter('initial',[],@(x)isa(x,'ocp.MSMR')||isempty(x));
+            parser.addParameter('eps',0.5,@(x)isstruct(x)||x>=0);
+            parser.addParameter('lb',struct,@isstruct);
+            parser.addParameter('ub',struct,@isstruct);
+            parser.addParameter('fix',struct,@isstruct);
+            parser.addParameter('Usep',0,@(x)x>=0);
+            parser.addParameter('w',0.001,@(x)x>=0);
+            parser.addParameter('gaPopulationSize',200,@(x)x>10);
+            parser.addParameter('gaIterations',500,@(x)x>10);
+            parser.addParameter('fminconIterations',500,@(x)x>10);
+            parser.addParameter('verbose',true,@islogical);
+            parser.addParameter('weighting',[],@isstruct);
             parser.parse(varargin{:});
             initial = parser.Results.initial;
             eps = parser.Results.eps;

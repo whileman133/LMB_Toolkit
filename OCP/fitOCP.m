@@ -1,19 +1,12 @@
-% processOCP.m
+% fitOCP.m
 %
 % Fit MSMR model(s) to laboratory-derived OCP estimates.
 %
 % -- Changelog --
-% 08.10.2022 | 
-% Updated to use packaged OCP implementation | 
-% Wes Hileman
-%
-% 07.05.2022 | 
-% Ability to fit single MSMR model to multiple lab OCP estimates | 
-% Wesley Hileman
-%
-% 03.25.2022 | Created |
-% Wesley Hileman <whileman@uccs.edu>
-% University of Colorado Colorado Springs
+% 2023.07.23 | Update for gen2 toolkit | Wesley Hileman
+% 2022.08.10 | Use packaged OCP | Wesley Hileman
+% 2023.07.05 | Opt. to fit one MSMR model to multiple lab | Wesley Hileman
+% 2022.03.25 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clearvars -except study; clc; close all;
 
@@ -21,12 +14,13 @@ clearvars -except study; clc; close all;
 STUDYNAME = 'SionFresh_0C01';
 
 % Directory in which to place fit models.
-OUTDIR = fullfile(com.const.OCPROOT, 'fit');
+OUTDIR = fullfile(com.const.OCPROOT, 'labdata', 'fit');
 
 % Directory in which to place output plots.
 PLOTDIR = fullfile('..', 'plots');
 
 % Size of the voltage bins used for computing differential capacity.
+% (for more information, see: help smoothdiff.m)
 VBINSIZE = 5e-3;
 
 % Voltage range for evalulating the fit MSMR model. Should be a superset of
@@ -40,7 +34,8 @@ J = 7;
 ocp.load(STUDYNAME,'built');
 
 % Prepare OCP estimates for model regression.
-load(fullfile(TB.const.OCPROOT,'UocpXPD.mat'));
+% Augment with XPD data from the literatue.
+load(fullfile(TB.const.OCPROOT,'labdata','UocpXPD.mat'));
 idx = x<0.18; zXPD = flip(x(idx)); UocpXPD = flip(Uocp(idx));
 estimates = ocp.Estimate.empty;
 cursor = 1;
@@ -86,6 +81,8 @@ opts.lb.Xj = 0.02;   opts.ub.Xj = 0.8;
 opts.lb.Wj = 0.01;   opts.ub.Wj = 30;
 opts.Usep = 0.005;
 opts.w = 0.1;
+
+% Optimizer options. We use genetic algorithm (ga) followed by fmincon.
 opts.gaPopulationSize = 200;
 opts.gaIterations = 500;
 opts.fminconIterations = 5000;
