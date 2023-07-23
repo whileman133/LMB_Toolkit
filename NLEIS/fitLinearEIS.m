@@ -176,12 +176,15 @@ data = fastopt.uiparticleswarm(@cost,modelspec,init,lb,ub, ...
     'PlotInitializeFcn',plotInit,'PlotUpdateFcn',plotUpdate);
 
 % Collect output data.
+data.modelspec = modelspec;
 data.model = setCellParam(initialModel,data.values);
 data.Zmodel = getLinearImpedance(data.values,freqLab,socPctTrue,TdegC,ocpData);
 data.Zlab = Zlab;
 data.freq = freqLab;
 data.socPctTrue = socPctTrue;
 data.TdegC = TdegC;
+data.argpso = data.arg;
+data = rmfield(data,{'origin__','arg'});
 data.arg = arg;
 data.type__ = 'ParameterEstimate';
 data.origin__ = 'fitLinearEIS';

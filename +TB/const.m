@@ -45,7 +45,7 @@ classdef const
             if ~exist('T','var')
                 TdegC = 25;
             end
-            f = com.const.F/com.const.R/(TdegC+273.15);
+            f = TB.const.F/TB.const.R/(TdegC+273.15);
         end
     end
 

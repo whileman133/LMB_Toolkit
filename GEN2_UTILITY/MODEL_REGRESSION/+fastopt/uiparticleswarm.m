@@ -95,6 +95,7 @@ guidata = struct;
 guidata.values = fastopt.unpack(estimate,modelspec);
 guidata.lb = fastopt.unpack(lb,modelspec);
 guidata.ub = fastopt.unpack(ub,modelspec);
+guidata.modelspec = modelspec;
 guidata.arg = arg;
 guidata.origin__ = 'fastopt.uiparticleswarm';
 
