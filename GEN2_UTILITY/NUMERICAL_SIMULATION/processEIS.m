@@ -86,8 +86,8 @@ for h = 1:H
     spectra.(harmNames{h}) = [];
 end
 
-for kz = size(simData.ss,2):-1:1
-    for kf = size(simData.ss,1):-1:1
+for kz = size(simData.ss,1):-1:1
+    for kf = size(simData.ss,2):-1:1
         freqkData = simData.ss(kz,kf);
         socPct = simData.param.socPct(kz);
     
