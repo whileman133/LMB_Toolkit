@@ -23,9 +23,9 @@ cellFile = 'cellSionGuess-P2DM.xlsx';  % Name of cell parameters spreadsheet.
 % 1. Working with cell models. --------------------------------------------
 
 % Load cell model from spreadsheet.
-cellModel = loadCellModel(cellFile);
-% Convert standard cell model to lumped-parameter model.
-cellModel = convertCellModel(cellModel,'LLPM');
+p2dm = loadCellModel(cellFile);  % pseudo two-dimensional model
+% Convert standard cell model to lumped-parameter Warburg-resistance model.
+wrm = convertCellModel(p2dm,'WRM');
 
 % `cellModel.function` is now a structure containing the parameters of the cell
 % as functions of lithiation (x) and absolute temperature (T). The
@@ -33,18 +33,13 @@ cellModel = convertCellModel(cellModel,'LLPM');
 % as constants (const).
 
 % Evaluate some cell parameters at 25C...
-Q = cellModel.function.const.Q([],25+273.15);  % ok that x empty since we know Q invariant with lithiation
-k0n = cellModel.function.neg.k0([],25+273.15);
-k0p = cellModel.function.pos.k0([],25+273.15);
+% Type `help getCellParams.m` for more information.
+[Q,k0n,k0p] = getCellParams(wrm,'const.Q *.k0','TdegC',25,'Output','list');
 
 % Or evaluate all cell parameters at a particular SOC setpoint and
 % temperature using evalSetpoint...
-socPct = 50;
-TdegC = 25;
-cellModelSetpoint1 = evalSetpoint(cellModel,[],socPct/100,TdegC+273.15);
+cellModelSetpoint1 = getCellParams(wrm,'TdegC',25,'socPct',50);
 
-% Now, cellModelSetpoint1.neg, ".dll, ".sep, ".pos, ".const are structures
-% containing the parameters evalulated at socPct and TdegC.
 
 
 % 2. Generating COMSOL models. --------------------------------------------
