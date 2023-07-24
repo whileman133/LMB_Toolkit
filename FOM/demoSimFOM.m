@@ -53,7 +53,7 @@ genData = genFOM(cellModel);
 
 % Save standard COMSOL metaphysics (mph) file that you can open
 % in the COMSOL GUI:
-genData.FOM.save(fullfile(thisdir,'demoFOM.mph'));
+genData.FOM.save('demoFOM.mph');
 
 
 % 3. Running a simulation in COMSOL. --------------------------------------

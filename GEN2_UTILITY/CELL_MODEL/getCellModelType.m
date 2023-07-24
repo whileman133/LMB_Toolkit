@@ -6,14 +6,14 @@ if ~exist('throwError','var')
 end
 
 inModelType = [];
-if isfield(inModel,'type__')
+if isfield(inModel,'function')
+    % Gen1 model: Legacy lumped-parameter model (LLPM).
+    inModelType = 'LLPM';
+elseif isfield(inModel,'type__')
     if strcmp(inModel.type__,'cellModel')
         % Gen2 model: P2DM, WORM, or RLWORM.
         inModelType = inModel.metadata.cell.type;
     end
-elseif isfield(inModel,'function')
-    % Gen1 model: Legacy lumped-parameter model (LLPM).
-    inModelType = 'LLPM';
 end
 
 if isempty(inModelType) && throwError
