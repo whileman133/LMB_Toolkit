@@ -13,4 +13,5 @@ function addpaths(varargin)
     addpath(genpath(TB.getAbsPath([prefix 'TFS'])));
     addpath(genpath(TB.getAbsPath([prefix 'XLSX_CELLDEFS'])));
     addpath(genpath(TB.getAbsPath([prefix 'MAT_CELLDEFS'])));
+    addpath(genpath(TB.getAbsPath([prefix 'XLSX_INPUTS'])));
 end
