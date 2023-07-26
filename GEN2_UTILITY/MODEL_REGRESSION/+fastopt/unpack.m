@@ -1,8 +1,8 @@
 function model = unpack(vect, metadata, varargin)
-    %UNPACK Unstuff a model from a vector.
+    %UNPACK Unstuff a model structure from a vector.
     %
     % model = UNPACK(vect, metadata) converts the vector VECT back into
-    %   a model using the metadata METADATA.
+    %   a model structure using the metadata METADATA.
     %
     % model = UNPACK(...,'sparse',true) omits fixed parameter values from
     %   the model.
@@ -26,24 +26,50 @@ function model = unpack(vect, metadata, varargin)
     for k = 1:length(paramnames)
         paramname = paramnames{k};
         meta = metadata.params.(paramname);
+
+        % Determine multiplicity.
+        mult = 1;
+        if strcmpi(meta.tempfcn,'lut')
+           mult = metadata.ntemps;
+        end
+
+        % Determine length.
+        len = meta.len;
         if isfield(meta,'fix')
             len = sum(meta.fixmask);
+        end
+
+        % Extract value and store into model structure.
+        value = vect(cursor:cursor+len*mult-1);
+        value = reshape(value,[len,mult]);
+        if isfield(meta,'fix')
             if ~sparse
                 flatmodel.(paramname) = meta.fix;
-                flatmodel.(paramname)(meta.fixmask) = vect(cursor:cursor+len-1);
+                flatmodel.(paramname)(meta.fixmask) = value;
             elseif len > 0
-                flatmodel.(paramname) = vect(cursor:cursor+len-1);
+                flatmodel.(paramname) = value;
+            else
+                % Fixed parameter; omit from sparse output.
             end
-            cursor = cursor + len;
         else
-            flatmodel.(paramname) = vect(cursor:cursor+meta.len-1);
-            cursor = cursor + meta.len;
-        end
+            flatmodel.(paramname) = value;
+        end % if
+        cursor = cursor + len*mult;
+
+        % Decode logarithmic values.
         if isfield(meta,'logscale') && meta.logscale == true && isfield(flatmodel,paramname)
-            % Decode logarithmic value.
             flatmodel.(paramname) = 10.^(flatmodel.(paramname));
         end
-    end
+
+        % Check for activation energy.
+        if strcmpi(meta.tempfcn,'Eact')
+            % Activation energy is present; extract from vector.
+            paramnameEact = [paramname 'Eact'];
+            Eact = vect(cursor);
+            flatmodel.(paramnameEact) = Eact;
+            cursor = cursor + 1;
+        end % if
+    end % for
 
     if flat
         model = flatmodel;

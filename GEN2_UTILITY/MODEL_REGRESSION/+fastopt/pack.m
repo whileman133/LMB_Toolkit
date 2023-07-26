@@ -1,24 +1,22 @@
-function [vect, metadata] = pack(model, metadata, varargin)
-    %PACK Stuff a model into a vector.
+function [vect, metadata] = pack(model,metadata,varargin)
+    %PACK Stuff a model structure into a vector.
     %
-    % vect = PACK(model,metadata) converts the pulse model MODEL into a
+    % vect = PACK(model,metadata) converts the model structure MODEL into
     %   vector VECT for use with optimization routines. META is generated
     %   using MODELSPEC().
 
     parser = inputParser;
     parser.addOptional('default',[]);
     parser.addOptional('coerce',false,@islogical);
-    parser.addOptional('dim',1,@isscalar);
     parser.parse(varargin{:});
     defaultval = parser.Results.default;
     coerce = parser.Results.coerce;
-    dim = parser.Results.dim;
 
     % Flatten model.
     model = fastopt.flattenstruct(model);
 
     % Construct parameter vector.
-    vect = zeros(metadata.nvars,dim);
+    vect = zeros(metadata.nvars,1);
     paramnames = fieldnames(metadata.params);
     cursor = 1;
     for k = 1:length(paramnames)
@@ -42,11 +40,18 @@ function [vect, metadata] = pack(model, metadata, varargin)
             % Encode logarithmic value.
             value = log10(value);
         end
+        [vallen, valmult] = size(value);
+
+        % Determine required multiplicity of the parameter (>1 when 
+        % temperature dependence is modeled using LUT approach).
+        mult = 1;
+        if strcmpi(meta.tempfcn,'lut')
+           mult = metadata.ntemps;
+        end
 
         % Expand scalar parameters to correct size.
-        [vallen, ~] = size(value);
-        if coerce && vallen == 1
-            value = value*ones(meta.len,dim);
+        if coerce && vallen == 1 && valmult == 1
+            value = value*ones(meta.len,mult);
         end
 
         % Remove fixed components of the value (if it is a vector).
@@ -58,14 +63,41 @@ function [vect, metadata] = pack(model, metadata, varargin)
         end
 
         % Place value into parameter vector.
-        [vallen, valdim] = size(value);
-        if vallen == len && valdim == dim
-            vect(cursor:cursor+len-1,:) = value(:,:);
+        [vallen, valmult] = size(value);
+        if vallen == len && valmult == mult
+            vect(cursor:cursor+len*mult-1,1) = value(:);
         else
-            error(['Parameter %s has incorrect length ' ...
-                '(metadata says it should be %d, but it is actualy %d)'], ...
-                paramname,len,length(value));
+            if vallen ~= len
+                error(['Parameter %s has incorrect length ' ...
+                    '(metadata says it should be %d, but it is actualy %d)'], ...
+                    paramname,len,vallen);
+            else
+                error(['Parameter %s has incorrect multiplicity ' ...
+                    '(metadata says it should be %d, but it is actualy %d)'], ...
+                    paramname,mult,valmult);
+            end
         end
-        cursor = cursor + len;
+        cursor = cursor + len*mult;
+
+        % Check for activation energy parameter.
+        if strcmpi(meta.tempfcn,'Eact')
+            % Should exist - add Eact to parameter vector.
+            paramnameEact = [paramname 'Eact'];
+            if ~isfield(model,paramnameEact)
+                error(['Eact not found for parameter %s. ' ...
+                    'Hint: Specify an activation energy parameter %s.'], ...
+                    paramname,paramnameEact);
+            end
+            Eact = model.(paramnameEact);
+            [Eactlen, Eactmult] = size(Eact);
+            if Eactlen ~= 1
+                error('%s must have length 1.',paramnameEact);
+            end
+            if Eactmult ~= 1
+                error('%s must have multiplicity 1.',paramnameEact);
+            end
+            vect(cursor:cursor+1,1) = Eact(:);
+            cursor = cursor + 1;
+        end
     end % for
 end

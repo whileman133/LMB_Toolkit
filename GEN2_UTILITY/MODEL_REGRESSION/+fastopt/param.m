@@ -5,7 +5,8 @@ function p = param(varargin)
     %   fields set by name-value pairs in (...), similar to constructing a
     %   structure using the MATLAB built-in `struct` command.
     %
-    % The available options are as follows:
+    % The available options are:
+    %
     % - fix=VALUE: fix the value of the parameter to VALUE 
     %     (do not optimize)
     % - fixmask=BITMASK: for vector parameters, enables fixing individual
@@ -17,6 +18,13 @@ function p = param(varargin)
     %     (default to length 1 scalars)
     % - logscale={true|false}: Default false. If true, store the parameter
     %     internally on a log10 scale (may help optimizers converge).
+    % - tempfcn={'fix'|'lut'|'Eact'}: Default 'fix'.
+    %     when 'fix', the parameter is constant with temperature
+    %     when 'lut', the parameter takes on a different value for each
+    %       temperature
+    %     when 'Eact', the parameter follows an Ahhrenius relationship with
+    %       temperature governed by an additional activation energy (Eact)
+    %       parameter
 
     % Create structure from suppied parameters.
     p = struct(varargin{:});
@@ -26,6 +34,7 @@ function p = param(varargin)
     if ~isfield(p,'len'),        p.len = 1;                     end
     if ~isfield(p,'fixmask'),    p.fixmask = false(p.len,1);    end 
     if ~isfield(p,'logscale'),   p.logscale = false;            end
+    if ~isfield(p,'tempfcn'),    p.tempfcn = 'fix';             end
 
     % Indicates this structure should not be flattened by FLATTENSTRUCT()
     p.noflatten__ = true;
