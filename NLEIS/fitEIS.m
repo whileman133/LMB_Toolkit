@@ -10,9 +10,11 @@ addpath('..');
 TB.addpaths();
 
 % Constants.
-eisExpirementName = '(NL)EIS-SionCell395534_15degC'; % directory w/ raw EIS data
-ocpExpirementName = 'SionFresh_0C01';         % file w/ regressed OCP data
-initialCellModelName = 'cellSionGuess-P2DM';  % model w/ initial param values
+eisExpirementName = '(NL)EIS-SionCell395534_25degC'; % directory w/ raw EIS data
+ocpExpirementName = 'FinalFit-SionFresh_0C01';       % file w/ regressed OCP data
+initialCellModelName = 'cellSionGuess-P2DM';         % model w/ initial param values
+solidDiffusionModel = 'msmr';  % selects solid diffusion model for porous electrode
+kineticsModel = 'linear';      % selects kinetics model for porous electrode
 
 % Load lab impedance spectra.
 spectra = loadLabNLEIS( ...
@@ -30,12 +32,16 @@ warning('on','MATLAB:dispatcher:UnresolvedFunctionHandle');
 initialModel = loadCellModel(initialCellModelName);
 
 % Perform regression.
-fitData = fitLinearEIS(spectra,ocpfit,initialModel,'WeightFcn',@getWeight);
+fitData = fitLinearEIS(spectra,ocpfit,initialModel, ...
+    'SolidDiffusionModel',solidDiffusionModel, ...
+    'KineticsModel',kineticsModel,...
+    'WeightFcn',@getWeight);
 
 % Save results to disk.
 fileName = fullfile( ...
     'labfitdata', ...
-    sprintf('EIS-Cell%s-%.0fdegC',spectra.cellName,spectra.TdegC) ...
+    sprintf('EIS-Cell%s-%.0fdegC-Ds=%s-k0=%s', ...
+            spectra.cellName,spectra.TdegC,solidDiffusionModel,kineticsModel) ...
 );
 save(fileName,'-struct',"fitData");
 

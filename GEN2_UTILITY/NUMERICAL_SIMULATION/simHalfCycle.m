@@ -61,15 +61,8 @@ parser.addParameter('DryRun',false,@(x)isscalar(x)&&islogical(x));
 parser.parse(varargin{:});
 p = parser.Results;  % structure of validated params
 
-if isfield(p.cellModel,'function')
-    Q = p.cellModel.function.const.Q();   % cell capacity [Ah]
-    theta0 = p.cellModel.function.pos.theta0();
-    theta100 = p.cellModel.function.pos.theta0();
-else
-    Q = p.cellModel.const.Q;
-    theta0 = p.cellModel.pos.theta0;
-    theta100 = p.cellModel.pos.theta100;
-end
+[Q,theta0,theta100] = getCellParams( ...
+    p.cellModel,'const.Q pos.theta0 pos.theta100','Output','list');
 
 % Compute cell capacity to discharge (will be negative for charge).
 Qdis = Q*(p.soc0Pct-p.socfPct)/100;   % capacity to discharge [Ah] 

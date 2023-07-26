@@ -5,6 +5,7 @@ function modelStruct = loadCellModel(filename)
 %   the spreadsheet MODELNAME and stores them in the structure MODELSTRUCT.
 %
 % -- Changelog --
+% 2023.07.24 | Metadata for diffusion/kinetics model fmt | Wesley Hileman
 % 2023.06.21 | Created | Wesley Hileman <whileman@uccs.edu>
 
 parser = inputParser;
@@ -201,7 +202,7 @@ modelStruct.metadata.cell.chemistry = 'LMB';
 
 % Determine if this is a standard or lumped model.
 if isfield(modelStruct.parameters.const,'W')
-    % Lumped-parameter Warburg-oriented-resistance model (WORM).
+    % Lumped-parameter Warburg-resistance model (WRM).
     modelStruct.metadata.cell.type = 'WRM';
     modelStruct.metadata.cell.lumpedParams = true;
 else
@@ -253,9 +254,9 @@ for s = 1:length(sectionNames)
         % Validate kinetics / collect kinetics metadata.
         if isfield(modelStruct.parameters.(sec.name),'k0')
             if isMSMR && length(modelStruct.parameters.(sec.name).k0) == J
-                modelStruct.metadata.section.(sec.name).kinetics = 'msmr';
+                modelStruct.metadata.section.(sec.name).kinetics.type = 'msmr';
             elseif length(modelStruct.parameters.(sec.name).k0) == 1
-                modelStruct.metadata.section.(sec.name).kinetics = 'bv';
+                modelStruct.metadata.section.(sec.name).kinetics.type = 'bv';
             else
                 error( ...
                     ['Kinetics improperly configured: ''%s'' (%s).\n' ...
@@ -263,13 +264,15 @@ for s = 1:length(sectionNames)
                      'Otherwise k0 should be a scalar.'], ...
                     sec.name,sec.type);
             end
-        elseif all(isfield(modelStruct.parameters.(sec.name),{'k0Spline','k0SplineTheta'}))
+        elseif all(isfield(modelStruct.parameters.(sec.name),{'k0Spline','k0Theta'}))
             modelStruct.metadata.section.(sec.name).kinetics = 'spline';
+        elseif all(isfield(modelStruct.parameters.(sec.name),{'k0Linear','k0Theta'}))
+            modelStruct.metadata.section.(sec.name).kinetics = 'linear';
         else
             error( ...
                 ['Kinetics improperly configured: ''%s'' (%s).\n' ...
-                 'Specify the lumped reaction rate-constant k0 or ' ...
-                 'k0Spline and k0SplineTheta.'], ...
+                 'Specify the lumped reaction rate-constant k0 OR ' ...
+                 'k0Spline and k0Theta OR k0Linear and k0Theta.'], ...
                 sec.name,sec.type);
         end % if
 
@@ -281,16 +284,19 @@ for s = 1:length(sectionNames)
                      'Non-MSMR models cannot use Dsref; specify Ds instead.'], ...
                     sec.name,sec.type);
             end
-             modelStruct.metadata.section.(sec.name).solidDiffusion = 'msmr';
+             modelStruct.metadata.section.(sec.name).solidDiffusion.type = 'msmr';
         elseif isfield(modelStruct.parameters.(sec.name),'Ds')
-            modelStruct.metadata.section.(sec.name).solidDiffusion = 'fixed';
-        elseif all(isfield(modelStruct.parameters.(sec.name),{'DsSpline','DsSplineTheta'}))
-            modelStruct.metadata.section.(sec.name).solidDiffusion = 'spline';
+            modelStruct.metadata.section.(sec.name).solidDiffusion.type = 'fixed';
+        elseif all(isfield(modelStruct.parameters.(sec.name),{'DsSpline','DsTheta'}))
+            modelStruct.metadata.section.(sec.name).solidDiffusion.type = 'spline';
+        elseif all(isfield(modelStruct.parameters.(sec.name),{'DsLinear','DsTheta'}))
+            modelStruct.metadata.section.(sec.name).solidDiffusion.type = 'linear';
         else
             error( ...
                 ['Diffusivity improperly configured: ''%s'' (%s).\n' ...
-                 'Specify the diffusivity coefficient Dsref or ' ...
-                 'fixed diffusivity Ds.'], ...
+                 'Specify the diffusivity coefficient Dsref OR ' ...
+                 'fixed diffusivity Ds OR DsSpline and DsTheta OR ' ...
+                 'DsLinear and DsTheta.'], ...
                 sec.name,sec.type);
         end % if
     end % if Electrode3D

@@ -97,8 +97,8 @@ p.sigmap      = getParam('pos','sigma');
 p.kappap      = getParam('pos','kappa');
 p.taup        = getParam('pos','tauW');
 p.nF          = getParam('pos','nF');
+p.tauF        = getParam('pos','tauF');
 p.Rfp         = getParam('pos','Rf');
-p.alphap      = getParam('pos','alpha');
 p.Rdlp        = getParam('pos','Rdl');
 p.Cdlp        = getParam('pos','Cdl');
 p.nDLp        = getParam('pos','nDL');
@@ -157,13 +157,12 @@ if isParam('pos','X') && isParam('pos','U0') && isParam('pos','omega')
         UocpVect = dataCt.Uocp;
         dUocpVect = dataCt.dUocp;
         thetaVect = dataCt.theta;
+        Rct2InvVect = dataCt.Rct2Inv;
         p.Uocpp = interp1(thetaVect,UocpVect,p.thetap,'linear','extrap');
         p.dUocpp = interp1(thetaVect,dUocpVect,p.thetap,'linear','extrap');
         p.Rctp = interp1(thetaVect,RctVect,p.thetap,'linear','extrap');
-        alphap = p.alphap(:);
-        Rct2invVect = sum(dataCt.i0j.*((1-alphap).^2-alphap.^2))*dataCt.f;
         p.d2Uocpp = interp1(thetaVect,dataCt.d2Uocp,p.thetap,'linear','extrap');
-        p.Rct2invp = interp1(thetaVect,Rct2invVect,p.thetap,'linear','extrap');
+        p.Rct2invp = interp1(thetaVect,Rct2InvVect,p.thetap,'linear','extrap');
     end
 elseif isParam('pos','Uocp') && isParam('pos','dUocp')
     % Non-MSMR model.
@@ -217,9 +216,10 @@ end
 DeltaQp = abs(p.theta100p - p.theta0p);
 p.csmaxp = 10800*p.Q*p.Dsp/DeltaQp;
 p.gammap = sqrt((S/p.Dsp).^p.nF);
+p.ZspIntegrator = (p.Dsp./S).*((1+S.*p.tauF)./p.Dsp./p.tauF).^(1-p.nF);
 p.Zsp = (p.dUocpp/p.csmaxp)...
    *((p.gammap.^2 + 3*(1-p.gammap.*coth(p.gammap)))...
-   ./(p.gammap.^2.*(1-p.gammap.*coth(p.gammap))) - 3*p.Dsp./S);
+   ./(p.gammap.^2.*(1-p.gammap.*coth(p.gammap))) - 3*p.ZspIntegrator);
 p.Zdlp = p.Rdlp + 1./p.Cdlp./(S.^p.nDLp);
 p.Zsep = p.Rfp + 1./(1./(p.Rctp + p.Zsp) + 1./p.Zdlp);
 p.Zdln = p.Rdln + 1./p.Cdln./(S.^p.nDLn);
@@ -227,9 +227,10 @@ p.Zsen = p.Rfn + p.Zdln.*p.Rctn./(p.Zdln+p.Rctn);
 
 % Compute Zse2 (double the frequency!)
 p.gamma2p = sqrt((2*S/p.Dsp).^p.nF);
+p.Zs2pIntegrator = (p.Dsp./S/2).*((1+S/2.*p.tauF)./p.Dsp./p.tauF).^(1-p.nF);
 p.Zs2p = (p.dUocpp/p.csmaxp)...
    *((p.gamma2p.^2 + 3*(1-p.gamma2p.*coth(p.gamma2p)))...
-   ./(p.gamma2p.^2.*(1-p.gamma2p.*coth(p.gamma2p))) - 3*p.Dsp./S/2);
+   ./(p.gamma2p.^2.*(1-p.gamma2p.*coth(p.gamma2p))) - 3*p.Zs2pIntegrator);
 p.Zdl2p = p.Rdlp + 1./p.Cdlp./(2*S).^p.nDLp;
 p.Zse2p = p.Rfp + p.Zdl2p.*(p.Rctp+p.Zs2p)./(p.Zdl2p+p.Rctp+p.Zs2p);
 p.Zdl2n = p.Rdln + 1./p.Cdln./(2*S).^p.nDLn;

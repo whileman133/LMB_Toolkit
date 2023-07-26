@@ -9,6 +9,15 @@
 %    help simFOM
 % in the command window.
 %
+% There are also several functions available to simulate specific types of
+% inputs. Use the help command on any of the following for more info.
+%
+%   simCC.m: simulate constant-current discharge
+%   simPulse.m: simulate charge-neutral pulse
+%   sumHalfCycle.m: simulate half-cycle discharge
+%   simEIS.m: simulate EIS at given SOC and frequency points. Process the
+%     collected data into impedance spectra using processEIS.m
+%
 % 2023.07.24 | Update for gen2 toolkit | Wesley Hileman
 % 2023.04.10 | Created | Wesley Hileman <whileman@uccs.edu>
 
@@ -32,12 +41,12 @@ wrm = convertCellModel(p2dm,'WRM');
 % structure has fields for each region of the cell (neg,dll,sep,pos) as well
 % as constants (const).
 
-% Evaluate some cell parameters at 25C...
-% Type `help getCellParams.m` for more information.
+% Evaluate some cell parameters at 25degC...
+% Use `help getCellParams.m` for more information.
 [Q,k0n,k0p] = getCellParams(wrm,'const.Q *.k0','TdegC',25,'Output','list');
 
 % Or evaluate all cell parameters at a particular SOC setpoint and
-% temperature using evalSetpoint...
+% temperature...
 cellModelSetpoint1 = getCellParams(wrm,'TdegC',25,'socPct',50);
 
 
@@ -46,10 +55,10 @@ cellModelSetpoint1 = getCellParams(wrm,'TdegC',25,'socPct',50);
 
 % Create COMSOL model from cell model. LiveLink must be running!
 % genData.FOM is the COMSOL model object.
-genData = genFOM(cellModel);
+genData = genFOM(wrm);
 
 % If you don't want the status messages output to the console, use:
-% genData = genFOM(cellModel,'DebugFlag',false);
+% genData = genFOM(wrm,'DebugFlag',false);
 
 % Save standard COMSOL metaphysics (mph) file that you can open
 % in the COMSOL GUI:

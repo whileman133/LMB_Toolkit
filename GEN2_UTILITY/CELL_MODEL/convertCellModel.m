@@ -1,89 +1,122 @@
-function outModel = convertCellModel(inModel,outModelType)
+function outModel = convertCellModel(inModel,outModelType,varargin)
 %CONVERTCELLMODEL Transform cell model into another format.
 %
 % outModel = convertCellModel(inModel,outModelType) converts the cell
 %   model INMODEL into the format specified by the OUTMODELTYPE string.
 %
+% outModel = convertCellModel(inModel,'SolidDiffusionModel',dStruct)
+%   converts the solid diffusion model of inModel into the format specified
+%   by DSTRUCT. DSTRUCT is a structure with the `type` field and any other
+%   fields needed by the specific format of model requested. If all other
+%   fields are optional, then DSTRUCT may be a character vector specifying
+%   the model format.
+%
+% outModel = convertCellModel(inModel,'KineticsModel',kStruct)
+%   converts the kinetics model of inModel into the format specified
+%   by KSTRUCT. KSTRUCT is a structure with the `type` field and any other
+%   fields needed by the specific format of model requested. If all other
+%   fields are optional, then KSTRUCT may be a character vector specifying
+%   the model format.
+%
 % Supported model formats:
 %
 %   'P2DM'    Psuedo-two-dimensional model
 %   'WRM'     Warburg resistance model
-%   'SWRM'    Spline WRM
 %   'RLWRM'   Reduced-layer WRM
-%   'RLSWRM'  Reduced-layer SWRM
 %   'LLPM'    Legacy lumped-parameter model
+%
+% Supported solid-diffusion and kinetics model formats:
+%
+%   'MSMR'    Baker-Verbrugge MSMR model.
+%   'linear'  Log linear interpolation over lithiation.
+%             Optional: lithiation vector `theta`
+%   'spline'  Log cubic spline interpolation over lithiation.
+%             Optional: lithiation vector `theta`
+%   'gp'      Log Gaussian Process (GP) regression over lithiation.
 %
 % Note: this function can only down-convert models in this list;
 % models cannot be up-converted due to irreversible parameter lumping.
 %
 % -- Changelog --
+% 2023.07.24 | Add diffusion/kinetics model conversion | Wesley Hileman
 % 2023.06.22 | Created | Wesley Hileman <whileman@uccs.edu>
 
-isModelType = @(x)any(strcmp(x,{'P2DM','WRM','SWRM','RLWRM','RLSWRM','LLPM'}));
+isModelType = @(x)any(strcmp(x,{'P2DM','WRM','RLWRM','LLPM'}));
+isDiffusionType = @(x)any(strcmpi(x,{'msmr','linear','spline','gp'}));
+isKineticsType = @(x)any(strcmpi(x,{'msmr','linear','spline','gp'}));
 parser = inputParser;
 parser.addRequired('inStruct',@isstruct);
-parser.addRequired('outModelType',isModelType);
+parser.addOptional('outModelType',[],isModelType);
+parser.addParameter('SolidDiffusionModel',[],@(x)isstruct(x)||ischar(x));
+parser.addParameter('KineticsModel',[],@(x)isstruct(x)||ischar(x));
 parser.addParameter('MakeMSMROCP',true,@(x)isscalar(x)&&islogical(x));
-parser.parse(inModel,outModelType);
+parser.parse(inModel,outModelType,varargin{:});
 arg = parser.Results; % structure of validated arguments
 
 % Determine the type of model that was input.
 inModelType = getCellModelType(inModel);
 
-% No need to convert if model already in the requested form.
-if strcmp(inModelType,outModelType)
+% Validate diffusion/kinetics parameters.
+if strcmp(inModelType,'LLPM') && (...
+    ~isempty(arg.SolidDiffusionModel) || ~isempty(arg.KineticsModel))
+    error('Not implemented: cannot convert kinetics of LLPM.');
+end
+if ischar(arg.SolidDiffusionModel)
+    arg.SolidDiffusionModel = struct('type',arg.SolidDiffusionModel);
+end
+if ischar(arg.KineticsModel)
+    arg.KineticsModel = struct('type',arg.KineticsModel);
+end
+if ~isempty(arg.SolidDiffusionModel) && ~isDiffusionType(arg.SolidDiffusionModel.type)
+    error('Invalid solid diffusion model');
+end
+if ~isempty(arg.KineticsModel) && ~isKineticsType(arg.KineticsModel.type)
+    error('Invalid kinetics model.');
+end
+
+% 1. Convert the model.
+if isempty(outModelType) || strcmp(inModelType,outModelType)
+    % No need to convert if model already in the requested form.
     outModel = inModel;
-    return;
-end
-
-% Map models to "reduction" factor; we can't perform
-% the conversion when redfac.(outModelType) <= redfac.(inModelType).
-redfac.P2DM = 0;
-redfac.WRM = 1;
-redfac.SWRM = 2;
-redfac.RLWRM = 2;
-redfac.RLSWRM = 3;
-redfac.LLPM = 4;
-redfacIN = redfac.(inModelType);
-redfacOUT = redfac.(outModelType);
-if redfacOUT <= redfacIN
-    error('Upconversion: Cannot convert model type from %s to %s.', ...
-        inModelType,outModelType);
-end
-
-% OK to convert.
-if strcmp(inModelType,'P2DM') && strcmp(outModelType,'WRM')
-    outModel = genWRM(inModel);
-elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'RLWRM')
-    tmpWRM = genWRM(inModel);
-    outModel = genRLWRM(tmpWRM);
-elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'SWRM')
-    tmpWRM = genWRM(inModel);
-    outModel = genSWRM(tmpWRM);
-elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'RLSWRM')
-    tmpWRM = genWRM(inModel);
-    tmpRLWRM = genRLWRM(tmpWRM);
-    outModel = genSWRM(tmpRLWRM);
-elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'RLWRM')
-    outModel = genRLWRM(inModel);
-elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'SWRM')
-    outModel = genSWRM(inModel);
-elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'RLSWRM')
-    tmpRLWRM = genRLWRM(inModel);
-    outModel = genSWRM(tmpRLWRM);
-elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'LLPM')
-    tmp = genWRM(inModel);
-    outModel = genLLPM(tmp,arg);
-elseif any(strcmp(inModelType,{'WRM','RLWRM','SWRM','RLSWRM'})) && strcmp(outModelType,'LLPM')
-    outModel = genLLPM(inModel,arg);
 else
-    error('Not implemented: cannot convert %s to %s.', ...
-        inModelType,outModelType);
+    % Map models to "reduction" factor; we can't perform
+    % the conversion when redfac.(outModelType) <= redfac.(inModelType).
+    redfac.P2DM = 0;
+    redfac.WRM = 1;
+    redfac.RLWRM = 2;
+    redfac.LLPM = 3;
+    redfacIN = redfac.(inModelType);
+    redfacOUT = redfac.(outModelType);
+    if redfacOUT <= redfacIN
+        error('Upconversion: Cannot convert model type from %s to %s.', ...
+            inModelType,outModelType);
+    end
+    
+    % OK to convert.
+    if strcmp(inModelType,'P2DM') && strcmp(outModelType,'WRM')
+        outModel = genWRM(inModel);
+    elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'RLWRM')
+        tmpWRM = genWRM(inModel);
+        outModel = genRLWRM(tmpWRM);
+    elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'RLWRM')
+        outModel = genRLWRM(inModel);
+    elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'LLPM')
+        tmp = genWRM(inModel);
+        outModel = genLLPM(tmp,arg);
+    elseif any(strcmp(inModelType,{'WRM','RLWRM'})) && strcmp(outModelType,'LLPM')
+        outModel = genLLPM(inModel,arg);
+    else
+        error('Not implemented: cannot convert %s to %s.', ...
+            inModelType,outModelType);
+    end
+    
+    outModel.type__ = 'cellModel';
+    outModel.origin__ = 'convertCellModel';
+    outModel.arg__ = arg;
 end
 
-outModel.type__ = 'cellModel';
-outModel.origin__ = 'convertCellModel';
-outModel.arg__ = arg;
+% 2. Convert the diffusion/kinetics models.
+outModel = convertSubModels(outModel,arg.SolidDiffusionModel,arg.KineticsModel);
 
 end
 
@@ -123,7 +156,9 @@ for s = 1:length(secNames)
             l.kappa = genNumericParam('kappa',p.const.A*p.const.kappa*(p.(secName).eEps)^p.(secName).brugDeKappa/p.(secName).L,0,'1/Ohm');
             l.tauW = genNumericParam('tauW',p.(secName).eEps*(p.(secName).L)^2/p.const.De/(p.(secName).eEps)^p.(secName).brugDeKappa,0,'s');
             l.Dsref = genNumericParam('Dsref',p.(secName).Dsref/p.(secName).Rs^2,0,'1/s');
+            l.mD = genNumericParam('mD',p.(secName).mD,0,'unitless');
             l.nF = genNumericParam('nF',p.(secName).nF,0,'unitless');
+            l.tauF = genNumericParam('tauF',p.(secName).tauF,0,'1/s');
             l.nDL = genNumericParam('nDL',p.(secName).nDL,0,'unitless');
             l.Rf = genNumericParam('Rf',p.(secName).Rf/as/p.const.A/p.(secName).L,0,'Ohm');
             l.Rdl = genNumericParam('Rdl',p.(secName).Rdl/as/p.const.A/p.(secName).L,0,'Ohm');
@@ -195,75 +230,113 @@ RLWRM.metadata.section.eff.name = 'eff';
 
 end
 
-function SWRM = genSWRM(WRM)
-%GENSWRM Convert WRM (or RLWRM) to SWRM (or RLSWRM).
+function outModel = convertSubModels(inModel,solidDiffusionModel,kineticsModel)
+%CONVERTSUBMODELS Convert solid diffusion and/or kinetics models.
 
-SWRM = WRM;
-if strcmpi(WRM.metadata.cell.type,'WRM')
-    SWRM.metadata.cell.type = 'SWRM';
-elseif strcmpi(WRM.metadata.cell.type,'RLWRM')
-    SWRM.metadata.cell.type = 'RLSWRM';
-else
-    error('Invalid cell model type. Must be WRM or RLWRM.');
+outModel = inModel;
+if isempty(solidDiffusionModel) && isempty(kineticsModel)
+    % No need to convert.
+    return;
 end
 
-params = getNumericParams(WRM.parameters);
+params = getNumericParams(inModel.parameters);
 if isfield(params.const,'Tref')
     TrefdegC = params.const.Tref-273.15;
 else
     TrefdegC = 25;
 end
-secNames = fieldnames(WRM.metadata.section);
+secNames = fieldnames(inModel.metadata.section);
 for s = 1:length(secNames)
     secName = secNames{s};
-    secMeta = WRM.metadata.section.(secName);
+    secMeta = inModel.metadata.section.(secName);
 
     if strcmp(secMeta.type,'Electrode3D')
-        if ~strcmpi(secMeta.ocp.type,'msmr') || ...
-           ~strcmpi(secMeta.kinetics,'msmr') || ...
-           ~strcmpi(secMeta.solidDiffusion,'msmr')
-            error(['Not implemented: cannot generate spline model from ' ...
-                'non-MSMR model (OCP, kinetics, and Ds must be MSMR).'])
+        if ~strcmpi(secMeta.ocp.type,'msmr')
+            error(['Not implemented: cannot generate diffusion/kinetics ' ...
+                'model from non-MSMR OCP model (OCP must be MSMR).'])
         end
 
         electrode = MSMR(params.(secName));
-        thetaSpline = linspace( ...
-            electrode.zmin,electrode.zmax,electrode.J).';
 
-        % Convert MSMR kinetics.
-        % Add spline kinetics parameters.
-        ctData = electrode.Rct(params.(secName), ...
-            'theta',thetaSpline,'TdegC',TrefdegC);
-        k0Spline = ctData.i0;
-        alphaSpline = 0.5*ones(size(k0Spline));
-        SWRM.parameters.(secName).k0SplineTheta = genNumericParam( ...
-            'k0SplineTheta',thetaSpline(:),0,'unitless');
-        SWRM.parameters.(secName).k0Spline = genNumericParam( ...
-            'k0Spline',k0Spline(:),0,'A');
-        SWRM.parameters.(secName).alphaSplineTheta = genNumericParam( ...
-            'alphaSplineTheta',thetaSpline(:),0,'unitless');
-        SWRM.parameters.(secName).alphaSpline = genNumericParam( ...
-            'alphaSpline',alphaSpline(:),0,'unitless');
-        % Remove MSMR kinetics parameters.
-        SWRM.parameters.(secName) = rmfield( ...
-            SWRM.parameters.(secName),{'k0','alpha'});
+        % Convert kinetics.
+        if isempty(kineticsModel) || strcmpi(secMeta.kinetics.type,kineticsModel.type)
+            % Skip.
+        elseif any(strcmpi(kineticsModel.type,{'linear','spline'}))
+            if isfield(kineticsModel,'theta') && ~isempty(kineticsModel.theta)
+                theta = kineticsModel.theta(:);
+            else
+                theta = linspace( ...
+                    electrode.zmin,electrode.zmax,electrode.J).';
+            end
+            ctData = electrode.Rct(params.(secName), ...
+                'theta',theta(:),'TdegC',TrefdegC);
+            k0 = ctData.i0;
+            alpha = 0.5*ones(size(theta(:)));
+            % Remove any old kinetics parameters.
+            outModel.parameters.(secName) = rmfield( ...
+                outModel.parameters.(secName), ...
+                intersect( ...
+                    {'k0','k0Linear','k0Spline','k0Theta','alphaLinear', ...
+                    'alphaSpline'}, ...
+                    fieldnames(outModel.parameters.(secName)) ...
+                ) ...
+            );
+            % Add new kinetics parameters.
+            outModel.parameters.(secName).k0Theta = genNumericParam( ...
+                    'k0Theta',theta(:),0,'unitless');
+            if strcmpi(kineticsModel.type,'linear')
+                outModel.parameters.(secName).k0Linear = genNumericParam( ...
+                    'k0Linear',k0(:),0,'A');
+                outModel.parameters.(secName).alphaLinear = genNumericParam( ...
+                    'alphaLinear',alpha(:),0,'unitless');
+            else
+                outModel.parameters.(secName).k0Spline = genNumericParam( ...
+                    'k0Spline',k0(:),0,'A');
+                outModel.parameters.(secName).alphaSpline = genNumericParam( ...
+                    'alphaSpline',alpha(:),0,'unitless');
+            end
+            % Update metadata.
+            outModel.metadata.section.(secName).kinetics = struct;
+            outModel.metadata.section.(secName).kinetics.type = kineticsModel.type;
+        else
+            error('Not implemented: cannot generate %s kinetics model.', ...
+                kineticsModel.type);
+        end % if kinetics
 
-        % Convert MSMR solid diffusivity.
-        % Add spline diffusivity parameters.
-        dsData = electrode.Ds(params.(secName), ...
-            'theta',thetaSpline(:),'TdegC',TrefdegC);
-        DsSpline = dsData.Ds;
-        SWRM.parameters.(secName).DsSplineTheta = genNumericParam( ...
-            'DsSplineTheta',thetaSpline(:),0,'unitless');
-        SWRM.parameters.(secName).DsSpline = genNumericParam( ...
-            'DsSpline',DsSpline(:),0,'1/s');
-        % Remove MSMR diffusivity parameters.
-        SWRM.parameters.(secName) = rmfield( ...
-            SWRM.parameters.(secName),'Dsref');
-
-        % Update metadata.
-        SWRM.metadata.section.(secName).kinetics = 'spline';
-        SWRM.metadata.section.(secName).solidDiffusion = 'spline';
+        % Convert solid diffusion.
+        if isempty(solidDiffusionModel) || strcmpi(secMeta.solidDiffusion.type,solidDiffusionModel.type)
+            % Skip.
+        elseif any(strcmpi(solidDiffusionModel.type,{'linear','spline'}))
+            if isfield(solidDiffusionModel,'theta') && ~isempty(solidDiffusionModel.theta)
+                theta = solidDiffusionModel.theta(:);
+            else
+                theta = linspace( ...
+                    electrode.zmin,electrode.zmax,electrode.J).';
+            end
+            dsData = electrode.Ds(params.(secName), ...
+                'theta',theta(:),'TdegC',TrefdegC);
+            Ds = dsData.Ds;
+            % Remove any old diffusivity parameters.
+            outModel.parameters.(secName) = rmfield( ...
+                outModel.parameters.(secName), ...
+                intersect({'Dsref','DsLinear','DsSpline','DsTheta'},fieldnames(outModel.parameters.(secName))));
+            % Add new diffusivity parameters.
+            outModel.parameters.(secName).DsTheta = genNumericParam( ...
+                    'DsTheta',theta(:),0,'unitless');
+            if strcmpi(solidDiffusionModel.type,'linear')
+                outModel.parameters.(secName).DsLinear = genNumericParam( ...
+                    'DsLinear',Ds(:),0,'1/s');
+            else
+                outModel.parameters.(secName).DsSpline = genNumericParam( ...
+                    'DsSpline',Ds(:),0,'1/s');
+            end
+            % Update metadata.
+            outModel.metadata.section.(secName).solidDiffusion = struct;
+            outModel.metadata.section.(secName).solidDiffusion.type = solidDiffusionModel.type;
+        else
+            error('Not implemented: cannot generate %s solid diffusion model.', ...
+                solidDiffusionModel.type);
+        end % if diffusion
     end
 end % for
 

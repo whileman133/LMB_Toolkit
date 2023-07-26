@@ -83,7 +83,7 @@ end
 
 if isempty(p.I)
     % Use C/10 rate as default.
-    p.I = p.cellModel.function.const.Q()/10;
+    p.I = getCellParams(p.cellModel,'const.Q')/10;
 end
 
 % Generate COMSOL model.
