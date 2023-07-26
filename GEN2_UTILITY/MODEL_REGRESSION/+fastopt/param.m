@@ -19,12 +19,17 @@ function p = param(varargin)
     % - logscale={true|false}: Default false. If true, store the parameter
     %     internally on a log10 scale (may help optimizers converge).
     % - tempfcn={'fix'|'lut'|'Eact'}: Default 'fix'.
-    %     when 'fix', the parameter is constant with temperature
-    %     when 'lut', the parameter takes on a different value for each
+    %     When 'fix', the parameter is constant with temperature
+    %     When 'lut', the parameter takes on a different value for each
     %       temperature
-    %     when 'Eact', the parameter follows an Ahhrenius relationship with
+    %     When 'Eact', the parameter follows an Ahhrenius relationship with
     %       temperature governed by an additional activation energy (Eact)
     %       parameter
+    % - tempcoeff={'+'|'-'}. Default '+'. 
+    %     When '+', use standard Ahhrenius relationship to temperature-
+    %       correct the parameter (positive temperature coefficient). 
+    %     When '-', use inverted Ahhrenius relationship to temperature-
+    %       correct the parameter (negative temperature coefficient).
 
     % Create structure from suppied parameters.
     p = struct(varargin{:});
@@ -35,6 +40,7 @@ function p = param(varargin)
     if ~isfield(p,'fixmask'),    p.fixmask = false(p.len,1);    end 
     if ~isfield(p,'logscale'),   p.logscale = false;            end
     if ~isfield(p,'tempfcn'),    p.tempfcn = 'fix';             end
+    if ~isfield(p,'tempcoeff'),  p.tempcoeff = '+';             end
 
     % Indicates this structure should not be flattened by FLATTENSTRUCT()
     p.noflatten__ = true;

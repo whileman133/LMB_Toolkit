@@ -1,5 +1,8 @@
 % testFastopt.m
 
+addpath(fullfile('..','..'));
+TB.addpaths;
+
 temps = [15 25];
 params.x.a = fastopt.param('tempfcn','fix');  % +1
 params.x.b = fastopt.param('tempfcn','Eact'); % +2
@@ -28,3 +31,5 @@ vect1 = fastopt.pack(model1,spec);
 model1Recovered = fastopt.unpack(vect1,spec);
 vect1Recovered = fastopt.pack(model1Recovered,spec);
 assert(all(vect1==vect1Recovered));
+
+modelVect = fastopt.splittemps(model1Recovered,spec);

@@ -1,32 +1,59 @@
 function modelVect = splittemps(model,modelspec)
-%SPLITTEMPS Create model structures with multiplicty=1 at each temperature.
+%SPLITTEMPS Create model structures of multiplicty=1 at each temperature.
 
 temps = modelspec.temps;
 ntemps = modelspec.ntemps;
+Tref = modelspec.Tref;
+R = TB.const.R;
 
 % Flatten model.
-model = fastopt.flattenstruct(model);
+flatmodel = fastopt.flattenstruct(model);
 
-% Pre-allocate flat models.
-flatmodels = [];
+% Pre-allocate model vector.
+clear flatmodels;
 for m = ntemps:-1:1
-    flatmodels(m) = model;
+    flatmodels(m) = flatmodel;
 end
 
 % Compute parameter values at each temperature.
-paramnames = fieldnames(metadata.params);
+paramnames = fieldnames(modelspec.params);
 for k = 1:length(paramnames)
     paramname = paramnames{k};
-    meta = metadata.params.(paramname);
-    value = model.(paramname);
-
+    meta = modelspec.params.(paramname);
+    value = flatmodel.(paramname);
+    
     if strcmpi(meta.tempfcn,'fix')
+        % Same value for all temperatures.
         for m = ntemps:-1:1
-            flatmodels(m).
+            flatmodels(m).(paramname) = value;
         end
     elseif strcmpi(meta.tempfcn,'lut')
+        % Lookup table vs temperature.
+        for m = ntemps:-1:1
+            flatmodels(m).(paramname) = value(:,m);
+        end
     elseif strcmpi(meta.tempfcn,'Eact')
-    end
+        % Ahrrenius relation vs temperature. 
+        % Assumes value is reference value at Tref.
+        paramnameEact = [paramname '_Eact'];
+        Eact = flatmodel.(paramnameEact);
+        for m = ntemps:-1:1
+            T = temps(m);
+            if strcmpi(meta.tempcoeff,'+')
+                flatmodels(m).(paramname) = value.*exp((Eact/R)*(1/Tref-1/T));
+            else
+                flatmodels(m).(paramname) = value./exp((Eact/R)*(1/Tref-1/T));
+            end
+        end
+    else
+        error('Unrecognized temperature function: %s',meta.tempfcn);
+    end % if
 end % for
+
+% Unflatten models.
+clear modelVect;
+for m = ntemps:-1:1
+    modelVect(m) = fastopt.unflattenstruct(flatmodels(m));
+end
 
 end

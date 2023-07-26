@@ -10,15 +10,21 @@ addpath('..');
 TB.addpaths();
 
 % Constants.
-eisExpirementName = '(NL)EIS-SionCell395534_25degC'; % directory w/ raw EIS data
-ocpExpirementName = 'FinalFit-SionFresh_0C01';       % file w/ regressed OCP data
-initialCellModelName = 'cellSionGuess-P2DM';         % model w/ initial param values
+eisExpirementNames = {
+    '(NL)EIS-SionCell395534_15degC'  % directories w/ raw EIS data
+    '(NL)EIS-SionCell395534_25degC'
+    '(NL)EIS-SionCell395524_40degC'
+};
+ocpExpirementName = 'FinalFit-SionFresh_0C01';  % file w/ regressed OCP data
+initialCellModelName = 'cellSionGuess-P2DM';    % model w/ initial param values
 solidDiffusionModel = 'msmr';  % selects solid diffusion model for porous electrode
 kineticsModel = 'linear';      % selects kinetics model for porous electrode
 
 % Load lab impedance spectra.
-spectra = loadLabNLEIS( ...
-    fullfile('labdata',eisExpirementName));
+clear spectra;
+for m = length(eisExpirementNames):-1:1
+    spectra(m) = loadLabNLEIS(fullfile('labdata',eisExpirementNames{m}));
+end
 
 % Load lab OCP.
 warning('off','MATLAB:dispatcher:UnresolvedFunctionHandle');
@@ -43,7 +49,7 @@ fileName = fullfile( ...
     sprintf('EIS-Cell%s-%.0fdegC-Ds=%s-k0=%s', ...
             spectra.cellName,spectra.TdegC,solidDiffusionModel,kineticsModel) ...
 );
-save(fileName,'-struct',"fitData");
+save(fileName,'-struct','fitData');
 
 % Residual weighting function. Returns relative weight corresponding to the
 % specified frequency and SOC setpoint.

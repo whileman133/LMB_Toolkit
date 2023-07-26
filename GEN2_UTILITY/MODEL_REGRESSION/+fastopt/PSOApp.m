@@ -5,6 +5,8 @@ properties(SetAccess=protected)
     arg           % structure of validated input arguments
     freeParam     % structure of parameters allowed to optimize over
     dof           % number of degrees of freedom in model
+    mult          % multiplicity of the model (number of temperatures)
+    TdegC         % temperature vector (degC)
     lb0           % lower bounds for reset
     ub0           % upper bounds for reset
     init0         % initial values for reset
@@ -17,7 +19,7 @@ properties(SetAccess=protected)
     edt           % structure of uieditfield
     lab           % structure of uilabel
     sld           % structure of uislider
-    status
+    status        % program status output (uilabel)
 
     % State variables.
     startFlag
@@ -56,7 +58,8 @@ methods
         obj.startFlag = false;
 
         % Initialize the GUI.
-        [obj.freeParam, obj.dof] = obj.getFreeParams(arg.modelspec);
+        [obj.freeParam, obj.dof, obj.mult] = obj.getFreeParams(arg.modelspec);
+        obj.TdegC = arg.modelspec.temps-273.15;
         obj.buildToplevelGUI();
         obj.buildControlPanel();
         obj.buildParameterPanel();
@@ -268,76 +271,135 @@ methods(Access=protected)
             initial(initial<lower) = lower(initial<lower);
             initial(initial>upper) = upper(initial>upper);
             initialPct = obj.toSliderValue(initial,lower,upper,param.logscale);
+
+            % Determine multiplicity.
+            multiplicity = 1;
+            if strcmpi(param.tempfcn,'lut')
+                multiplicity = obj.mult;  % need fields for each temperature
+            end
+
+            % Check for activation energy, set-up loop iterations.
+            iterations = multiplicity;
+            if strcmpi(param.tempfcn,'Eact')
+                % Add extra iteration for activation-energy field.
+                iterations = iterations + 1;
+            end
         
             % Iterate degrees of freedom within free parameter.
             for indItem = 1:param.len
-                itemName = sprintf('%s%d',paramName,indItem);
-                if param.len > 1
-                    itemNameDisplay = sprintf('%s%d',paramNameDisplay,indItem);
-                else
-                    itemNameDisplay = paramNameDisplay;
-                end
-                if param.logscale
-                    itemNameDisplay = [itemNameDisplay ' (log)'];
-                end
+                % Iterate temperature multiplicity of each item.
+                for m = 1:iterations
+                    if m <= multiplicity
+                        % Iterations for paramter at each temperature.
+                        itemName = sprintf('%s_%d_%d',paramName,indItem,m);
+                        if param.len > 1
+                            itemNameDisplay = sprintf('%s%d', ...
+                                paramNameDisplay,indItem);
+                        else
+                            itemNameDisplay = paramNameDisplay;
+                        end
+                        if multiplicity>1
+                            itemNameDisplay = sprintf('%s @%.1fC', ...
+                                itemNameDisplay,obj.TdegC(m));
+                        end
+                        if param.logscale
+                            itemNameDisplay = [itemNameDisplay ' (log)'];
+                        end
+                        data = struct;
+                        data.nameDisplay = itemNameDisplay;
+                        data.param = param;
+                        data.paramName = paramName;
+                        data.indParam = indParam;
+                        data.indItem = indItem;
+                        data.indMult = m;
+                        data.labName = itemName;
+                        data.sldName = itemName;
+                    else
+                        % Extra iteration for activation energy field.
+                        % Always uses log scale!
+                        itemName = [paramName '_Eact'];
+                        itemNameDisplay = [paramNameDisplay '_Eact (log)'];
+                        data = struct;
+                        data.nameDisplay = itemNameDisplay;
+                        data.param = param;
+                        data.param.logscale = true;
+                        data.paramName = itemName;
+                        data.indParam = indParam;
+                        data.indItem = 1;
+                        data.indMult = 1;
+                        data.labName = itemName;
+                        data.sldName = itemName;
+                    end
+                    data.edtValueName = [itemName '__value'];
+                    data.edtLowerName = [itemName '__lower'];
+                    data.edtUpperName = [itemName '__upper'];
+            
+                    % Parameter label.
+                    obj.lab.(data.labName) = uilabel( ...
+                        grid,"Text",itemNameDisplay);
+                    obj.lab.(data.labName).Layout.Row = cursor+1;
+                    obj.lab.(data.labName).Layout.Column = 1;
+                
+                    % Slider for adjusting initial value.
+                    obj.sld.(data.sldName) = uislider( ...
+                        grid,"Value",initialPct(indItem));
+                    obj.sld.(data.sldName).Layout.Row = cursor+1;
+                    obj.sld.(data.sldName).Layout.Column = 2;
+                    obj.sld.(data.sldName).UserData = data;
+                    obj.sld.(data.sldName).UserData.type = "value";
+                    obj.sld.(data.sldName).ValueChangedFcn = @obj.updateSlider;
+                    obj.sld.(data.sldName).MajorTickLabels = {};
+            
+                    % Initial value editor.
+                    obj.edt.(data.edtValueName) = uieditfield( ...
+                        grid,'numeric',"Value",initial(indItem));
+                    obj.edt.(data.edtValueName).Layout.Row = cursor+1;
+                    obj.edt.(data.edtValueName).Layout.Column = 3;
+                    obj.edt.(data.edtValueName).UserData = data;
+                    obj.edt.(data.edtValueName).UserData.type = "value";
+                    obj.edt.(data.edtValueName).ValueChangedFcn = @obj.updateEditValue;
+            
+                    % Lower bound editor.
+                    obj.edt.(data.edtLowerName) = uieditfield( ...
+                        grid,'numeric',"Value",lower(indItem));
+                    obj.edt.(data.edtLowerName).Layout.Row = cursor+1;
+                    obj.edt.(data.edtLowerName).Layout.Column = 4;
+                    obj.edt.(data.edtLowerName).UserData = data;
+                    obj.edt.(data.edtLowerName).UserData.type = "lower";
+                    obj.edt.(data.edtLowerName).ValueChangedFcn = @obj.updateEditLower;
+            
+                    % Upper bound editor.
+                    obj.edt.(data.edtUpperName) = uieditfield( ...
+                        grid,'numeric',"Value",upper(indItem));
+                    obj.edt.(data.edtUpperName).Layout.Row = cursor+1;
+                    obj.edt.(data.edtUpperName).Layout.Column = 5;
+                    obj.edt.(data.edtUpperName).UserData = data;
+                    obj.edt.(data.edtUpperName).UserData.type = "upper";
+                    obj.edt.(data.edtUpperName).ValueChangedFcn = @obj.updateEditUpper;
+            
+                    cursor = cursor + 1;
+                end % for mult
+            end % for item
+
+            % Check for activation energy.
+            if strcmpi(param.tempfcn,'Eact')
+                itemName = [paramName '_Eact'];
+                itemNameDisplay = [paramNameDisplay '_Eact (log)'];
                 data = struct;
                 data.nameDisplay = itemNameDisplay;
                 data.param = param;
-                data.paramName = paramName;
+                data.param.logscale = true;  % always use log scale!
+                data.paramName = itemName;
                 data.indParam = indParam;
                 data.indItem = indItem;
+                data.indMult = m;
                 data.labName = itemName;
                 data.sldName = itemName;
                 data.edtValueName = [itemName '__value'];
                 data.edtLowerName = [itemName '__lower'];
                 data.edtUpperName = [itemName '__upper'];
-        
-                % Parameter label.
-                obj.lab.(data.labName) = uilabel( ...
-                    grid,"Text",itemNameDisplay);
-                obj.lab.(data.labName).Layout.Row = cursor+1;
-                obj.lab.(data.labName).Layout.Column = 1;
-            
-                % Slider for adjusting initial value.
-                obj.sld.(data.sldName) = uislider( ...
-                    grid,"Value",initialPct(indItem));
-                obj.sld.(data.sldName).Layout.Row = cursor+1;
-                obj.sld.(data.sldName).Layout.Column = 2;
-                obj.sld.(data.sldName).UserData = data;
-                obj.sld.(data.sldName).UserData.type = "value";
-                obj.sld.(data.sldName).ValueChangedFcn = @obj.updateSlider;
-                obj.sld.(data.sldName).MajorTickLabels = {};
-        
-                % Initial value editor.
-                obj.edt.(data.edtValueName) = uieditfield( ...
-                    grid,'numeric',"Value",initial(indItem));
-                obj.edt.(data.edtValueName).Layout.Row = cursor+1;
-                obj.edt.(data.edtValueName).Layout.Column = 3;
-                obj.edt.(data.edtValueName).UserData = data;
-                obj.edt.(data.edtValueName).UserData.type = "value";
-                obj.edt.(data.edtValueName).ValueChangedFcn = @obj.updateEditValue;
-        
-                % Lower bound editor.
-                obj.edt.(data.edtLowerName) = uieditfield( ...
-                    grid,'numeric',"Value",lower(indItem));
-                obj.edt.(data.edtLowerName).Layout.Row = cursor+1;
-                obj.edt.(data.edtLowerName).Layout.Column = 4;
-                obj.edt.(data.edtLowerName).UserData = data;
-                obj.edt.(data.edtLowerName).UserData.type = "lower";
-                obj.edt.(data.edtLowerName).ValueChangedFcn = @obj.updateEditLower;
-        
-                % Upper bound editor.
-                obj.edt.(data.edtUpperName) = uieditfield( ...
-                    grid,'numeric',"Value",upper(indItem));
-                obj.edt.(data.edtUpperName).Layout.Row = cursor+1;
-                obj.edt.(data.edtUpperName).Layout.Column = 5;
-                obj.edt.(data.edtUpperName).UserData = data;
-                obj.edt.(data.edtUpperName).UserData.type = "upper";
-                obj.edt.(data.edtUpperName).ValueChangedFcn = @obj.updateEditUpper;
-        
-                cursor = cursor + 1;
-            end % for
-        end % for
+            end
+        end % for param
 
         % Do the scrolling after component creation, or it will take 
         % forever!
@@ -366,13 +428,13 @@ methods(Access=protected)
             end
             data = edtfield.UserData;
             if strcmpi(data.type,"value")
-                value = obj.values.(data.paramName)(data.indItem);
+                value = obj.values.(data.paramName)(data.indItem,data.indMult);
                 obj.edt.(edtname).Value = value;
             elseif strcmpi(data.type,"lower")
-                lwr = obj.lb.(data.paramName)(data.indItem);
+                lwr = obj.lb.(data.paramName)(data.indItem,data.indMult);
                 obj.edt.(edtname).Value = lwr;
             elseif strcmpi(data.type,"upper")
-                upr = obj.ub.(data.paramName)(data.indItem);
+                upr = obj.ub.(data.paramName)(data.indItem,data.indMult);
                 obj.edt.(edtname).Value = upr;
             end
         end % for
@@ -387,9 +449,9 @@ methods(Access=protected)
                 continue;
             end
             data = sldfield.UserData;
-            lwr = obj.lb.(data.paramName)(data.indItem);
-            upr = obj.ub.(data.paramName)(data.indItem);
-            value = obj.values.(data.paramName)(data.indItem);
+            lwr = obj.lb.(data.paramName)(data.indItem,data.indMult);
+            upr = obj.ub.(data.paramName)(data.indItem,data.indMult);
+            value = obj.values.(data.paramName)(data.indItem,data.indMult);
             valuePct = obj.toSliderValue(value,lwr,upr,data.param.logscale);
             obj.sld.(sldname).Value = valuePct;
         end % for
@@ -456,13 +518,13 @@ methods(Access=protected)
         data = src.UserData;
     
         % Compute new value from slider setting.
-        lwr = obj.lb.(data.paramName)(data.indItem);
-        upr = obj.ub.(data.paramName)(data.indItem);
+        lwr = obj.lb.(data.paramName)(data.indItem,data.indMult);
+        upr = obj.ub.(data.paramName)(data.indItem,data.indMult);
         newValuePct = event.Value;
         newValue = obj.fromSliderValue(newValuePct,lwr,upr,data.param.logscale);
     
         % Update state.
-        obj.values.(data.paramName)(data.indItem) = newValue;
+        obj.values.(data.paramName)(data.indItem,data.indMult) = newValue;
     
         % Update GUI components.
         obj.edt.(data.edtValueName).Value = newValue;
@@ -473,8 +535,8 @@ methods(Access=protected)
         data = src.UserData;
     
         % Compute slider setting from new initial value.
-        lwr = obj.lb.(data.paramName)(data.indItem);
-        upr = obj.ub.(data.paramName)(data.indItem);
+        lwr = obj.lb.(data.paramName)(data.indItem,data.indMult);
+        upr = obj.ub.(data.paramName)(data.indItem,data.indMult);
         newValue = event.Value;
         if newValue < lwr
             newValue = lwr;   % ensure greater than lower bound
@@ -484,7 +546,7 @@ methods(Access=protected)
         newValuePct = obj.toSliderValue(newValue,lwr,upr,data.param.logscale);
     
         % Update state.
-        obj.values.(data.paramName)(data.indItem) = newValue;
+        obj.values.(data.paramName)(data.indItem,data.indMult) = newValue;
     
         % Update GUI components.
         obj.edt.(data.edtValueName).Value = newValue;  % in case value was clamped
@@ -497,16 +559,16 @@ methods(Access=protected)
     
         % Compute slider setting from new lower bound.
         newLwr = event.Value;
-        upr = obj.ub.(data.paramName)(data.indItem);
-        value = obj.values.(data.paramName)(data.indItem);
+        upr = obj.ub.(data.paramName)(data.indItem,data.indMult);
+        value = obj.values.(data.paramName)(data.indItem,data.indMult);
         if value < newLwr
             value = newLwr;  % ensure greater than lower bound
         end
         valuePct = obj.toSliderValue(value,newLwr,upr,data.param.logscale);
     
         % Update state.
-        obj.lb.(data.paramName)(data.indItem) = newLwr;
-        obj.values.(data.paramName)(data.indItem) = value; % in case value was clamped
+        obj.lb.(data.paramName)(data.indItem,data.indMult) = newLwr;
+        obj.values.(data.paramName)(data.indItem,data.indMult) = value; % in case value was clamped
     
         % Update GUI components.
         obj.edt.(data.edtValueName).Value = value;
@@ -519,16 +581,16 @@ methods(Access=protected)
     
         % Compute slider setting from new lower bound.
         newUpr = event.Value;
-        lwr = obj.lb.(data.paramName)(data.indItem);
-        value = obj.values.(data.paramName)(data.indItem);
+        lwr = obj.lb.(data.paramName)(data.indItem,data.indMult);
+        value = obj.values.(data.paramName)(data.indItem,data.indMult);
         if value > newUpr
             value = newUpr;  % ensure less than lower bound
         end
         valuePct = obj.toSliderValue(value,lwr,newUpr,data.param.logscale);
     
         % Update upper bound.
-        obj.ub.(data.paramName)(data.indItem) = newUpr;
-        obj.values.(data.paramName)(data.indItem) = value;  % in case value was clamped
+        obj.ub.(data.paramName)(data.indItem,data.indMult) = newUpr;
+        obj.values.(data.paramName)(data.indItem,data.indMult) = value;  % in case value was clamped
     
         % Update GUI components.
         obj.edt.(data.edtValueName).Value = value;
@@ -568,7 +630,7 @@ methods(Static,Access=protected)
                 end
                 data = edtfield.UserData;
                 if strcmpi(data.type,"value")
-                    value = newValues.(data.paramName)(data.indItem);
+                    value = newValues.(data.paramName)(data.indItem,data.indMult);
                     edt.(edtname).Value = value;
                 end
             end % for
@@ -583,9 +645,9 @@ methods(Static,Access=protected)
                     continue;
                 end
                 data = sldfield.UserData;
-                lwr = lb.(data.paramName)(data.indItem);
-                upr = ub.(data.paramName)(data.indItem);
-                value = newValues.(data.paramName)(data.indItem);
+                lwr = lb.(data.paramName)(data.indItem,data.indMult);
+                upr = ub.(data.paramName)(data.indItem,data.indMult);
+                value = newValues.(data.paramName)(data.indItem,data.indMult);
                 valuePct = toSliderValue(value,lwr,upr,data.param.logscale);
                 sld.(sldname).Value = valuePct;
             end % for
@@ -594,21 +656,21 @@ methods(Static,Access=protected)
         end % updateParameterValues()
     end
 
-    function [params, dof] = getFreeParams(modelspec)
+    function [params, dof, mult] = getFreeParams(modelspec)
         %GETFREEPARAMS Get parameters that are allowed to vary in the
         %  optimization and the number of degrees of freedom (may differ
         %  from number of free params b/c some params may have length > 1).
         params = struct;
         paramNames = fieldnames(modelspec.params);
-        dof = 0;
         for indItem = 1:length(paramNames)
             paramName = paramNames{indItem};
             param = modelspec.params.(paramName);
             if ~isfield(param,'fix')
                 params.(paramName) = param;
-                dof = dof + param.len;
             end
         end % for
+        dof = modelspec.nvars;
+        mult = modelspec.ntemps;
     end % getFreeParams()
 
     function value = fromSliderValue(valueSlider,lwr,upr,logscale)

@@ -64,7 +64,7 @@ function model = unpack(vect, metadata, varargin)
         % Check for activation energy.
         if strcmpi(meta.tempfcn,'Eact')
             % Activation energy is present; extract from vector.
-            paramnameEact = [paramname 'Eact'];
+            paramnameEact = [paramname '_Eact'];
             Eact = vect(cursor);
             flatmodel.(paramnameEact) = Eact;
             cursor = cursor + 1;

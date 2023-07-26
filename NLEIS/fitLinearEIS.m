@@ -9,6 +9,10 @@ function data = fitLinearEIS(labSpectra,labOCPFit,initialModel,varargin)
 %   EIS regression. initialModel is a model containing initial estimates of 
 %   parameter values for the cell.
 %
+% Supply datasets at multiple temperatures by specifying LABSPECTRA as a 
+% structure array, containing a scalar structure for each temperature 
+% dataset.
+%
 % Output structure:
 %   .estimate    Cell model containing estimated parameter values
 %   .modelspec   fastopt specification for EIS model
@@ -24,44 +28,59 @@ function data = fitLinearEIS(labSpectra,labOCPFit,initialModel,varargin)
 %   .arg         Structure of arguments supplied to the function.
 %
 % -- Changelog --
+% 2023.07.26 | Update for multiple temperatures | Wes H.
+% 2023.07.24 | Update for multiple diffusion and kinetics models | Wes H.
 % 2023.06.30 | Created | Wesley Hileman <whileman@uccs.edu>
 
 isdstype = @(x)any(strcmpi(x,{'msmr','linear','spline'}));
 isi0type = @(x)any(strcmpi(x,{'linear','spline'}));
 parser = inputParser;
-parser.addRequired('labSpectra',@isstruct);
-parser.addRequired('labOCPFit',@isstruct);
+parser.addRequired('labSpectra',@(x)isstruct(x)&&isvector(x));
+parser.addRequired('labOCPFit',@(x)isstruct(x)&&isscalar(x));
 parser.addRequired('initialModel',@isstruct);
 parser.addParameter('WeightFcn',[],@(x)isa(x,'function_handle'));
 parser.addParameter('SolidDiffusionModel','spline',isdstype);
 parser.addParameter('KineticsModel','spline',isi0type);
+parser.addParameter('TrefdegC',25,@(x)isnumeric(x)&&isscalar(x));
 parser.parse(labSpectra,labOCPFit,initialModel,varargin{:});
 arg = parser.Results;  % structure of validated arguments
+
+% Determine the multiplicity of the dataset, i.e. the number of
+% temperatures included.
+multiplicity = length(arg.labSpectra);
 
 % Constants.
 tplus0 = 0.4;    % Li+ transference number, guess for estimating psi
 R = TB.const.R;  % molar gas constant [J/mol/K]
 F = TB.const.F;  % Faraday's constant [C/mol]
-T = arg.labSpectra.TdegC+273.15; % absolute temperature [K]
 
 % Fetch OCP parameters fit to laboratory data.
 ocpmodel = MSMR(labOCPFit.MSMR);
 ocptest = labOCPFit.ocptest;
-
-% Fetch linear impedance measured in the laboratory.
-freqLab = labSpectra.lin.freq;
-Zlab = labSpectra.lin.Z;
-TdegC = labSpectra.TdegC;
-
-% Compute true SOC and lithiation for each SOC setpoint.
 zmin = ocpmodel.zmin;
 zmax = ocpmodel.zmax;
-QdisAhCum = cumsum(labSpectra.QdisAh);
-socPctTrue = 100*(1-QdisAhCum/ocptest.QAh);
-thetaTrue = zmax + (socPctTrue/100)*(zmin-zmax);
 
+% Collect linear impedance measured in the laboratory.
+freqLab = cell(multiplicity,1);
+Zlab = cell(multiplicity,1);
+for m = 1:multiplicity
+    freqLab{m} = arg.labSpectra(m).lin.freq;
+    Zlab{m} = arg.labSpectra(m).lin.Z;
+end
+TdegC = [arg.labSpectra.TdegC].';  % temperature vector [degC].
+
+% Compute true SOC and lithiation for each SOC setpoint.
 % Precompute OCP parameters at each SOC setpoint.
-ocpData = ocpmodel.ocp('theta',thetaTrue,'TdegC',TdegC);
+socPctTrue = cell(multiplicity,1);
+thetaTrue = cell(multiplicity,1);
+ocpData = cell(multiplicity,1);
+for m = 1:multiplicity
+    QdisAhCum = cumsum(arg.labSpectra(m).QdisAh);
+    socPctTrue{m} = 100*(1-QdisAhCum/ocptest.QAh);
+    thetaTrue{m} = zmax + (socPctTrue{m}/100)*(zmin-zmax);
+    ocpData{m} = ocpmodel.ocp('theta',thetaTrue,'TdegC',TdegC(m));
+end
+nsocavg = round(mean(cellfun(@length,socPctTrue)));
 
 % Load OCP estimate into initial model.
 % Convert initial model to reduced-layer Warburg-resistance model.
@@ -76,22 +95,22 @@ initialModel = setCellParam(initialModel,p);
 
 % Convert cell model to reduced-layer Warburg-resistance model.
 % Also convert the kinetics and diffusion sub-models.
-
+thetaLin = linspace(zmin,zmax,nsocavg);
 if strcmpi(arg.KineticsModel,'linear')
     kStruct.type = 'linear';
-    kStruct.theta = thetaTrue(:);  % data point at each lab SOC setpoint
+    kStruct.theta = thetaLin(:);  % data point at each lab SOC setpoint
 else
     kStruct.type = arg.KineticsModel;
 end
 if strcmpi(arg.SolidDiffusionModel,'linear')
     dStruct.type = 'linear';
-    dStruct.theta = thetaTrue(:);  % data point at each lab SOC setpoint
+    dStruct.theta = thetaLin(:);  % data point at each lab SOC setpoint
 else
     dStruct.type = arg.SolidDiffusionModel;
 end
 initialModel = convertCellModel(initialModel,'RLWRM', ...
     'KineticsModel',kStruct,'SolidDiffusionModel',dStruct);
-initial = getCellParams(initialModel,'TdegC',labSpectra.TdegC);
+initial = getCellParams(initialModel,'TdegC',arg.TrefdegC);
 
 % Build model -------------------------------------------------------------
 % Known parameters.
@@ -128,30 +147,30 @@ end
 if any(strcmpi(arg.SolidDiffusionModel,{'linear','spline'}))
     params.pos.DsTheta = fastopt.param('fix',initial.pos.DsTheta);
 end
-
-% Electrolyte parameters.
 % psi,W,tauW are not separately identifiable, so we fix psi=R/(F*(1-t+0)), 
 % the value predicted by the Einstien relationship.
 params.const.psi = fastopt.param('fix',R/F/(1-tplus0));
+
+% Electrolyte parameters.
 params.const.W = fastopt.param('logscale',true);
-params.pos.tauW = fastopt.param('logscale',true);
-params.pos.kappa = fastopt.param('logscale',true);
-params.eff.tauW = fastopt.param('logscale',true);
-params.eff.kappa = fastopt.param('logscale',true);
+params.pos.tauW = fastopt.param('logscale',true,'tempfcn','Eact','tempcoeff','-');
+params.pos.kappa = fastopt.param('logscale',true,'tempfcn','Eact');
+params.eff.tauW = fastopt.param('logscale',true,'tempfcn','Eact','tempcoeff','-');
+params.eff.kappa = fastopt.param('logscale',true,'tempfcn','Eact');
 
 % Porous electrode parameters.
 if strcmpi(arg.SolidDiffusionModel,'msmr')
-    params.pos.Dsref = fastopt.param('logscale',true);
+    params.pos.Dsref = fastopt.param('logscale',true,'tempfcn','Eact');
     params.pos.mD = fastopt.param;
 elseif strcmpi(arg.SolidDiffusionModel,'linear')
-    params.pos.DsLinear = fastopt.param('len',length(thetaTrue),'logscale',true);
+    params.pos.DsLinear = fastopt.param('len',length(thetaTrue),'logscale',true,'tempfcn','Eact');
 else
-    params.pos.DsSpline = fastopt.param('len',ocpmodel.J,'logscale',true);
+    params.pos.DsSpline = fastopt.param('len',ocpmodel.J,'logscale',true,'tempfcn','Eact');
 end
 if strcmpi(arg.KineticsModel,'linear')
-    params.pos.k0Linear = fastopt.param('len',length(thetaTrue),'logscale',true);
+    params.pos.k0Linear = fastopt.param('len',length(thetaTrue),'logscale',true,'tempfcn','Eact');
 else
-    params.pos.k0Spline = fastopt.param('len',ocpmodel.J,'logscale',true);
+    params.pos.k0Spline = fastopt.param('len',ocpmodel.J,'logscale',true,'tempfcn','Eact');
 end
 params.pos.nF = fastopt.param;
 params.pos.tauF = fastopt.param('logscale',true);
@@ -160,13 +179,13 @@ params.pos.nDL = fastopt.param;
 params.pos.Rf = fastopt.param;
 
 % Lithium-metal electrode parameters.
-params.neg.k0 = fastopt.param('logscale',true);
+params.neg.k0 = fastopt.param('logscale',true,'tempfcn','Eact');
 params.neg.Cdl = fastopt.param;
 params.neg.nDL = fastopt.param;
 
 % Cell package parameters.
-params.pkg.R0 = fastopt.param;  % Tab resistance.
-params.pkg.L0 = fastopt.param;  % Package/cable inductace.
+params.pkg.R0 = fastopt.param('tempfcn','lut');  % Tab resistance.
+params.pkg.L0 = fastopt.param('tempfcn','lut');  % Package/cable inductace.
 
 modelspec = fastopt.modelspec(params);
 
@@ -174,29 +193,56 @@ modelspec = fastopt.modelspec(params);
 % Define optimization bounds ----------------------------------------------
 % Initial guess; pack/unpack to set values of fixed parameters.
 init = fastopt.unpack(fastopt.pack(initial,modelspec),modelspec);
+% Add activation energy parameters.
+init.pos.tauW_Eact = 1000;
+init.pos.kappa_Eact = 1000;
+init.eff.tauW_Eact = 1000;
+init.eff.kappa_Eact = 1000;
+if strcmpi(arg.SolidDiffusionModel,'msmr')
+    init.pos.Dsref_Eact = 1000;
+elseif strcmpi(arg.SolidDiffusionModel,'linear')
+    init.pos.DsLinear_Eact = 1000;
+else
+    init.pos.DsSpline_Eact = 1000;
+end
+if strcmpi(arg.KineticsModel,'linear')
+    init.pos.k0Linear_Eact = 1000;
+else
+    init.pos.k0Spline_Eact = 1000;
+end
+init.neg.k0_Eact = 1000;
 
 % Electrolyte parameters.
 lb.const.W = 0.2;                   ub.const.W = 200;
 lb.eff.tauW = init.eff.tauW/100;    ub.eff.tauW = init.eff.tauW*100;
+lb.eff.tauW_Eact = 0;               ub.eff.tauW_Eact = 100000;
 lb.pos.tauW = init.pos.tauW/100;    ub.pos.tauW = init.pos.tauW*100;
+lb.pos.tauW_Eact = 0;               ub.pos.tauW_Eact = 100000;
 lb.eff.kappa = init.eff.kappa/100;  ub.eff.kappa = init.eff.kappa*100;
+lb.eff.kappa_Eact = 0;              ub.eff.kappa_Eact = 100000;
 lb.pos.kappa = init.pos.kappa/100;  ub.pos.kappa = init.pos.kappa*100;
+lb.pos.kappa_Eact = 0;              ub.pos.kappa_Eact = 100000;
 
 % Porous-electrode parameters.
 if strcmpi(arg.SolidDiffusionModel,'msmr')
     lb.pos.Dsref = 1e-9;            ub.pos.Dsref = 1e3;
+    lb.pos.Dsref_Eact = 0;          ub.pos.Dsref_Eact = 100000;
     lb.pos.mD = 1;                  ub.pos.mD = 5;
 elseif strcmpi(arg.SolidDiffusionModel,'linear')
     lb.pos.DsLinear = 1e-5*ones(length(thetaTrue),1);ub.pos.DsLinear = 1*ones(length(thetaTrue),1);
+    lb.pos.DsLinear_Eact = 0;       ub.pos.DsLinear_Eact = 100000;
 else
     lb.pos.DsSpline = 1e-5*ones(ocpmodel.J,1);ub.pos.DsSpline = 1*ones(ocpmodel.J,1);
+    lb.pos.DsSpline_Eact = 0;       ub.pos.DsSpline_Eact = 100000;
 end
 lb.pos.nF = 0.1;                    ub.pos.nF = 1;
 lb.pos.tauF = 0.1;                  ub.pos.tauF = 10000;
 if strcmpi(arg.KineticsModel,'linear')
     lb.pos.k0Linear = 1e-4*ones(length(thetaTrue),1);ub.pos.k0Linear = 100*ones(length(thetaTrue),1);
+    lb.pos.k0Linear_Eact = 0;       ub.pos.k0Linear_Eact = 100000;
 else
     lb.pos.k0Spline = 1e-4*ones(ocpmodel.J,1);ub.pos.k0Spline = 100*ones(ocpmodel.J,1);
+    lb.pos.k0Spline_Eact = 0;       ub.pos.k0Spline_Eact = 100000;
 end
 lb.pos.sigma = init.pos.sigma/1000; ub.pos.sigma = init.pos.sigma*1000;
 lb.pos.Cdl = init.pos.Cdl/10;       ub.pos.Cdl = init.pos.Cdl*100;
@@ -205,12 +251,14 @@ lb.pos.Rf = init.pos.Rf/100;        ub.pos.Rf = init.pos.Rf*100;
 
 % Lithium-metal electrode parameters.
 lb.neg.k0 = init.neg.k0/1000;       ub.neg.k0 = init.neg.k0*1000;
+lb.neg.k0_Eact = 0;                 ub.neg.k0_Eact = 100000;
 lb.neg.Cdl = init.neg.Cdl/10;       ub.neg.Cdl = init.neg.Cdl*10;
 lb.neg.nDL = 0.5;                   ub.neg.nDL = 1;
 
 % Cell package parameters.
 lb.pkg.R0 = 0;                      ub.pkg.R0 = init.pkg.R0*10;
 lb.pkg.L0 = 0;                      ub.pkg.L0 = init.pkg.L0*100;
+
 
 % Perform regression ------------------------------------------------------
 
@@ -245,25 +293,34 @@ data.type__ = 'ParameterEstimate';
 data.origin__ = 'fitLinearEIS';
 
 function J = cost(model)
+    modelVect = fastopt.splittemps(model,modelspec);
+
     % Ignore singular matrix warnings in solving TF model (usu. occurs at high
     % frequencies). TODO: find high-frequency TF solution.
     warning('off','MATLAB:nearlySingularMatrix');
 
-    % Calculate impedance predicted by the linear EIS model.
-    Zmodel = getLinearImpedance(model,freqLab,socPctTrue,TdegC,ocpData);
+    J = 0;
+    for km = 1:multiplicity
+        % Calculate impedance predicted by the linear EIS model.
+        Zmodel = getLinearImpedance( ...
+            modelVect(km),freqLab{km},socPctTrue{km},TdegC{km},ocpData{km});
+        % Compute total residual between model impedance and measured
+        % impedance across all spectra.
+        J = J + sum(weights.*(abs(Zmodel-Zlab{km})./abs(Zlab{km})).^2,'all');
+    end
 
     % Re-enable singular matrix warning.
     warning('on','MATLAB:nearlySingularMatrix');
 
-    % Compute total residual between model impedance and measured
-    % impedance across all spectra.
-    J = sum(weights.*(abs(Zmodel-Zlab)./abs(Zlab)).^2,'all');
-    %     DeltaAngle = angle(Zmodel)-angle(Zlab);
-    %     indWrap = abs(DeltaAngle)>pi;
-    %     DeltaAngle(indWrap) = sign(DeltaAngle(indWrap)).*2*pi-abs(DeltaAngle(indWrap));
-    %     DeltaAngle = 180*DeltaAngle/pi;  % convert rad to degrees
-    %     NormAngle = 20;
-    %     J = J + sum(weights.*(DeltaAngle.^2./NormAngle.^2),'all');
+    % Fragments from old cost function definitions:
+    % 
+    % 1. Phase-angle cost function
+    % DeltaAngle = angle(Zmodel)-angle(Zlab);
+    % indWrap = abs(DeltaAngle)>pi;
+    % DeltaAngle(indWrap) = sign(DeltaAngle(indWrap)).*2*pi-abs(DeltaAngle(indWrap));
+    % DeltaAngle = 180*DeltaAngle/pi;  % convert rad to degrees
+    % NormAngle = 20;
+    % J = sum(weights.*(DeltaAngle.^2./NormAngle.^2),'all');
 end % cost()
 
 end % fitLinearEIS()

@@ -82,7 +82,7 @@ function [vect, metadata] = pack(model,metadata,varargin)
         % Check for activation energy parameter.
         if strcmpi(meta.tempfcn,'Eact')
             % Should exist - add Eact to parameter vector.
-            paramnameEact = [paramname 'Eact'];
+            paramnameEact = [paramname '_Eact'];
             if ~isfield(model,paramnameEact)
                 error(['Eact not found for parameter %s. ' ...
                     'Hint: Specify an activation energy parameter %s.'], ...

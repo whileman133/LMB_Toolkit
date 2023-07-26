@@ -14,7 +14,7 @@ function m = modelspec(params,varargin)
     parser.addParameter('TrefdegC',25,@(x)isscalar(x));
     parser.parse(params,varargin{:});
     arg = parser.Results;
-    ntemps = length(arg.temps);
+    ntemps = length(arg.tempsdegC);
 
     % Flatten parameter structure.
     params = fastopt.flattenstruct(params);
