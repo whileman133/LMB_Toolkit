@@ -26,11 +26,14 @@ parser.parse(costFcn,modelspec,init,lb,ub,varargin{:});
 arg = parser.Results;  % structure of validated arguments
 
 % Ensure initial values are between lb and ub.
+% We also pack/unpack the lb and ub structures to apply coerce.
 lb = fastopt.pack(arg.lb,arg.modelspec);
 ub = fastopt.pack(arg.ub,arg.modelspec);
 init = fastopt.pack(arg.init,arg.modelspec);
 init(init<lb) = lb(init<lb);
 init(init>ub) = ub(init>ub);
+arg.lb = fastopt.unpack(lb,arg.modelspec);
+arg.ub = fastopt.unpack(ub,arg.modelspec);
 arg.init = fastopt.unpack(init,arg.modelspec);
 
 costFcn = costFunctionFactory(arg.costFcn,arg.modelspec);

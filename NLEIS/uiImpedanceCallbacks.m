@@ -1,12 +1,13 @@
 function [initializeFcn, updateFcn] = uiImpedanceCallbacks(modelspec,Zref,freqRef,socPctRef,TdegC)
 %UIIMPEDANCECALLBACKS
 
-nsoc = length(socPctRef);
+nsoc = length(socPctRef{1});
 J = modelspec.params.pos__U0.len;
 
 % Define globals.
 axZ = gobjects(nsoc,1);
 zplotselect = gobjects(1,1);
+tempselect = gobjects(1,1);
 gridz = gobjects(1,1);
 linesZ = gobjects(nsoc,1);
 lineDsp = gobjects(1,1);
@@ -16,6 +17,8 @@ linei0pInterp = gobjects(1,1);
 lineRctp = gobjects(1,1);
 linesRctjp = gobjects(J,1);
 lastParamValues = [];
+[~,tempSelect] = min(abs(TdegC-25));  % choose temp closest to 25degC by default.
+plotSelect = "Nyq";
 
 initializeFcn = @initializeUIFig;
 updateFcn = @updateUIFig;
@@ -42,7 +45,10 @@ function initializeUIFig(parent)
         "Items",["Nyquist","Bode Magnitude","Bode Phase","Real Part","Imaginary Part"], ...
         "ItemsData",["Nyq","BodeMag","BodePhase","Real","Imag"],...
         "ValueChangedFcn",@(src,event)updateZPlotType(event.Value));
-    labinfo = uilabel(gridcontrols,"Text",sprintf('T=%.0fdegC',TdegC));
+    tempselect = uidropdown(gridcontrols, ...
+        "Items",arrayfun(@(x)sprintf("T=%.1fdegC",x),TdegC), ...
+        "ItemsData",1:length(TdegC),"Value",tempSelect,...
+        "ValueChangedFcn",@(src,event)updateTempSelect(event.Value));
 
     % Construct impedance plots.
     gridz = uigridlayout(panelz,[5 ceil(nsoc/5)]);
@@ -50,10 +56,10 @@ function initializeUIFig(parent)
         ax = uiaxes(gridz);
         axZ(k) = ax;
         formatAxes(ax);
-        plot(ax,real(Zref(:,k)),-imag(Zref(:,k)),'b.');
+        plot(ax,real(Zref{tempSelect}(:,k)),-imag(Zref{tempSelect}(:,k)),'b.');
         hold(ax,'on');
         linesZ(k) = plot(ax,NaN,NaN,'r-');
-        title(ax,sprintf('%.0f%% SOC',socPctRef(k)));
+        title(ax,sprintf('%.0f%% SOC',socPctRef{tempSelect}(k)));
         setAxesNyquist('axes',ax);
     end
 
@@ -89,8 +95,13 @@ function updateUIFig(paramValues)
     % changes.
     lastParamValues = paramValues;
 
+    % Select appropriate data-set.
+    paramValues = fastopt.splittemps(paramValues,modelspec);
+    paramValues = paramValues(tempSelect);
+
     % Calculate impedance predicted by the linear EIS model.
-    Zmodel = getLinearImpedance(paramValues,freqRef,socPctRef,TdegC);
+    Zmodel = getLinearImpedance( ...
+        paramValues,freqRef{tempSelect},socPctRef{tempSelect},TdegC(tempSelect));
 
     % Calculate Rctp and Dsp.
     socPct = linspace(0,100,100);
@@ -106,38 +117,37 @@ function updateUIFig(paramValues)
         k0SOCPct = 100*(k0Theta-theta0)/(theta100-theta0);
     end
     ocpmodel = MSMR(paramValues.pos);
-    ctData = ocpmodel.Rct(paramValues.pos,'theta',t,'TdegC',TdegC);
-    dsData = ocpmodel.Ds(paramValues.pos,'theta',t,'TdegC',TdegC);
+    ctData = ocpmodel.Rct(paramValues.pos,'theta',t,'TdegC',TdegC(tempSelect));
+    dsData = ocpmodel.Ds(paramValues.pos,'theta',t,'TdegC',TdegC(tempSelect));
     Rctp = ctData.Rct;
     Rctpj = ctData.Rctj;
     i0 = ctData.i0;
     Ds = dsData.Ds;
 
     % Update model predictions on plots.
-    plottype = zplotselect.Value;
-    if plottype == "Nyq"
+    if plotSelect == "Nyq"
         for idxSOC = 1:nsoc
             linesZ(idxSOC).XData = real(Zmodel(:,idxSOC));
             linesZ(idxSOC).YData = -imag(Zmodel(:,idxSOC));
         end
-    elseif plottype == "BodeMag"
+    elseif plotSelect == "BodeMag"
         for idxSOC = 1:nsoc
-            linesZ(idxSOC).XData = freqRef;
+            linesZ(idxSOC).XData = freqRef{tempSelect};
             linesZ(idxSOC).YData = abs(Zmodel(:,idxSOC));
         end
-    elseif plottype == "BodePhase"
+    elseif plotSelect == "BodePhase"
         for idxSOC = 1:nsoc
-            linesZ(idxSOC).XData = freqRef;
+            linesZ(idxSOC).XData = freqRef{tempSelect};
             linesZ(idxSOC).YData = angle(Zmodel(:,idxSOC))*180/pi;
         end
-    elseif plottype == "Real"
+    elseif plotSelect == "Real"
         for idxSOC = 1:nsoc
-            linesZ(idxSOC).XData = freqRef;
+            linesZ(idxSOC).XData = freqRef{tempSelect};
             linesZ(idxSOC).YData = real(Zmodel(:,idxSOC));
         end
-    elseif plottype == "Imag"
+    elseif plotSelect == "Imag"
         for idxSOC = 1:nsoc
-            linesZ(idxSOC).XData = freqRef;
+            linesZ(idxSOC).XData = freqRef{tempSelect};
             linesZ(idxSOC).YData = imag(Zmodel(:,idxSOC));
         end
     end
@@ -168,73 +178,83 @@ function updateUIFig(paramValues)
 end % updateUIPlot()
 
 function updateZPlotType(plottype)
-    if plottype == "Nyq"    
+    plotSelect = plottype;
+    redrawPlots();
+end % updateZPlotType()
+
+function updateTempSelect(indT)
+    tempSelect = indT;
+    redrawPlots();
+end % updateZPlotType()
+
+function redrawPlots()
+    if plotSelect == "Nyq"    
         for k = 1:nsoc
             ax = axZ(k);
             cla(ax);
             ax.XScale = 'linear';
             ax.YScale = 'linear';
-            plot(ax,real(Zref(:,k)),-imag(Zref(:,k)),'b.');
+            plot(ax,real(Zref{tempSelect}(:,k)),-imag(Zref{tempSelect}(:,k)),'b.');
             hold(ax,'on');
             linesZ(k) = plot(ax,NaN,NaN,'r-');
-            title(ax,sprintf('%.0f%% SOC',socPctRef(k)));
+            title(ax,sprintf('%.0f%% SOC',socPctRef{tempSelect}(k)));
             setAxesNyquist('axes',ax);
         end 
-    elseif plottype == "BodeMag"
+    elseif plotSelect == "BodeMag"
         for k = 1:nsoc
             ax = axZ(k);
             cla(ax);
             ax.XScale = 'log';
             ax.YScale = 'log';
-            loglog(ax,freqRef,abs(Zref(:,k)),'b.');
+            loglog(ax,freqRef{tempSelect},abs(Zref{tempSelect}(:,k)),'b.');
             hold(ax,'on');
             linesZ(k) = loglog(ax,NaN,NaN,'r-');
-            title(ax,sprintf('%.0f%% SOC',socPctRef(k)));
-            ylim(ax,[min(abs(Zref(:,k))) max(abs(Zref(:,k)))]);
-            xlim(ax,[min(freqRef) max(freqRef)]);
+            title(ax,sprintf('%.0f%% SOC',socPctRef{tempSelect}(k)));
+            ylim(ax,[min(abs(Zref{tempSelect}(:,k))) max(abs(Zref{tempSelect}(:,k)))]);
+            xlim(ax,[min(freqRef{tempSelect}) max(freqRef{tempSelect})]);
         end 
-    elseif plottype == "BodePhase"
+    elseif plotSelect == "BodePhase"
         for k = 1:nsoc
             ax = axZ(k);
             cla(ax);
             ax.XScale = 'log';
             ax.YScale = 'linear';
-            semilogx(ax,freqRef,angle(Zref(:,k))*180/pi,'b.');
+            semilogx(ax,freqRef{tempSelect},angle(Zref{tempSelect}(:,k))*180/pi,'b.');
             hold(ax,'on');
             linesZ(k) = semilogx(ax,NaN,NaN,'r-');
-            title(ax,sprintf('%.0f%% SOC',socPctRef(k)));
-            ylim(ax,[min(angle(Zref(:,k))*180/pi) max(angle(Zref(:,k))*180/pi)]);
-            xlim(ax,[min(freqRef) max(freqRef)]);
+            title(ax,sprintf('%.0f%% SOC',socPctRef{tempSelect}(k)));
+            ylim(ax,[min(angle(Zref{tempSelect}(:,k))*180/pi) max(angle(Zref{tempSelect}(:,k))*180/pi)]);
+            xlim(ax,[min(freqRef{tempSelect}) max(freqRef{tempSelect})]);
         end
-    elseif plottype == "Real"
+    elseif plotSelect == "Real"
         for k = 1:nsoc
             ax = axZ(k);
             cla(ax);
             ax.XScale = 'log';
             ax.YScale = 'linear';
-            loglog(ax,freqRef,real(Zref(:,k)),'b.');
+            loglog(ax,freqRef{tempSelect},real(Zref{tempSelect}(:,k)),'b.');
             hold(ax,'on');
             linesZ(k) = semilogx(ax,NaN,NaN,'r-');
-            title(ax,sprintf('%.0f%% SOC',socPctRef(k)));
-            ylim(ax,[min(real(Zref(:,k))) max(real(Zref(:,k)))]);
-            xlim(ax,[min(freqRef) max(freqRef)]);
+            title(ax,sprintf('%.0f%% SOC',socPctRef{tempSelect}(k)));
+            ylim(ax,[min(real(Zref{tempSelect}(:,k))) max(real(Zref{tempSelect}(:,k)))]);
+            xlim(ax,[min(freqRef{tempSelect}) max(freqRef{tempSelect})]);
         end
-    elseif plottype == "Imag"
+    elseif plotSelect == "Imag"
         for k = 1:nsoc
             ax = axZ(k);
             cla(ax);
             ax.XScale = 'log';
             ax.YScale = 'linear';
-            loglog(ax,freqRef,imag(Zref(:,k)),'b.');
+            loglog(ax,freqRef{tempSelect},imag(Zref{tempSelect}(:,k)),'b.');
             hold(ax,'on');
             linesZ(k) = semilogx(ax,NaN,NaN,'r-');
-            title(ax,sprintf('%.0f%% SOC',socPctRef(k)));
-            ylim(ax,[min(imag(Zref(:,k))) max(imag(Zref(:,k)))]);
-            xlim(ax,[min(freqRef) max(freqRef)]);
+            title(ax,sprintf('%.0f%% SOC',socPctRef{tempSelect}(k)));
+            ylim(ax,[min(imag(Zref{tempSelect}(:,k))) max(imag(Zref{tempSelect}(:,k)))]);
+            xlim(ax,[min(freqRef{tempSelect}) max(freqRef{tempSelect})]);
         end 
     end
     updateUIFig(lastParamValues);
-end % updateZPlotType()
+end
 end
 
 function ax = formatAxes(ax)

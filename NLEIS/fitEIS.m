@@ -13,12 +13,12 @@ TB.addpaths();
 eisExpirementNames = {
     '(NL)EIS-SionCell395534_15degC'  % directories w/ raw EIS data
     '(NL)EIS-SionCell395534_25degC'
-    '(NL)EIS-SionCell395524_40degC'
+    %'(NL)EIS-SionCell395524_40degC'
 };
 ocpExpirementName = 'FinalFit-SionFresh_0C01';  % file w/ regressed OCP data
 initialCellModelName = 'cellSionGuess-P2DM';    % model w/ initial param values
-solidDiffusionModel = 'msmr';  % selects solid diffusion model for porous electrode
-kineticsModel = 'linear';      % selects kinetics model for porous electrode
+solidDiffusionModel = 'linear';  % selects solid diffusion model for porous electrode
+kineticsModel = 'linear';        % selects kinetics model for porous electrode
 
 % Load lab impedance spectra.
 clear spectra;
@@ -52,8 +52,8 @@ fileName = fullfile( ...
 save(fileName,'-struct','fitData');
 
 % Residual weighting function. Returns relative weight corresponding to the
-% specified frequency and SOC setpoint.
-function w = getWeight(freq,socPct)
+% specified frequency, SOC setpoint, and temperature.
+function w = getWeight(freq,socPct,TdegC)
     w = 1;
 %     if socPct<=25
 %         % Linear derate from 25% to 0% SOC.

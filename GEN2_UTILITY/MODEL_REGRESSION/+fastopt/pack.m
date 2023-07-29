@@ -7,7 +7,7 @@ function [vect, metadata] = pack(model,metadata,varargin)
 
     parser = inputParser;
     parser.addOptional('default',[]);
-    parser.addOptional('coerce',false,@islogical);
+    parser.addOptional('coerce',true,@islogical);
     parser.parse(varargin{:});
     defaultval = parser.Results.default;
     coerce = parser.Results.coerce;

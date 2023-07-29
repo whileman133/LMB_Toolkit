@@ -55,7 +55,7 @@ methods
         obj.values = obj.init0;
         obj.lb = obj.lb0;
         obj.ub = obj.ub0;
-        obj.startFlag = false;
+        obj.startFlag = [];
 
         % Initialize the GUI.
         [obj.freeParam, obj.dof, obj.mult] = obj.getFreeParams(arg.modelspec);
@@ -265,12 +265,6 @@ methods(Access=protected)
             paramName = paramNames{indParam};
             paramNameDisplay = strrep(paramName,'__','.');
             param = obj.freeParam.(paramName);
-            initial = obj.init0.(paramName);
-            lower = obj.lb0.(paramName);
-            upper = obj.ub0.(paramName);
-            initial(initial<lower) = lower(initial<lower);
-            initial(initial>upper) = upper(initial>upper);
-            initialPct = obj.toSliderValue(initial,lower,upper,param.logscale);
 
             % Determine multiplicity.
             multiplicity = 1;
@@ -290,6 +284,7 @@ methods(Access=protected)
                 % Iterate temperature multiplicity of each item.
                 for m = 1:iterations
                     if m <= multiplicity
+                        pname = paramName;
                         % Iterations for paramter at each temperature.
                         itemName = sprintf('%s_%d_%d',paramName,indItem,m);
                         if param.len > 1
@@ -312,27 +307,38 @@ methods(Access=protected)
                         data.indParam = indParam;
                         data.indItem = indItem;
                         data.indMult = m;
-                        data.labName = itemName;
-                        data.sldName = itemName;
                     else
+                        if indItem ~= param.len
+                            continue;
+                        end
                         % Extra iteration for activation energy field.
-                        % Always uses log scale!
+                        % Always use linear scale.
+                        pname = [paramName '_Eact'];
                         itemName = [paramName '_Eact'];
-                        itemNameDisplay = [paramNameDisplay '_Eact (log)'];
+                        itemNameDisplay = [paramNameDisplay '_Eact'];
                         data = struct;
                         data.nameDisplay = itemNameDisplay;
                         data.param = param;
-                        data.param.logscale = true;
+                        data.param.logscale = false;
                         data.paramName = itemName;
                         data.indParam = indParam;
                         data.indItem = 1;
                         data.indMult = 1;
-                        data.labName = itemName;
-                        data.sldName = itemName;
                     end
+                    data.labName = itemName;
+                    data.sldName = itemName;
                     data.edtValueName = [itemName '__value'];
                     data.edtLowerName = [itemName '__lower'];
                     data.edtUpperName = [itemName '__upper'];
+
+                    % Fetch values for input fields.
+                    initial = obj.init0.(pname);
+                    lower = obj.lb0.(pname);
+                    upper = obj.ub0.(pname);
+                    initial(initial<lower) = lower(initial<lower);
+                    initial(initial>upper) = upper(initial>upper);
+                    initialPct = obj.toSliderValue( ...
+                        initial,lower,upper,data.param.logscale);
             
                     % Parameter label.
                     obj.lab.(data.labName) = uilabel( ...
@@ -342,7 +348,7 @@ methods(Access=protected)
                 
                     % Slider for adjusting initial value.
                     obj.sld.(data.sldName) = uislider( ...
-                        grid,"Value",initialPct(indItem));
+                        grid,"Value",initialPct(data.indItem));
                     obj.sld.(data.sldName).Layout.Row = cursor+1;
                     obj.sld.(data.sldName).Layout.Column = 2;
                     obj.sld.(data.sldName).UserData = data;
@@ -352,7 +358,7 @@ methods(Access=protected)
             
                     % Initial value editor.
                     obj.edt.(data.edtValueName) = uieditfield( ...
-                        grid,'numeric',"Value",initial(indItem));
+                        grid,'numeric',"Value",initial(data.indItem));
                     obj.edt.(data.edtValueName).Layout.Row = cursor+1;
                     obj.edt.(data.edtValueName).Layout.Column = 3;
                     obj.edt.(data.edtValueName).UserData = data;
@@ -361,7 +367,7 @@ methods(Access=protected)
             
                     % Lower bound editor.
                     obj.edt.(data.edtLowerName) = uieditfield( ...
-                        grid,'numeric',"Value",lower(indItem));
+                        grid,'numeric',"Value",lower(data.indItem));
                     obj.edt.(data.edtLowerName).Layout.Row = cursor+1;
                     obj.edt.(data.edtLowerName).Layout.Column = 4;
                     obj.edt.(data.edtLowerName).UserData = data;
@@ -370,7 +376,7 @@ methods(Access=protected)
             
                     % Upper bound editor.
                     obj.edt.(data.edtUpperName) = uieditfield( ...
-                        grid,'numeric',"Value",upper(indItem));
+                        grid,'numeric',"Value",upper(data.indItem));
                     obj.edt.(data.edtUpperName).Layout.Row = cursor+1;
                     obj.edt.(data.edtUpperName).Layout.Column = 5;
                     obj.edt.(data.edtUpperName).UserData = data;
@@ -380,25 +386,6 @@ methods(Access=protected)
                     cursor = cursor + 1;
                 end % for mult
             end % for item
-
-            % Check for activation energy.
-            if strcmpi(param.tempfcn,'Eact')
-                itemName = [paramName '_Eact'];
-                itemNameDisplay = [paramNameDisplay '_Eact (log)'];
-                data = struct;
-                data.nameDisplay = itemNameDisplay;
-                data.param = param;
-                data.param.logscale = true;  % always use log scale!
-                data.paramName = itemName;
-                data.indParam = indParam;
-                data.indItem = indItem;
-                data.indMult = m;
-                data.labName = itemName;
-                data.sldName = itemName;
-                data.edtValueName = [itemName '__value'];
-                data.edtLowerName = [itemName '__lower'];
-                data.edtUpperName = [itemName '__upper'];
-            end
         end % for param
 
         % Do the scrolling after component creation, or it will take 
