@@ -5,20 +5,17 @@
 clear; close all; clc;
 addpath(fullfile('..','..'));
 TB.addpaths;
-fitData = load(fullfile('labfitdata','EIS-Cell395524-42degC.mat'));
-nsoc = length(fitData.socPctTrue);
-indSOC = [1 2 3:2:nsoc-2 nsoc-1 nsoc];
-nsocPlot = length(indSOC);
-cellName = fitData.arg.labSpectra.cellName;
-TdegC = fitData.TdegC;
-plotdir = fullfile('plots',sprintf('LAB-Cell%s-%.0fdegC',cellName,TdegC));
+
+filename = 'EIS-16degC26degC-Ds=linear-k0=linear';
+fitData = load(fullfile('labfitdata',[filename '.mat']));
+
+TdegCvect = fitData.TdegC;
+TrefdegC = fitData.arg.TrefdegC;
+tmpStr = sprintf('%.0fdegC',TdegCvect);
+plotdir = fullfile('plots',sprintf('LAB-%s',tmpStr));
 if ~isfolder(plotdir)
     mkdir(plotdir);
 end
-rmseMag = sqrt(mean((abs(fitData.Zlab(:))-abs(fitData.Zmodel(:))).^2));
-rmsePhs = sqrt(mean((angle(fitData.Zlab(:))-angle(fitData.Zmodel(:))).^2))*180/pi;
-rmseReal = sqrt(mean((real(fitData.Zlab(:))-real(fitData.Zmodel(:))).^2));
-rmseImag = sqrt(mean((imag(fitData.Zlab(:))-imag(fitData.Zmodel(:))).^2));
 
 soc = linspace(0,1,100);
 socPct = soc*100;
@@ -26,55 +23,76 @@ theta0 = fitData.values.pos.theta0;
 theta100 = fitData.values.pos.theta100;
 theta = theta0 + soc*(theta100-theta0);
 electrode = MSMR(fitData.values.pos);
-ctData = electrode.Rct(fitData.values.pos,'TdegC',TdegC,'theta',theta);
-dsData = electrode.Ds(fitData.values.pos,'TdegC',TdegC,'theta',theta);
+ctData = electrode.Rct(fitData.values.pos,'TdegC',TrefdegC,'theta',theta);
+dsData = electrode.Ds(fitData.values.pos,'TdegC',TrefdegC,'theta',theta);
 
 % Compare lab to fit impedance: Nyquist.
-figure;
-l = tiledlayout(3,ceil(nsocPlot/3));
-l.Title.String = sprintf( ...
-    'Linear Impedance Spectra: Cell %s (%.0f\\circC)',cellName,TdegC);
-l.XLabel.String = 'Z'' [\Omega]';
-l.YLabel.String = '-Z'''' [\Omega]';
-for k = 1:nsocPlot
-    ind = indSOC(k);
-    zlab = fitData.Zlab(:,ind);
-    zmod = fitData.Zmodel(:,ind);
-    nexttile;
-    plot(real(zlab),-imag(zlab),'b.'); hold on;
-    plot(real(zmod),-imag(zmod),'r');
-    title(sprintf('%.0f%% SOC',fitData.socPctTrue(ind)));
-    setAxesNyquist;
+fprintf('%10s%10s%10s%10s%10s\n','TdegC','MagRMSE','PhsRMSE','RealRMSE','ImagRMSE');
+for k = 1:length(fitData.Zmodel)
+    cellName = fitData.arg.labSpectra(k).cellName;
+    cellName = split(cellName,'_');
+    cellName = cellName{1};
+    TdegC = TdegCvect(k);
+    nsoc = length(fitData.socPctTrue{k});
+    indSOC = [1 2 3:2:nsoc-2 nsoc-1 nsoc];
+    nsocPlot = length(indSOC);
+    Zlab = fitData.Zlab{k};
+    Zmodel = fitData.Zmodel{k};
+    rmseMag = sqrt(mean((abs(Zlab(:))-abs(Zmodel(:))).^2));
+    rmsePhs = sqrt(mean((angle(Zlab(:))-angle(Zmodel(:))).^2))*180/pi;
+    rmseReal = sqrt(mean((real(Zlab(:))-real(Zmodel(:))).^2));
+    rmseImag = sqrt(mean((imag(Zlab(:))-imag(Zmodel(:))).^2));
+    fprintf('%10.0f%10.3f%10.3f%10.3f%10.3f\n', ...
+        TdegC,rmseMag,rmsePhs,rmseReal,rmseImag);
+    
+    figure;
+    l = tiledlayout(3,ceil(nsocPlot/3));
+    l.Title.String = sprintf( ...
+        'Linear Impedance Spectra: Cell %s (%.0f\\circC)',cellName,TdegC);
+    l.XLabel.String = 'Z'' [\Omega]';
+    l.YLabel.String = '-Z'''' [\Omega]';
+    for j = 1:nsocPlot
+        ind = indSOC(j);
+        zlab = Zlab(:,ind);
+        zmod = Zmodel(:,ind);
+        nexttile;
+        plot(real(zlab),-imag(zlab),'b.'); hold on;
+        plot(real(zmod),-imag(zmod),'r');
+        title(sprintf('%.0f%% SOC',fitData.socPctTrue{k}(ind)));
+        setAxesNyquist;
+    end
+    legend('Lab','Fit Model','Location','northwest');
+    thesisFormat('FigSizeInches',[10 6]);
+    print(fullfile(plotdir,sprintf('Z-Nyq-%.0fdegC',TdegC)),'-depsc');
+    print(fullfile(plotdir,sprintf('Z-Nyq-%.0fdegC',TdegC)),'-dpng');
 end
-legend('Lab','Fit Model','Location','northwest');
-thesisFormat('FigSizeInches',[10 6]);
-print(fullfile(plotdir,'Z-Nyq'),'-depsc');
-print(fullfile(plotdir,'Z-Nyq'),'-dpng');
 
-% Plot Rct.
+% Plot i0.
 figure;
-semilogy(socPct,ctData.Rct,'k'); hold on;
+semilogy(theta,ctData.i0,'k'); hold on;
 semilogy( ...
-    100*(fitData.values.pos.k0SplineTheta-theta0)/(theta100-theta0), ...
-    1./fitData.values.pos.k0Spline./ctData.f,'ro');
-ylabel('Charge-transfer resistance, R_{ct} [\Omega]');
-xlabel('Cell state-of-charge [%]');
-title(sprintf( ...
-    'Log-Spline Charge-Transfer: Cell %s',cellName));
+    fitData.values.pos.k0Theta, ...
+    fitData.values.pos.k0Linear,'ro');
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
+ylabel('Exchange current, i_{0} [A]');
+title('Exchange current (linear interp.)');
 thesisFormat;
-print(fullfile(plotdir,'Rct-soc'),'-depsc');
-print(fullfile(plotdir,'Rct-soc'),'-dpng');
+print(fullfile(plotdir,'i0-theta'),'-depsc');
+print(fullfile(plotdir,'i0-theta'),'-dpng');
 
 % Plot Ds.
 figure;
-semilogy(socPct,dsData.Ds,'k'); hold on;
+semilogy(theta,dsData.Ds,'k'); hold on;
 semilogy( ...
-    100*(fitData.values.pos.DsSplineTheta-theta0)/(theta100-theta0), ...
-    fitData.values.pos.DsSpline,'ro');
+    fitData.values.pos.DsTheta, ...
+    fitData.values.pos.DsLinear,'ro');
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
 ylabel('Solid diffusion coefficient, D_s [s^{-1}]');
-xlabel('Cell state-of-charge [%]');
-title(sprintf( ...
-    'Log-Spline Solid Diffusion: Cell %s',cellName));
+title('Solid diffusion coefficient (linear interp.)');
 thesisFormat;
-print(fullfile(plotdir,'Ds-soc'),'-depsc');
-print(fullfile(plotdir,'Ds-soc'),'-dpng');
+print(fullfile(plotdir,'Ds-theta'),'-depsc');
+print(fullfile(plotdir,'Ds-theta'),'-dpng');

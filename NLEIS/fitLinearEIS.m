@@ -28,6 +28,7 @@ function data = fitLinearEIS(labSpectra,labOCPFit,initialModel,varargin)
 %   .arg         Structure of arguments supplied to the function.
 %
 % -- Changelog --
+% 2023.08.10 | Add option to save intermediate solutions | Wes H.
 % 2023.07.26 | Update for multiple temperatures | Wes H.
 % 2023.07.24 | Update for multiple diffusion and kinetics models | Wes H.
 % 2023.06.30 | Created | Wesley Hileman <whileman@uccs.edu>
@@ -42,6 +43,8 @@ parser.addParameter('WeightFcn',[],@(x)isa(x,'function_handle'));
 parser.addParameter('SolidDiffusionModel','spline',isdstype);
 parser.addParameter('KineticsModel','spline',isi0type);
 parser.addParameter('TrefdegC',25,@(x)isnumeric(x)&&isscalar(x));
+parser.addParameter('IntermediateSolns',100,@(x)isnumeric(x)&&isscalar(x)); % num previous minimizers to keep
+parser.addParameter('UseParallel',true,@(x)islogical(x)&&isscalar(x));
 parser.parse(labSpectra,labOCPFit,initialModel,varargin{:});
 arg = parser.Results;  % structure of validated arguments
 
@@ -279,12 +282,20 @@ for m = 1:multiplicity
     end % if
 end % for
 
+% Allocate storage for intermediate solutions.
+topJ = inf(1,arg.IntermediateSolns);
+topSoln(arg.IntermediateSolns) = init;
+
+% Perform regression.
 [plotInit, plotUpdate] = uiImpedanceCallbacks( ...
     modelspec,Zlab,freqLab,socPctTrue,TdegC);
 data = fastopt.uiparticleswarm(@cost,modelspec,init,lb,ub, ...
-    'PlotInitializeFcn',plotInit,'PlotUpdateFcn',plotUpdate);
+    'PlotInitializeFcn',plotInit,'PlotUpdateFcn',plotUpdate, ...
+    'UseParallel',arg.UseParallel);
 
 % Collect output data.
+data.topJ = topJ;
+data.topSoln = topSoln;
 data.modelspec = modelspec;
 models = fastopt.splittemps(data.values,modelspec);
 for m = multiplicity:-1:1
@@ -320,6 +331,21 @@ function J = cost(model)
 
     % Re-enable singular matrix warning.
     warning('on','MATLAB:nearlySingularMatrix');
+
+    % Store best solutions.
+    Jlt = J<topJ; 
+    if any(Jlt)
+        ind = find(Jlt,1,'first');
+        if ind > 1
+            ind0 = ind-1;
+        else
+            ind0 = ind;
+        end
+        if abs(J-topJ(ind0))>0.01
+            topJ = [topJ(1:ind-1) J topJ(ind:end-1)];
+            topSoln = [topSoln(1:ind-1) model topSoln(ind:end-1)];
+        end
+    end
 
     % Fragments from old cost function definitions:
     % 

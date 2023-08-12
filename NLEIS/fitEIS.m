@@ -19,6 +19,7 @@ ocpExpirementName = 'FinalFit-SionFresh_0C01';  % file w/ regressed OCP data
 initialCellModelName = 'cellSionGuess-P2DM';    % model w/ initial param values
 solidDiffusionModel = 'linear';  % selects solid diffusion model for porous electrode
 kineticsModel = 'linear';        % selects kinetics model for porous electrode
+useParallel = false;             % enable/disable parallel processing
 
 % Load lab impedance spectra.
 clear spectra;
@@ -41,13 +42,15 @@ initialModel = loadCellModel(initialCellModelName);
 fitData = fitLinearEIS(spectra,ocpfit,initialModel, ...
     'SolidDiffusionModel',solidDiffusionModel, ...
     'KineticsModel',kineticsModel,...
-    'WeightFcn',@getWeight);
+    'WeightFcn',@getWeight,...
+    'UseParallel',useParallel);
 
 % Save results to disk.
+tempstr = sprintf('%.0fdegC',[spectra.TdegC]);
 fileName = fullfile( ...
     'labfitdata', ...
-    sprintf('EIS-Cell%s-%.0fdegC-Ds=%s-k0=%s', ...
-            spectra.cellName,spectra.TdegC,solidDiffusionModel,kineticsModel) ...
+    sprintf('EIS-%s-Ds=%s-k0=%s', ...
+            tempstr,solidDiffusionModel,kineticsModel) ...
 );
 save(fileName,'-struct','fitData');
 
@@ -55,6 +58,9 @@ save(fileName,'-struct','fitData');
 % specified frequency, SOC setpoint, and temperature.
 function w = getWeight(freq,socPct,TdegC)
     w = 1;
+    if freq<=10e-3
+        w = 2; % compensate for lower point density below 10mHz
+    end
 %     if socPct<=25
 %         % Linear derate from 25% to 0% SOC.
 %         w = socPct/25;
