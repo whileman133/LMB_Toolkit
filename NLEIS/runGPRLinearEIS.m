@@ -16,9 +16,30 @@ if ~isfolder(plotdir)
     mkdir(plotdir);
 end
 
+% Constants.
+distEpsilon = 0.02;  % sets min normalized distance between best solution 
+                     % for DsLinear / k0Linear and simular solutions used
+                     % in GPR estimate
+
 % Solid diffusivity -------------------------------------------------------
-theta = fitData.values.pos.DsTheta;
-Ds = fitData.values.pos.DsLinear;
+% Fetch observations of Ds over lithiation theta. Include the "best"
+% solution and also similar (but not exactly equal) solutions. We ensure
+% the solutions differ by computing the normalized distance between each
+% similar solution and the "best" solution.
+pos = [fitData.topSoln.pos];
+theta = [pos.DsTheta];
+Ds = [pos.DsLinear];
+lb = fitData.lb.pos.DsLinear;
+ub = fitData.ub.pos.DsLinear;
+n = (log10(Ds) - log10(lb))./(log10(ub) - log10(lb));
+n0 = (log10(fitData.values.pos.DsLinear)-log10(lb))./(log10(ub)-log10(lb));
+d = vecnorm(n-n0);
+ind = d>distEpsilon;
+ind(1) = true;  % always include best soln
+theta = theta(:,ind);
+Ds = Ds(:,ind);
+theta = theta(:);
+Ds = Ds(:);
 
 % Define input and target data-points.
 xtr = theta(:);      % training inputs
@@ -37,7 +58,7 @@ likFn = {@likGauss};    % Gaussian liklihood distribution
 sn = 0.2;       % measurement noise std
 
 % Define initial hyperparameter vectors.
-hyp0.mean = mean(ytr);
+hyp0.mean = c;
 hyp0.cov = [log(ell); log(sf)];
 hyp0.lik = log(sn);
 
@@ -49,36 +70,36 @@ hyp = minimize(hyp0,@gp,-1000,@infGaussLik,meanFn,covFn,likFn,xtr,ytr);
 [mu,Sigma] = gp(hyp,@infGaussLik,meanFn,covFn,likFn,xtr,ytr,xte);
 
 % Separate task: optimize extended-MSMR (e-MSMR) model.
-params.Dsref = fastopt.param('logscale',true);
-params.mD = fastopt.param;
-spec = fastopt.modelspec(params);
-lb.Dsref = 1e-9;     ub.Dsref = 1;
-lb.mD = 1;           ub.mD = 5;
-init.Dsref = 1e-5;
-init.mD = 3;
-lb = fastopt.pack(lb,spec);
-ub = fastopt.pack(ub,spec);
-init = fastopt.pack(init,spec);
-electrode = MSMR(fitData.values.pos);
-costFn = msmrDiffusivityRegressionCostFnFactory( ...
-    theta,Ds,electrode,spec,fitData.arg.TrefdegC ...
-);
-vect = fmincon(costFn,init,[],[],[],[],lb,ub);
-msmrDiffusionModel = fastopt.unpack(vect,spec);
-postOpt_eMSMR_DsData = electrode.Ds(msmrDiffusionModel, ...
-    'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
+% params.Dsref = fastopt.param('logscale',true);
+% params.mD = fastopt.param;
+% spec = fastopt.modelspec(params);
+% lb.Dsref = 1e-9;     ub.Dsref = 1;
+% lb.mD = 1;           ub.mD = 5;
+% init.Dsref = 1e-5;
+% init.mD = 3;
+% lb = fastopt.pack(lb,spec);
+% ub = fastopt.pack(ub,spec);
+% init = fastopt.pack(init,spec);
+% electrode = MSMR(fitData.values.pos);
+% costFn = msmrDiffusivityRegressionCostFnFactory( ...
+%     theta,Ds,electrode,spec,fitData.arg.TrefdegC ...
+% );
+% vect = fmincon(costFn,init,[],[],[],[],lb,ub);
+% msmrDiffusionModel = fastopt.unpack(vect,spec);
+% postOpt_eMSMR_DsData = electrode.Ds(msmrDiffusionModel, ...
+%     'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
 
 % Compute prediction of eMSMR model.
-fitData = load('labfitdata\EIS-16degC26degC-Ds=msmr-k0=linear.mat');
-eMSMR_DsData = electrode.Ds(fitData.values.pos, ...
-    'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
+% fitData = load('labfitdata\EIS-16degC26degC-Ds=msmr-k0=linear.mat');
+% eMSMR_DsData = electrode.Ds(fitData.values.pos, ...
+%     'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
 
 % Compute prediction of 7-spline model.
-fitData = load('labfitdata\EIS-16degC26degC-Ds=spline-k0=linear.mat');
-splineDsData = electrode.Ds(fitData.values.pos, ...
-    'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
-thetaSpline = fitData.values.pos.DsTheta;
-DsSpline = fitData.values.pos.DsSpline;
+% fitData = load('labfitdata\EIS-16degC26degC-Ds=spline-k0=linear.mat');
+% splineDsData = electrode.Ds(fitData.values.pos, ...
+%     'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
+% thetaSpline = fitData.values.pos.DsTheta;
+% DsSpline = fitData.values.pos.DsSpline;
 
 figure;
 semilogy(xte,10.^mu0); hold on;
@@ -110,36 +131,50 @@ thesisFormat;
 print('-depsc',fullfile(plotdir,'Ds-optimized'));
 print('-dpng',fullfile(plotdir,'Ds-optimized'));
 
-figure;
-semilogy(postOpt_eMSMR_DsData.theta,postOpt_eMSMR_DsData.Ds); hold on;
-semilogy(theta,Ds,'o');
-set(gca,'xdir','reverse');
-xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
-    'Interpreter','latex');
-ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
-title('Solid Diffusivity: Optimized eMSMR Estimate');
-legend('Estimate','From Linear EIS','Location','best');
-thesisFormat;
-print('-depsc',fullfile(plotdir,'Ds-eMSMR-optimized'));
-print('-dpng',fullfile(plotdir,'Ds-eMSMR-optimized'));
+% figure;
+% semilogy(postOpt_eMSMR_DsData.theta,postOpt_eMSMR_DsData.Ds); hold on;
+% semilogy(theta,Ds,'o');
+% set(gca,'xdir','reverse');
+% xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+%     'Interpreter','latex');
+% ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
+% title('Solid Diffusivity: Optimized eMSMR Estimate');
+% legend('Estimate','From Linear EIS','Location','best');
+% thesisFormat;
+% print('-depsc',fullfile(plotdir,'Ds-eMSMR-optimized'));
+% print('-dpng',fullfile(plotdir,'Ds-eMSMR-optimized'));
 
-figure;
-semilogy(xte,10.^mu); hold on;
-semilogy(eMSMR_DsData.theta,postOpt_eMSMR_DsData.Ds);
-semilogy(splineDsData.theta,splineDsData.Ds);
-set(gca,'xdir','reverse');
-xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
-    'Interpreter','latex');
-ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
-title('Solid Diffusivity: Comparing Estimates');
-legend('GPR','eMSMR','7-spline','Location','best');
-thesisFormat;
-print('-depsc',fullfile(plotdir,'Ds-compare'));
-print('-dpng',fullfile(plotdir,'Ds-compare'));
+% figure;
+% semilogy(xte,10.^mu); hold on;
+% semilogy(eMSMR_DsData.theta,postOpt_eMSMR_DsData.Ds);
+% semilogy(splineDsData.theta,splineDsData.Ds);
+% set(gca,'xdir','reverse');
+% xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+%     'Interpreter','latex');
+% ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
+% title('Solid Diffusivity: Comparing Estimates');
+% legend('GPR','eMSMR','7-spline','Location','best');
+% thesisFormat;
+% print('-depsc',fullfile(plotdir,'Ds-compare'));
+% print('-dpng',fullfile(plotdir,'Ds-compare'));
 
 % Exchange-current --------------------------------------------------------
-theta = fitData.values.pos.k0Theta;
-k0 = fitData.values.pos.k0Linear;
+pos = [fitData.topSoln.pos];
+theta = [pos.k0Theta];
+k0 = [pos.k0Linear];
+lb = fitData.lb.pos.k0Linear;
+ub = fitData.ub.pos.k0Linear;
+n = (log10(k0) - log10(lb))./(log10(ub) - log10(lb));
+n0 = (log10(fitData.values.pos.k0Linear)-log10(lb))./(log10(ub)-log10(lb));
+d = vecnorm(n-n0);
+ind = d>distEpsilon;
+ind(1) = true;  % always include best soln
+theta = theta(:,ind);
+k0 = k0(:,ind);
+theta = theta(:);
+k0 = k0(:);
+%theta = fitData.values.pos.k0Theta;
+%k0 = fitData.values.pos.k0Linear;
 
 % Define input and target data-points.
 xtr = theta(:);            % training inputs

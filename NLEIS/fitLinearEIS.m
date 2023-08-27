@@ -44,6 +44,7 @@ parser.addParameter('SolidDiffusionModel','spline',isdstype);
 parser.addParameter('KineticsModel','spline',isi0type);
 parser.addParameter('TrefdegC',25,@(x)isnumeric(x)&&isscalar(x));
 parser.addParameter('IntermediateSolns',100,@(x)isnumeric(x)&&isscalar(x)); % num previous minimizers to keep
+parser.addParameter('IntermediateSolnEpsilon',struct('Ds',0.03,'k0',0.03),@(x)isscalar(x)&&istruct(x));
 parser.addParameter('UseParallel',true,@(x)islogical(x)&&isscalar(x));
 parser.parse(labSpectra,labOCPFit,initialModel,varargin{:});
 arg = parser.Results;  % structure of validated arguments
@@ -283,8 +284,10 @@ for m = 1:multiplicity
 end % for
 
 % Allocate storage for intermediate solutions.
-topJ = inf(1,arg.IntermediateSolns);
-topSoln(arg.IntermediateSolns) = init;
+topJ.Ds = inf(1,arg.IntermediateSolns);
+topJ.k0 = inf(1,arg.IntermediateSolns);
+topSoln.Ds(arg.IntermediateSolns) = init;
+topSoln.k0(arg.IntermediateSolns) = init;
 
 % Perform regression.
 [plotInit, plotUpdate] = uiImpedanceCallbacks( ...
@@ -332,20 +335,43 @@ function J = cost(model)
     % Re-enable singular matrix warning.
     warning('on','MATLAB:nearlySingularMatrix');
 
-    % Store best solutions.
-    Jlt = J<topJ; 
-    if any(Jlt)
-        ind = find(Jlt,1,'first');
-        if ind > 1
-            ind0 = ind-1;
+    % Store intermediate solutions.
+    Jlt = J<topJ.Ds; 
+    if any(Jlt) && strcmpi(arg.SolidDiffusionModel,'linear')
+        if isinf(topJ.Ds(1))
+            store = true;
         else
-            ind0 = ind;
-        end
-        if abs(J-topJ(ind0))>0.01
-            topJ = [topJ(1:ind-1) J topJ(ind:end-1)];
-            topSoln = [topSoln(1:ind-1) model topSoln(ind:end-1)];
-        end
-    end
+            pos = [topSoln.Ds(~isinf(topJ.Ds)).pos];
+            n0Ds = lognormalize( ...
+                [pos.DsLinear],lb.pos.DsLinear,ub.pos.DsLinear);
+            nDs = lognormalize( ...
+                model.pos.DsLinear,lb.pos.DsLinear,ub.pos.DsLinear);
+            store = all(vecnorm(nDs-n0Ds)>arg.IntermediateSolnEpsilon.Ds);
+        end % else
+        if store
+            ind = find(Jlt,1,'first');
+            topJ.Ds = [topJ.Ds(1:ind-1) J topJ.Ds(ind:end-1)];
+            topSoln.Ds = [topSoln.Ds(1:ind-1) model topSoln.Ds(ind:end-1)];
+        end % if
+    end % if
+    Jlt = J<topJ.k0; 
+    if any(Jlt) && strcmpi(arg.KineticsModel,'linear')
+        if isinf(topJ.k0(1))
+            store = true;
+        else
+            pos = [topSoln.k0(~isinf(topJ.k0)).pos];
+            n0k0 = lognormalize( ...
+                [pos.k0Linear],lb.pos.k0Linear,ub.pos.k0Linear);
+            nk0 = lognormalize( ...
+                model.pos.k0Linear,lb.pos.k0Linear,ub.pos.k0Linear);
+            store = all(vecnorm(nk0-n0k0)>arg.IntermediateSolnEpsilon.k0);
+        end % else
+        if store
+            ind = find(Jlt,1,'first');
+            topJ.k0 = [topJ.k0(1:ind-1) J topJ.k0(ind:end-1)];
+            topSoln.k0 = [topSoln.k0(1:ind-1) model topSoln.k0(ind:end-1)];
+        end % if
+    end % if
 
     % Fragments from old cost function definitions:
     % 
@@ -357,5 +383,9 @@ function J = cost(model)
     % NormAngle = 20;
     % J = sum(weights.*(DeltaAngle.^2./NormAngle.^2),'all');
 end % cost()
+
+function n = lognormalize(x,lb,ub)
+    n = (log10(x)-log10(lb))./(log10(ub)-log10(lb));
+end
 
 end % fitLinearEIS()
