@@ -7,15 +7,12 @@
 % 2023.06.01 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
-if ~exist('TOOLBOX_LMB','dir')
-    % bootstrap the toolbox
-    addpath('..');
-    TB.addPaths();
-end
+addpath('..');
+TB.addpaths();
 
 % Load simulation data.
 simName = 'cellCLiMBLumped80mAh-100pct-20pct';
-load(fullfile('simdata',[simName '.mat']));
+load(fullfile('simdata','halfcyc',[simName '.mat']));
 
 % Fetch time, iapp(t), vcell(t) vectors.
 halfcycData = [simData.iappSeries];

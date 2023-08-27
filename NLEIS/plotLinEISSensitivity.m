@@ -47,10 +47,10 @@ sensStudy.defaults = lumped;
 % sensStudy.joint.multiplier.WtauW.pos.tauW = [1/5; 1/2; 2; 5];
 % sensStudy.joint.multiplier.WtauW.sep.tauW = [1/5; 1/2; 2; 5];
 % sensStudy.joint.multiplier.WtauW.dll.tauW = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.kappaW.const.W = [1/2; 2; 5; 20];
-sensStudy.joint.multiplier.kappaW.pos.kappa = [1/2; 2; 5; 20];
-sensStudy.joint.multiplier.kappaW.sep.kappa = [1/2; 2; 5; 20];
-sensStudy.joint.multiplier.kappaW.dll.kappa = [1/2; 2; 5; 20];
+% sensStudy.joint.multiplier.kappaW.const.W = [1/2; 2; 5; 20];
+% sensStudy.joint.multiplier.kappaW.pos.kappa = [1/2; 2; 5; 20];
+% sensStudy.joint.multiplier.kappaW.sep.kappa = [1/2; 2; 5; 20];
+% sensStudy.joint.multiplier.kappaW.dll.kappa = [1/2; 2; 5; 20];
 sensData = fastopt.runSensitivityStudy( ...
     sensStudy,@(params)calcZ(params,ff,socPct,TdegC));
 
