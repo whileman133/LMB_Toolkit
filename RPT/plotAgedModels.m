@@ -6,11 +6,8 @@
 % 2023.06.06 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
-if ~exist('TOOLBOX_LMB','dir')
-    % bootstrap the toolbox
-    addpath('..');
-    TB.addPaths();
-end
+addpath('..');
+TB.addpaths();
 
 cellDef = load('cellLMO_AgeSeries.mat');
 TdegC = 25;
