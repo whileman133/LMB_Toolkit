@@ -64,6 +64,9 @@ parser.addParameter('ComputeRctj',false,@islogical)
 parser.parse(model,thetaAvg,varargin{:});
 p = parser.Results; % structure of validated parameter values
 
+% Covert to legacy lumped-parameter model.
+model = convertCellModel(model,'LLPM');
+
 T = p.TdegC+273.15;
 f = TB.const.F/TB.const.R/T;
 Uocv = p.Uocv;

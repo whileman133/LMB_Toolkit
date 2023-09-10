@@ -13,7 +13,6 @@ TB.addpaths();
 eisExpirementNames = {
     '(NL)EIS-SionCell395534_15degC'  % directories w/ raw EIS data
     '(NL)EIS-SionCell395534_25degC'
-    %'(NL)EIS-SionCell395524_40degC'
 };
 ocpExpirementName = 'FinalFit-SionFresh_0C01';  % file w/ regressed OCP data
 initialCellModelName = 'cellSionGuess-P2DM';    % model w/ initial param values
@@ -61,11 +60,4 @@ function w = getWeight(freq,socPct,TdegC)
     if freq<=10e-3
         w = 2; % compensate for lower point density below 10mHz
     end
-%     if socPct<=25
-%         % Linear derate from 25% to 0% SOC.
-%         w = socPct/25;
-%     else
-%         w = 1;
-%     end
 end
-

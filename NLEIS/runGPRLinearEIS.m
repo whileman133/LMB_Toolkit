@@ -3,6 +3,7 @@
 % Produce estimates of solid diffusivity and charge-transfer resistance
 % using Gaussian Process Regression (GPR).
 %
+% 2023.08.27 | Employ a number of intermediate solns in GPR | Wes H
 % 2023.07.29 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
@@ -17,27 +18,16 @@ if ~isfolder(plotdir)
 end
 
 % Constants.
-distEpsilon = 0.02;  % sets min normalized distance between best solution 
-                     % for DsLinear / k0Linear and simular solutions used
-                     % in GPR estimate
+NumIntermediateSolns = 20;
 
 % Solid diffusivity -------------------------------------------------------
 % Fetch observations of Ds over lithiation theta. Include the "best"
 % solution and also similar (but not exactly equal) solutions. We ensure
 % the solutions differ by computing the normalized distance between each
 % similar solution and the "best" solution.
-pos = [fitData.topSoln.pos];
+pos = [fitData.topSoln.Ds(1:NumIntermediateSolns).pos];
 theta = [pos.DsTheta];
 Ds = [pos.DsLinear];
-lb = fitData.lb.pos.DsLinear;
-ub = fitData.ub.pos.DsLinear;
-n = (log10(Ds) - log10(lb))./(log10(ub) - log10(lb));
-n0 = (log10(fitData.values.pos.DsLinear)-log10(lb))./(log10(ub)-log10(lb));
-d = vecnorm(n-n0);
-ind = d>distEpsilon;
-ind(1) = true;  % always include best soln
-theta = theta(:,ind);
-Ds = Ds(:,ind);
 theta = theta(:);
 Ds = Ds(:);
 
@@ -159,18 +149,9 @@ print('-dpng',fullfile(plotdir,'Ds-optimized'));
 % print('-dpng',fullfile(plotdir,'Ds-compare'));
 
 % Exchange-current --------------------------------------------------------
-pos = [fitData.topSoln.pos];
+pos = [fitData.topSoln.k0(1:NumIntermediateSolns).pos];
 theta = [pos.k0Theta];
 k0 = [pos.k0Linear];
-lb = fitData.lb.pos.k0Linear;
-ub = fitData.ub.pos.k0Linear;
-n = (log10(k0) - log10(lb))./(log10(ub) - log10(lb));
-n0 = (log10(fitData.values.pos.k0Linear)-log10(lb))./(log10(ub)-log10(lb));
-d = vecnorm(n-n0);
-ind = d>distEpsilon;
-ind(1) = true;  % always include best soln
-theta = theta(:,ind);
-k0 = k0(:,ind);
 theta = theta(:);
 k0 = k0(:);
 %theta = fitData.values.pos.k0Theta;

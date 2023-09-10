@@ -391,14 +391,12 @@ classdef MSMR < handle
             TdegC = ocpData.TdegC;
             T = TdegC+273.15;
 
-            if all(isfield(params,{'Dsref','mD'}))
+            if all(isfield(params,{'Dsref'}))
                 % Baker-Verbrugge diffusivity.
                 Dsref = params.Dsref;
-                mD = params.mD;
                 if isa(Dsref,'function_handle'), Dsref = Dsref(0,T); end
-                if isa(mD,'function_handle'), mD = mD(0,T); end
                 f = obj.F/obj.R/T;
-                Ds = Dsref*(-f*ocpData.theta.*(1-ocpData.theta).*ocpData.dUocp).^mD;
+                Ds = Dsref*(-f*ocpData.theta.*(1-ocpData.theta).*ocpData.dUocp).^1;
             elseif all(isfield(params,{'DsSpline','DsTheta'}))
                 % Cubic spline diffusivity.
                 theta = params.DsTheta;

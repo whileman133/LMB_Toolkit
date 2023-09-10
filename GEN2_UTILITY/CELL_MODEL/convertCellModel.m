@@ -157,7 +157,6 @@ for s = 1:length(secNames)
             l.tauW = genNumericParam('tauW',p.(secName).eEps*(p.(secName).L)^2/p.const.De/(p.(secName).eEps)^p.(secName).brugDeKappa,0,'s');
             l.Dsref = genNumericParam('Dsref',p.(secName).Dsref/p.(secName).Rs^2,0,'1/s');
             l.nF = genNumericParam('nF',p.(secName).nF,0,'unitless');
-            l.mD = genNumericParam('mD',p.(secName).mD,0,'unitless');
             l.tauF = genNumericParam('tauF',p.(secName).tauF,0,'1/s');
             l.nDL = genNumericParam('nDL',p.(secName).nDL,0,'unitless');
             l.Rf = genNumericParam('Rf',p.(secName).Rf/as/p.const.A/p.(secName).L,0,'Ohm');
@@ -387,7 +386,7 @@ function LLPM = genLLPM(WORM,arg)
 %GENLLPM Convert WORM or RLWORM to LLPM.
 
 cellModel = WORM;
-if strcmp(WORM.metadata.cell.type,{'RLWRM','RLSWRM'})
+if strcmp(WORM.metadata.cell.type,'RLWRM')
     % Expand eff into dll and sep for legacy implemtation
     % of genFOM. The layers will have identical parameters
     % to emulate a single eff layer.
@@ -398,13 +397,13 @@ if strcmp(WORM.metadata.cell.type,{'RLWRM','RLSWRM'})
     cellModel.parameters.dll = struct('tauW',tauW,'kappa',kappa);
     cellModel.parameters.sep = struct('tauW',tauW,'kappa',kappa);
     cellModel.parameters = orderfields( ...
-        cellModel.parameters,{'const','neg','dll','sep','pos'});
+        cellModel.parameters,{'const','neg','dll','sep','pos','pkg'});
     % Update metadata.
     cellModel.metadata.section.dll = cellModel.metadata.section.eff;
     cellModel.metadata.section.sep = cellModel.metadata.section.eff;
     cellModel.metadata.section = rmfield(cellModel.metadata.section,'eff');
     cellModel.metadata.section = orderfields( ...
-        cellModel.metadata.section,{'const','neg','dll','sep','pos'});
+        cellModel.metadata.section,{'const','neg','dll','sep','pos','pkg'});
 end % if
 
 LLPM.const.R = TB.const.R;

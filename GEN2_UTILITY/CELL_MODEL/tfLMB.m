@@ -18,6 +18,7 @@ function data = tfLMB(S, model, varargin)
 %   find the second-harmonic response.
 %
 % -- Changelog --
+% 2023.08.31 | Use Warburg-impedance params | Wes H.
 % 2023.07.02 | Updated for gen2 | Wesley Hileman <whileman@uccs.edu>
 
 parser = inputParser;
@@ -132,7 +133,7 @@ else
     error(['Cell model must inlcude dll and sep regions ' ...
         'or single eff region.']);
 end
-% Legcacy code expects qe, kD electrolyte parameters; calculate them
+% Legcacy code below expects qe, kD electrolyte parameters; calculate them
 % from tau, W.
 p.qep = p.psi*p.T*p.kappap*p.taup/3600;
 p.qes = p.psi*p.T*p.kappas*p.taus/3600;
@@ -145,12 +146,23 @@ end
 % Get Uocp, dUocp, and Rct for positive electrode.
 if isParam('pos','X') && isParam('pos','U0') && isParam('pos','omega')
     % MSMR model.
-    if ~calc22 && isParam('pos','Uocp') && isParam('pos','dUocp') && isParam('pos','Rct')
-        % Uocp, dUocp, and Rct have been pre-computed for speed.
+    if ~calc22 && ... 
+       isParam('pos','Uocp')&&isParam('pos','dUocp')&&isParam('pos','Rct')
+        % Linear quantities Uocp, dUocp, and Rct have been pre-computed for speed.
         p.Uocpp = getParam('pos','Uocp');
         p.dUocpp = getParam('pos','dUocp');
         p.Rctp = getParam('pos','Rct');
+    elseif isParam('pos','Uocp') && isParam('pos','dUocp') && ... 
+           isParam('pos','d2Uocp') && isParam('pos','Rct') && ... 
+           isParam('pos','Rct2Inv')
+        % Second-harmonic quantities have been precomputed for speed.
+        p.Uocpp = getParam('pos','Uocp');
+        p.dUocpp = getParam('pos','dUocp');
+        p.d2Uocpp = getParam('pos','d2Uocp');
+        p.Rctp = getParam('pos','Rct');
+        p.Rct2invp = getParam('pos','Rct2Inv');
     else
+        % Not all variables have been precomputed; compute here.
         electrode = MSMR(getReg('pos'));
         dataCt = electrode.Rct(getReg('pos'),'npoints',10000,'TdegC',TdegC);
         RctVect = dataCt.Rct;
@@ -205,8 +217,10 @@ p.Rct2invn = F*p.k0n*((1-p.alphan).^2-p.alphan.^2)/R/T;
 
 % Get solid diffusivity.
 if isParam('pos','Ds')
+    % Ds already pre-computed for speed.
     p.Dsp = getParam('pos','Ds');
 else
+    % Ds not precomputed; compute here.
     electrode = MSMR(getReg('pos'));
     dataDs = electrode.Ds(getReg('pos'),'npoints',10000,'TdegC',TdegC);
     p.Dsp = interp1(dataDs.theta,dataDs.Ds,p.thetap,'linear','extrap');
@@ -792,57 +806,50 @@ function data = tfLMB22(lindata,layerMode)
         dg2 = nl22.dg(:,2);  % dg/dx at x=2
         nl22 = getNL22(lindata,xInterpPos);
         d2gInterp = nl22.d2g;
-    
-        % Linear system of the form Ac=b for generating initial guess for 
-        % Thetae22. c is a vector of polynomial coefficients. See
-        % ThetaeInitial() below for more details.
-        A = zeros(5);
-        A(1,:) = [1 -1 -1 -1 -1];
-        A(2,:) = [2*p.kappas [-4 -4 -2 -1]*p.kappap];
-        A(4,2:end) = [32 12 4 1];
-        A(5,2:3) = [48 6];
-        b = zeros(5,1);
-        
+
         % Solve 4th-order BVP in Thetae at each frequency.
         % Allocate storage for solution.
-        Thetae22sInit = zeros(ns,length(zsoln));
         Thetae22pInit = zeros(ns,length(zsoln));
-        Thetae22s = zeros(ns,length(zsoln));
+        Thetae22sInit = zeros(ns,length(zsoln));
         Thetae22p = zeros(ns,length(zsoln));
+        Thetae22s = zeros(ns,length(zsoln));
+        d1Thetae22p = zeros(ns,length(zsoln));
+        d1Thetae22s = zeros(ns,length(zsoln));
         d2Thetae22p = zeros(ns,length(zsoln));  % only available in pos
         for k = 1:ns
             tau1p = tau12p(k);
             tau2p = tau22p(k);
             mu2p = mu22p(k);
     
-            % Update linear system.
-            A(3,2:end) = [24+4*mu2p 6+3*mu2p 2*mu2p mu2p];
-            b(3) = dg1(k);
-            b(5) = dg2(k);
-    
-            % Solve for polynomial coefficients.
-            C = A\b;
-    
             % Initialize BVP solver.
-            sol = bvpinit(zmesh,@(z)ThetaeInitial(C,z));
+            sol = bvpinit(zmesh,@(z)ThetaeInitial([],z));
             Thetae22pInit(k,:) = interp1(sol.x,sol.y(ind.Thetaep,:),zsoln,'linear','extrap');
             Thetae22sInit(k,:) = interp1(sol.x,sol.y(ind.Thetaes,:),zsoln,'linear','extrap');
-    
+
             % Solve BVP.
             sol = bvp5c(@ThetaeODE, @ThetaeBC, sol, opts);
-            Thetae = deval(sol,zsoln,[ind.Thetaep ind.d2Thetaep ind.Thetaes]);
+            Thetae = deval(sol,zsoln,[
+                ind.Thetaep
+                ind.d1Thetaep
+                ind.d2Thetaep
+                ind.Thetaes
+                ind.d1Thetaes
+            ].');
             Thetae22p(k,:) = Thetae(1,:);
-            d2Thetae22p(k,:) = Thetae(2,:);
-            Thetae22s(k,:) = Thetae(3,:);
+            d1Thetae22p(k,:) = Thetae(2,:);
+            d2Thetae22p(k,:) = Thetae(3,:);
+            Thetae22s(k,:) = Thetae(4,:);
+            d1Thetae22s(k,:) = Thetae(5,:);
         end
-    
-        soln.xsoln = [zsoln(1:end-1) 1+zsoln]; % x=1+z in pos
+
+        soln.xsoln = [zsoln(1:end-1) 1+zsoln(1:end)]; % x=1+z in pos
         soln.Thetae22Init = [Thetae22sInit(:,1:end-1) Thetae22pInit];
         soln.Thetae22 = [Thetae22s(:,1:end-1) Thetae22p];
+        soln.d1Thetae22 = [d1Thetae22s(:,1:end-1) d1Thetae22p];
         soln.d2Thetae22 = [nan(ns,length(zsoln)-1) d2Thetae22p];
-        soln.iThetae22p = cumtrapz(zsoln,Thetae22p.').';
-        soln.i2Thetae22p = cumtrapz(zsoln,iThetae22p.').';
-        soln.i2Thetae22 = [nan(ns,length(zsoln)-1) i2Thetae22p];
+        soln.i1Thetae22p = cumtrapz(zsoln,Thetae22p.').';
+        soln.i2Thetae22p = cumtrapz(zsoln,soln.i1Thetae22p.').';
+        soln.i2Thetae22 = [nan(ns,length(zsoln)-1) soln.i2Thetae22p];
 
         function dydx = ThetaeODE(z,y)
             % Compute derivative of the y-vector.
@@ -896,50 +903,11 @@ function data = tfLMB22(lindata,layerMode)
             ];
         end
     
-        function yinit = ThetaeInitial(C,Z)
-            % Generate initial guess for the Thetae y-vector. 
-            % Polynomial approximation.
-            % In the separator, we assume:
-            %    Thetae = a*X^2 + b*X + c
-            % In the porous electrode, we assume:
-            %    Thetae = d*X^4 + e*X^3 + f*X^2 + h*X + p
-            % When applying the boundary conditions, we find that b=0. We also
-            % assume c=0 and p=0. C is a vector of the other polynomial
-            % coefficients chosen to satisfy the remaining five boundary
-            % conditions:
-            %    C = [a d e f h]
-            % Specifically, C is the solution to the following linear system:
-            %   
-            %    1        -1        -1        -1        -1                 0
-            %    2ks      -4kp      -3kp      -2kp      -kp                0
-            %    0        24+4mu2p  6+2mu2p   2mu2p     mu2p    *   C  =   dg1
-            %    0        32        12        4         1                  0
-            %    0        48        6         0         0                  dg2
-            %
-            % where ks=kappas, kp=kappap, dg1 = dg/dx at x=1, and dg2 = dg/dx 
-            % at x=2.
-        
-            % Unpack polynomial coefficients.
-            ca = C(1);
-            cb = 0;
-            cc = 0;
-            cd = C(2);
-            ce = C(3);
-            cf = C(4);
-            ch = C(5);
-            cp = 0;
-    
-            Xp = 1+Z;
-            yinit = [
-                % --- pos ---
-                cd*Xp.^4 + ce*Xp.^3 + cf*Xp.^2 + ch*Xp + cp
-                4*cd*Xp.^3 + 3*ce*Xp.^2 + 2*cf*Xp + ch
-                12*cd*Xp.^2 + 6*ce*Xp + 2*cf
-                24*cd*Xp + 6*ce
-                % --- sep ---
-                ca*Z.^2 + cb*Z + cc
-                2*ca*Z + cb
-            ];
+        function yinit = ThetaeInitial(~,Z)
+            % Generate initial guess for the Thetae y-vector.
+
+            % Trivial solution. (Does not satisfy some of the pos BCs.)
+            yinit = zeros(length(fieldnames(ind)),length(Z));
         end
     end % solveSingleInertLayer()
 

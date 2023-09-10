@@ -11,7 +11,7 @@ addpath('..');
 TB.addpaths();
 
 % Load simulation data.
-simName = 'cellCLiMBLumped80mAh-100pct-20pct';
+simName = 'cellSionGuess-P2DM-100pct-20pct';
 load(fullfile('simdata','halfcyc',[simName '.mat']));
 
 % Fetch time, iapp(t), vcell(t) vectors.
@@ -25,13 +25,14 @@ end
 
 % Compute average lithiation of porous electrode as a function
 % of time (needed as an input to the perturbation model).
-Q = simData.cellModel.function.const.Q();
+[Q, theta0, theta100] = getCellParams(...
+    simData.cellModel,'const.Q pos.theta0 pos.theta100','Output','list');
 Z0 = simData.soc0Pct/100; % initial SOC [fractional]
 Zavg = zeros(size(time)); % average SOC vs time [fractional]
 for k = 1:size(Zavg,2)
     Zavg(:,k) = Z0 - cumtrapz(time(:,k),Iapp(:,k))/Q/3600;
 end
-ThetaAvg = simData.cellModel.function.pos.soc(Zavg);
+ThetaAvg = theta0 + Zavg*(theta100-theta0);
 
 % Compute perturbation resistance and dynamic-equilibrium solution.
 Rtotal = zeros(size(ThetaAvg));
@@ -47,7 +48,7 @@ end
 
 % Compute Rctj over soc.
 soc1 = linspace(5,100,1000);
-thetaAvg1 = simData.cellModel.function.pos.soc(soc1/100);
+thetaAvg1 = theta0 + (soc1/100)*(theta100-theta0);
 data1 = getPerturbationResistance( ...
     simData.cellModel,thetaAvg1, ...
     'TdegC',simData.TdegC,'ComputeRctj',true);
@@ -73,7 +74,7 @@ end
 labels1 = arrayfun( ...
     @(I)sprintf('%.1fC avg',I),simData.IavgC,'UniformOutput',false);
 figure; colororder(spring(size(Iapp,2)));
-plot(time/3600,Iapp/simData.cellModel.function.const.Q());
+plot(time/3600,Iapp/Q);
 legend(labels1{:},'NumColumns',1,'Location','best');
 title([titlePrefix ': i_{app}(t)']);
 xlabel('Time, t [hr]');
@@ -86,13 +87,12 @@ exportgraphics(gcf,fullfile(plotdir,'iapp.png'));
 labels1 = arrayfun( ...
     @(I)sprintf('%.1fC avg FOM',I),simData.IavgC,'UniformOutput',false);
 labels2 = arrayfun( ...
-    @(err)sprintf('PM (%.2f%% RMSE)',err),rmsePct,'UniformOutput',false);
+    @(err)sprintf('PM (%.3f%% RMSE)',err),rmsePct,'UniformOutput',false);
 labels3 = arrayfun( ...
     @(I)sprintf('OCV'),simData.IavgC,'UniformOutput',false);
 figure; colororder(spring(size(Vcell,2)));
 plot(time/3600,Vcell); hold on;
 plot(time/3600,VcellModel,'k--');
-ylim([3.5 4.5]);
 %plot(time/3600,Uocv,':');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','northeast');
 %legend(labels1{:},labels2{:},labels3{:},'NumColumns',3,'Location','best');
@@ -102,6 +102,8 @@ ylabel('v_{cell} [V]');
 thesisFormat([0.2 0.1 0.1 0.2]);
 exportgraphics(gcf,fullfile(plotdir,'vcell.eps'));
 exportgraphics(gcf,fullfile(plotdir,'vcell.png'));
+
+return;
 
 % Plot Rtotal(t).
 labels1 = arrayfun( ...
@@ -143,7 +145,7 @@ exportgraphics(gcf,fullfile(plotdir,'Rctp.eps'));
 exportgraphics(gcf,fullfile(plotdir,'Rctp.png'));
 
 % Plot Rctpj(t) vs soc.
-J = length(simData.cellModel.function.pos.U0(0,0));
+J = simData.cellModel.metadata.section.pos.ocp.J;
 labels1 = arrayfun(@(j)sprintf('R_{ct,%d}^p',j),1:J,'UniformOutput',false);
 figure; colororder(spring(J));
 semilogy(soc1,data1.parts.Rctj_p,':'); hold on;

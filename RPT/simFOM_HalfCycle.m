@@ -4,19 +4,17 @@
 % in COMSOL and save results to disk. Simulates over multiple C-rates.
 %
 % -- Changelog --
+% 09.07.2023 | Update for gen2 cell model | Wes H
 % 05.31.2023 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
-if ~exist('TOOLBOX_LMB','dir')
-    % bootstrap the toolbox
-    addpath('..');
-    TB.addPaths();
-end
+addpath('..');
+TB.addpaths;
 
 % Constants.
-cellFile = 'cellCLiMBLumped80mAh.xlsx';  % Name of cell parameters spreadsheet.
+cellFile = 'cellSionGuess-P2DM.xlsx';  % Name of cell parameters spreadsheet.
 soc0Pct = 100;         % Initil cell SOC [%].
-socfPct = 20;           % Final cell SOC [%].
+socfPct = 20;          % Final cell SOC [%].
 TdegC = 25;            % Cell temperature [degC].
 IavgC = 0.2:0.2:1.0;   % Amplitude of Iapp sinusoid [average C-rate].
 suffix = '';           % String to append to name of output data file.
@@ -25,8 +23,10 @@ OptSimFOM.VcellOnly = true;
 OptSimFOM.DebugFlag = false;
 
 % Load cell parameters.
-cellModel = loadCellParams(cellFile);
-Iavg = IavgC*cellModel.function.const.Q(); % average iapp in Amps
+cellModel = loadCellModel(cellFile);
+cellModel = convertCellModel(cellModel,'RLWRM');
+Q = getCellParams(cellModel,'const.Q');
+Iavg = IavgC*Q; % average iapp in Amps
 
 % Run EIS simulation(s) in COMSOL at each SOC setpoint.
 clear iappSeries;

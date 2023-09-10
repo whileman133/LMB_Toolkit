@@ -29,28 +29,36 @@ parser = inputParser;
 parser.addRequired('labSpectra',@isstruct);
 parser.addRequired('labLinearFit',@isstruct);
 parser.addParameter('WeightFcn',[],@(x)isa(x,'function_handle'));
+parser.addParameter('UseParallel',true);
 parser.parse(labSpectra,labLinearFit,varargin{:});
 arg = parser.Results;  % structure of validated arguments
 
-% Constants.
-TdegC = arg.labSpectra.TdegC;
-T = TdegC+273.15;
+% Determine the multiplicity of the dataset, i.e. the number of
+% temperatures included.
+multiplicity = length(arg.labSpectra);
+
+% Collect NL impedance measured in the laboratory.
+freqLab = cell(multiplicity,1);
+Zlab = cell(multiplicity,1);
+for m = 1:multiplicity
+    freqLab{m} = arg.labSpectra(m).h2.freq;
+    Zlab{m} = arg.labSpectra(m).h2.Z;
+end
+TdegC = [arg.labSpectra.TdegC].';  % temperature vector [degC].
 
 % Fetch OCP parameters fit to laboratory data.
 ocpmodel = MSMR(labLinearFit.values.pos);
-
-% Fetch linear impedance measured in the laboratory.
-freqLab = labSpectra.h2.freq;
-Zlab = labSpectra.h2.Z;
-
-% Compute true SOC and lithiation for each SOC setpoint.
 zmin = ocpmodel.zmin;
 zmax = ocpmodel.zmax;
 socPctTrue = labLinearFit.socPctTrue;
-thetaTrue = zmax + (socPctTrue/100)*(zmin-zmax);
-
-% Precompute OCP parameters at each SOC setpoint.
-ocpData = ocpmodel.ocp('theta',thetaTrue,'TdegC',TdegC);
+thetaTrue = socPctTrue;
+for k = 1:length(socPctTrue)
+    thetaTrue{k} = zmax + (socPctTrue{k}/100)*(zmin-zmax);
+end
+ocpData = cell(multiplicity,1);
+for m = 1:multiplicity
+    ocpData{m} = ocpmodel.ocp('theta',thetaTrue{m},'TdegC',TdegC(m));
+end
 
 % Build model -------------------------------------------------------------
 v = labLinearFit.values;
@@ -58,8 +66,8 @@ v = labLinearFit.values;
 % Known parameters.
 % OCP.
 params.const.Q = fastopt.param('fix',v.const.Q);
-params.pos.theta0 = fastopt.param('fix',v.const.theta0);
-params.pos.theta100 = fastopt.param('fix',v.const.theta100);
+params.pos.theta0 = fastopt.param('fix',v.pos.theta0);
+params.pos.theta100 = fastopt.param('fix',v.pos.theta100);
 params.pos.X = fastopt.param('fix',v.pos.X);
 params.pos.U0 = fastopt.param('fix',v.pos.U0);
 params.pos.omega = fastopt.param('fix',v.pos.omega);
@@ -75,11 +83,12 @@ params.pos.Rdl = fastopt.param('fix',v.pos.Rdl);
 params.pos.Cdl = fastopt.param('fix',v.pos.Cdl);
 params.pos.nDL = fastopt.param('fix',v.pos.nDL);
 params.pos.Rf = fastopt.param('fix',v.pos.Rf);
-params.pos.k0SplineTheta = fastopt.param('fix',v.pos.k0SplineTheta);
-params.pos.k0Spline = fastopt.param('fix',v.pos.k0Spline);
-params.pos.DsSplineTheta = fastopt.param('fix',v.pos.DsSplineTheta);
-params.pos.DsSpline = fastopt.param('fix',v.pos.DsSpline);
+params.pos.k0Theta = fastopt.param('fix',v.pos.k0Theta);
+params.pos.k0Linear = fastopt.param('fix',v.pos.k0Linear);
+params.pos.DsTheta = fastopt.param('fix',v.pos.DsTheta);
+params.pos.DsLinear = fastopt.param('fix',v.pos.DsLinear);
 params.pos.nF = fastopt.param('fix',v.pos.nF);
+params.pos.tauF = fastopt.param('fix',v.pos.tauF);
 params.pos.sigma = fastopt.param('fix',v.pos.sigma);
 % Lithium-metal electrode.
 params.neg.Rdl = fastopt.param('fix',v.neg.Rdl);
@@ -91,61 +100,73 @@ params.neg.k0 = fastopt.param('fix',v.neg.k0);
 % Free paramters.
 % Reaction symmetry factors.
 params.neg.alpha = fastopt.param;
-params.pos.alphaSpline = fastopt.param('len',ocpmodel.J);
+params.pos.alphaLinear = fastopt.param('len',length(v.pos.k0Theta));
 
-modelspec = fastopt.modelspec(params);
+modelspec = fastopt.modelspec(params, ...
+    'tempsdegC',TdegC,'TrefdegC',labLinearFit.arg.TrefdegC);
 
 
 % Define optimization bounds ----------------------------------------------
-lb.neg.alpha = 0;                         ub.pos.alpha = 1;
-lb.pos.alphaSpline = zeros(ocpmodel.J,1); ub.pos.alphaSpline = ones(ocpmodel.J,1);
+lb.neg.alpha = 0;
+ub.neg.alpha = 1;
+lb.pos.alphaLinear = zeros(length(v.pos.k0Theta),1); 
+ub.pos.alphaLinear = ones(length(v.pos.k0Theta),1);
 
 init.neg.alpha = 0.5;
-init.pos.alphaSpline = 0.5*ones(ocpmodel.J,1);
+init.pos.alphaLinear = 0.5*ones(length(v.pos.k0Theta),1);
 
 % Perform regression ------------------------------------------------------
 
 % Collect weight matrix.
-weights = ones(length(freqLab),length(socPctTrue));
-if ~isempty(arg.WeightFcn)
-    for idxSOC = 1:length(socPctTrue)
-        for idxFreq = 1:length(freqLab)
-            weights(idxFreq,idxSOC) = arg.WeightFcn( ...
-                freqLab(idxFreq),socPctTrue(idxSOC));
+weights = cell(multiplicity,1);
+for m = 1:multiplicity
+    weights{m} = ones(length(freqLab{m}),length(socPctTrue{m}));
+    if ~isempty(arg.WeightFcn)
+        for idxSOC = 1:length(socPctTrue{m})
+            for idxFreq = 1:length(freqLab{m})
+                weights{m}(idxFreq,idxSOC) = arg.WeightFcn( ...
+                    freqLab{m}(idxFreq),socPctTrue{m}(idxSOC),TdegC(m));
+            end % for
         end % for
-    end % for
-end
+    end % if
+end % for
 
-[plotInit, plotUpdate] = uiImpedanceCallbacks( ...
+[plotInit, plotUpdate] = uiH2ImpedanceCallbacks( ...
     modelspec,Zlab,freqLab,socPctTrue,TdegC);
 data = fastopt.uiparticleswarm(@cost,modelspec,init,lb,ub, ...
-    'PlotInitializeFcn',plotInit,'PlotUpdateFcn',plotUpdate);
+    'PlotInitializeFcn',plotInit, ...
+    'PlotUpdateFcn',plotUpdate, ...
+    'UseParallel',arg.UseParallel);
 
 % Collect output data.
 data.model = setCellParam(initialModel,data.values);
-data.Zmodel = getLinearImpedance(data.values,freqLab,socPctTrue,TdegC,ocpData);
+data.Zmodel = getH2Impedance(data.values,freqLab,socPctTrue,TdegC,ocpData);
 data.Zlab = Zlab;
 data.freq = freqLab;
 data.socPctTrue = socPctTrue;
 data.TdegC = TdegC;
 data.arg = arg;
 data.type__ = 'ParameterEstimate';
-data.origin__ = 'fitLinearEIS';
+data.origin__ = 'fitNonlinearEIS';
 
 function J = cost(model)
-    % Ignore singular matrix warnings in solving TF model (usu. occurs at high
-    % frequencies). TODO: find high-frequency TF solution.
+    modelVect = fastopt.splittemps(model,modelspec);
+
+    % Ignore singular matrix warnings in solving NL model.
     warning('off','MATLAB:nearlySingularMatrix');
 
-    % Calculate impedance predicted by the linear EIS model.
-    Zmodel = getLinearImpedance(model,freqLab,socPctTrue,TdegC,ocpData);
+    J = 0;
+    for km = 1:multiplicity
+        % Calculate impedance predicted by the linear EIS model.
+        Zmodel = getH2Impedance( ...
+            modelVect(km),freqLab{km},socPctTrue{km},TdegC(km),ocpData{km});
+        % Compute total residual between model impedance and measured
+        % impedance across all spectra.
+        J = J + sum(weights{km}.*(abs(Zmodel-Zlab{km})./abs(Zlab{km})).^2,'all');
+    end
 
     % Re-enable singular matrix warning.
     warning('on','MATLAB:nearlySingularMatrix');
-
-    % Compute total residual between model impedance and measured
-    % impedance across all spectra.
-    J = sum(weights.*(abs(Zmodel-Zlab)./abs(Zlab)).^2,'all');
 end % cost()
 
 end % fitLinearEIS()

@@ -116,7 +116,7 @@ for kz = length(p.socPct):-1:1
         simspec.T = p.TdegC;
         simspec.TSHIFT = 0; % no need to shift for initial discontinuity (sine)
         if p.Verbose
-            fprintf('Running SOC=%8.3%% f=%8.3gHz (%d of %d)...\n', ...
+            fprintf('Running SOC=%8.3f%% f=%8.3gHz (%d of %d)...\n', ...
                 p.socPct(kz),f0,length(ff)-kf+1,length(ff));
         end
         [~,sim] = simFOM(modelCOMSOL,simspec,'InputType','sin',p.OptSimFOM);

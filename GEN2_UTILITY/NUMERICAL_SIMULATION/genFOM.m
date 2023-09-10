@@ -388,7 +388,7 @@ function genData = genFOM(cellModel,varargin)
             FOM.func(fn_name).set('fununit', 'K');
         case {'W'}
             FOM.func(fn_name).set('fununit', '');
-        case {'tauW'}
+        case {'tauW','tauF'}
             FOM.func(fn_name).set('fununit', 's');
         case paramnamesMSMR.pos.U0
           FOM.func(fn_name).set('fununit','V');

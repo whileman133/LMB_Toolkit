@@ -28,7 +28,8 @@ function data = fitLinearEIS(labSpectra,labOCPFit,initialModel,varargin)
 %   .arg         Structure of arguments supplied to the function.
 %
 % -- Changelog --
-% 2023.08.10 | Add option to save intermediate solutions | Wes H.
+% 2023.08.27 | Store separate IS for Ds/i0 based on distance | Wes H.
+% 2023.08.10 | Add option to save intermediate solutions (IS) | Wes H.
 % 2023.07.26 | Update for multiple temperatures | Wes H.
 % 2023.07.24 | Update for multiple diffusion and kinetics models | Wes H.
 % 2023.06.30 | Created | Wesley Hileman <whileman@uccs.edu>
@@ -43,6 +44,8 @@ parser.addParameter('WeightFcn',[],@(x)isa(x,'function_handle'));
 parser.addParameter('SolidDiffusionModel','spline',isdstype);
 parser.addParameter('KineticsModel','spline',isi0type);
 parser.addParameter('TrefdegC',25,@(x)isnumeric(x)&&isscalar(x));
+% NOTE: IntermediateSoln stuff is disabled when UseParallel option is true;
+% MATLAB can't easily share data-structures between threads.
 parser.addParameter('IntermediateSolns',100,@(x)isnumeric(x)&&isscalar(x)); % num previous minimizers to keep
 parser.addParameter('IntermediateSolnEpsilon',struct('Ds',0.03,'k0',0.03),@(x)isscalar(x)&&istruct(x));
 parser.addParameter('UseParallel',true,@(x)islogical(x)&&isscalar(x));
@@ -336,40 +339,42 @@ function J = cost(model)
     warning('on','MATLAB:nearlySingularMatrix');
 
     % Store intermediate solutions.
-    Jlt = J<topJ.Ds; 
-    if any(Jlt) && strcmpi(arg.SolidDiffusionModel,'linear')
-        if isinf(topJ.Ds(1))
-            store = true;
-        else
-            pos = [topSoln.Ds(~isinf(topJ.Ds)).pos];
-            n0Ds = lognormalize( ...
-                [pos.DsLinear],lb.pos.DsLinear,ub.pos.DsLinear);
-            nDs = lognormalize( ...
-                model.pos.DsLinear,lb.pos.DsLinear,ub.pos.DsLinear);
-            store = all(vecnorm(nDs-n0Ds)>arg.IntermediateSolnEpsilon.Ds);
-        end % else
-        if store
-            ind = find(Jlt,1,'first');
-            topJ.Ds = [topJ.Ds(1:ind-1) J topJ.Ds(ind:end-1)];
-            topSoln.Ds = [topSoln.Ds(1:ind-1) model topSoln.Ds(ind:end-1)];
+    if ~arg.UseParallel
+        Jlt = J<topJ.Ds; 
+        if any(Jlt) && strcmpi(arg.SolidDiffusionModel,'linear')
+            if isinf(topJ.Ds(1))
+                store = true;
+            else
+                pos = [topSoln.Ds(~isinf(topJ.Ds)).pos];
+                n0Ds = lognormalize( ...
+                    [pos.DsLinear],lb.pos.DsLinear,ub.pos.DsLinear);
+                nDs = lognormalize( ...
+                    model.pos.DsLinear,lb.pos.DsLinear,ub.pos.DsLinear);
+                store = all(vecnorm(nDs-n0Ds)>arg.IntermediateSolnEpsilon.Ds);
+            end % else
+            if store
+                ind = find(Jlt,1,'first');
+                topJ.Ds = [topJ.Ds(1:ind-1) J topJ.Ds(ind:end-1)];
+                topSoln.Ds = [topSoln.Ds(1:ind-1) model topSoln.Ds(ind:end-1)];
+            end % if
         end % if
-    end % if
-    Jlt = J<topJ.k0; 
-    if any(Jlt) && strcmpi(arg.KineticsModel,'linear')
-        if isinf(topJ.k0(1))
-            store = true;
-        else
-            pos = [topSoln.k0(~isinf(topJ.k0)).pos];
-            n0k0 = lognormalize( ...
-                [pos.k0Linear],lb.pos.k0Linear,ub.pos.k0Linear);
-            nk0 = lognormalize( ...
-                model.pos.k0Linear,lb.pos.k0Linear,ub.pos.k0Linear);
-            store = all(vecnorm(nk0-n0k0)>arg.IntermediateSolnEpsilon.k0);
-        end % else
-        if store
-            ind = find(Jlt,1,'first');
-            topJ.k0 = [topJ.k0(1:ind-1) J topJ.k0(ind:end-1)];
-            topSoln.k0 = [topSoln.k0(1:ind-1) model topSoln.k0(ind:end-1)];
+        Jlt = J<topJ.k0; 
+        if any(Jlt) && strcmpi(arg.KineticsModel,'linear')
+            if isinf(topJ.k0(1))
+                store = true;
+            else
+                pos = [topSoln.k0(~isinf(topJ.k0)).pos];
+                n0k0 = lognormalize( ...
+                    [pos.k0Linear],lb.pos.k0Linear,ub.pos.k0Linear);
+                nk0 = lognormalize( ...
+                    model.pos.k0Linear,lb.pos.k0Linear,ub.pos.k0Linear);
+                store = all(vecnorm(nk0-n0k0)>arg.IntermediateSolnEpsilon.k0);
+            end % else
+            if store
+                ind = find(Jlt,1,'first');
+                topJ.k0 = [topJ.k0(1:ind-1) J topJ.k0(ind:end-1)];
+                topSoln.k0 = [topSoln.k0(1:ind-1) model topSoln.k0(ind:end-1)];
+            end % if
         end % if
     end % if
 
