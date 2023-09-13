@@ -395,8 +395,17 @@ classdef MSMR < handle
                 % Baker-Verbrugge diffusivity.
                 Dsref = params.Dsref;
                 if isa(Dsref,'function_handle'), Dsref = Dsref(0,T); end
+                if isfield(params,'zeta')
+                    % Optional zeta parameter scales the true lithiation
+                    % for the Ds computation. 0 < zeta <= 1.
+                    zeta = params.zeta;
+                    if isa(zeta,'function_handle'), zeta = zeta(0,T); end
+                else
+                    % No lithiation scaling.
+                    zeta = 1;
+                end
                 f = obj.F/obj.R/T;
-                Ds = Dsref*(-f*ocpData.theta.*(1-ocpData.theta).*ocpData.dUocp).^1;
+                Ds = -Dsref.*f.*zeta.*ocpData.theta.*(1-zeta.*ocpData.theta).*zeta.*ocpData.dUocp;
             elseif all(isfield(params,{'DsSpline','DsTheta'}))
                 % Cubic spline diffusivity.
                 theta = params.DsTheta;

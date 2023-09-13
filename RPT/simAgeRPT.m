@@ -4,6 +4,7 @@
 % number of aged cell models.
 %
 % -- Changelog --
+% 2023.09.12 | Update for gen2 toolkit | Wes H
 % 2023.06.11 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
@@ -39,7 +40,4 @@ fileName = fullfile( ...
     'fullrpt', ...
     sprintf('%s',modelName) ...
 );
-if ~isempty(suffix)
-    fileName = [fileName '-' suffix];
-end
 save(fileName,"simData");

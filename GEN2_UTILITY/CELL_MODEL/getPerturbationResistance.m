@@ -32,7 +32,7 @@ function data = getPerturbationResistance(model, thetaAvg, varargin)
 %   at temperature T instead of the default 25degC.
 %
 % -- Performance options --
-% [...] = GETPERTURBATIONRESISTANCE(...,'Uocv',Uocv) performs the
+% [...] = GETPERTURBATIONRESISTANCE(...,'ocpData',ocpData) performs the
 %   calculation using the OCV vector UOCV instead of computing the OCV
 %   for each lithiation point in THETAAVG. This can speed up the computation 
 %   if this function is called repeatedly inside an optimization routine
@@ -59,22 +59,28 @@ parser = inputParser;
 parser.addRequired('model',@isstruct);
 parser.addRequired('thetaAvg',@(x)isnumeric(x)&&isvector(x));
 parser.addParameter('TdegC',25,@(x)isnumeric(x)&&isscalar(x));
-parser.addParameter('Uocv',[],@isnumeric);
+parser.addParameter('ocpData',[],@istruct);
 parser.addParameter('ComputeRctj',false,@islogical)
 parser.parse(model,thetaAvg,varargin{:});
-p = parser.Results; % structure of validated parameter values
+arg = parser.Results; % structure of validated arguments
 
-% Covert to legacy lumped-parameter model.
-model = convertCellModel(model,'LLPM');
+if isCellModel(model)
+    % Covert to legacy lumped-parameter model for use with code below.
+    model = convertCellModel(model,'LLPM');
+else
+    % Assume a structure of parameter values was supplied instead;
+    % no need to convert for code below.
+end
 
-T = p.TdegC+273.15;
+T = arg.TdegC+273.15;
 f = TB.const.F/TB.const.R/T;
-Uocv = p.Uocv;
-computeRctj = p.ComputeRctj;
+computeRctj = arg.ComputeRctj;
 
 % Ensure lithiation is a row vector.
 thetaAvg = thetaAvg(:)';
 
+% Define getters depending on the form of the model (functions or structure
+% of values).
 if isfield(model,'function')
     % Toolbox cell model.
     isReg = @(reg)isfield(model.function,reg);
@@ -100,10 +106,12 @@ else
     Rf_n = getParam('neg','Rf');
     Rct_n = 1/f/k0_n;
     if isReg('eff')
+        % eff layer combines dll and sep
         kappa_eff = getParam('eff','kappa');
         R0 = (Rf_p+Rct_n+Rf_n) + 1/sigma_p/3 + ...
              (1+W)*(1/kappa_p/3 + 1/kappa_eff);
     else
+        % individual dll and sep layers
         kappa_s = getParam('sep','kappa');
         kappa_d = getParam('dll','kappa');
         R0 = (Rf_p+Rct_n+Rf_n) + 1/sigma_p/3 + ...
@@ -119,28 +127,19 @@ Dsref = getParam('pos','Dsref');
 Rdiff = abs(theta100-theta0)/f/Q/Dsref./thetaAvg./(1-thetaAvg)/5/10800;
 
 % Calculate Rct(pos) at each stoichiometry setpoint.
-U0 = getParam('pos','U0');          U0 = U0(:);
-X = getParam('pos','X');            X = X(:);
-omega = getParam('pos','omega');    omega = omega(:);
-alpha = getParam('pos','alpha');    alpha = alpha(:);
-k0_p = getParam('pos','k0');        k0_p = k0_p(:);
-if ~isempty(Uocv)
+if ~isempty(arg.ocpData)
     % First choice: Use Uocv provided to function (cached vector, fastest).
-    U = Uocv;
-elseif isfield(model,'function')
-    % Next best: Fetch OCP from toolbox model (calls interp1, slightly slower).
-    U = model.function.pos.Uocp(thetaAvg,T);
+    ocpData = arg.ocpData;
 else
     % Last resort: compute the OCP using the MSMR parameters 
     % (will call fzero twice and interp1 once, even slower).
     msmr = MSMR(model.pos);
-    U = msmr.ocp('theta',thetaAvg,'TdegC',p.TdegC);
+    ocpData = msmr.ocp('theta',thetaAvg,'TdegC',arg.TdegC);
 end
-U = U(:)';
-xj = X./(1+exp(f*(U-U0)./omega));
-Rct_p = 1/f./sum(k0_p.*(xj).^(omega.*alpha).*(X-xj).^(omega.*(1-alpha)));
+ctData = msmr.RctCachedOCP(model.pos,ocpData);
+Rct_p = ctData.Rct;
 if computeRctj
-    Rctj_p = 1/f./(k0_p.*(xj).^(omega.*alpha).*(X-xj).^(omega.*(1-alpha)));
+    Rctj_p = ctData.Rctj;
 end
 
 % Finally, calculate the perturbation resistance.
@@ -158,8 +157,8 @@ end
 
 data.Rtotal = Rtotal;
 data.parts = parts;
-data.U = U(:);
-data.param = p;
+data.U = ctData.Uocp;
+data.param = arg;
 data.origin__ = 'getPerturbationResistance';
 
 end

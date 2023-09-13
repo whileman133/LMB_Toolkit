@@ -9,13 +9,21 @@ function model = unpack(vect, metadata, varargin)
     %
     % model = UNPACK(...,'flat',true) returns a flat-parameter model
     %   instead of a hierarchical model.
+    %
+    % model = UNPACK(...,'fixed',true) returns only the values of fixed
+    %   parameters. In this case, the input VECT is optional and may be
+    %   replaced by the empty vector [].
 
     parser = inputParser;
+    parser.addRequired('vect',@(x)isnumeric(x)&&isvector(x)||isempty(x));
+    parser.addRequired('modelspec',@(x)isstruct(x)&&isscalar(x));
     parser.addOptional('sparse',false,@islogical);
     parser.addOptional('flat',false,@islogical);
-    parser.parse(varargin{:});
+    parser.addOptional('fixedOnly',false,@islogical);
+    parser.parse(vect,metadata,varargin{:});
     sparse = parser.Results.sparse;
     flat = parser.Results.flat;
+    fixedOnly = parser.Results.fixedOnly;
 
     flatmodel = struct;
     vect = vect(:);
@@ -40,18 +48,25 @@ function model = unpack(vect, metadata, varargin)
         end
 
         % Extract value and store into model structure.
-        value = vect(cursor:cursor+len*mult-1);
-        value = reshape(value,[len,mult]);
+        if isempty(vect)
+            value = [];
+        else
+            value = vect(cursor:cursor+len*mult-1);
+            value = reshape(value,[len,mult]);
+        end
         if isfield(meta,'fix')
             if ~sparse
                 flatmodel.(paramname) = meta.fix;
                 flatmodel.(paramname)(meta.fixmask) = value;
             elseif len > 0
+                % Some components are not fixed; omit the fixed components
+                % and retain the unfixed components.
                 flatmodel.(paramname) = value;
             else
                 % Fixed parameter; omit from sparse output.
             end
-        else
+        elseif ~fixedOnly
+            % Unfixed parameter.
             flatmodel.(paramname) = value;
         end % if
         cursor = cursor + len*mult;
@@ -62,7 +77,7 @@ function model = unpack(vect, metadata, varargin)
         end
 
         % Check for activation energy.
-        if strcmpi(meta.tempfcn,'Eact')
+        if strcmpi(meta.tempfcn,'Eact') && ~isempty(vect)
             % Activation energy is present; extract from vector.
             paramnameEact = [paramname '_Eact'];
             Eact = vect(cursor);

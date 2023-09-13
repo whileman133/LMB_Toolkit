@@ -59,6 +59,28 @@ hyp = minimize(hyp0,@gp,-1000,@infGaussLik,meanFn,covFn,likFn,xtr,ytr);
 [mu0,Sigma0] = gp(hyp0,@infGaussLik,meanFn,covFn,likFn,xtr,ytr,xte);
 [mu,Sigma] = gp(hyp,@infGaussLik,meanFn,covFn,likFn,xtr,ytr,xte);
 
+% Separate task: see if we can fit MSMR model to this.
+params.Dsref = fastopt.param('logscale',true);
+params.zeta = fastopt.param();
+spec = fastopt.modelspec(params);
+lb.Dsref = 1e-9;  ub.Dsref = 100;
+lb.zeta  = 0;   ub.zeta  = 1;
+init.Dsref = 1e-5;
+init.zeta = 0.5;
+lb = fastopt.pack(lb,spec);
+ub = fastopt.pack(ub,spec);
+init = fastopt.pack(init,spec);
+electrode = MSMR(fitData.values.pos);
+costFn = msmrDiffusivityRegressionCostFnFactory( ...
+    fitData.values.pos.DsTheta,fitData.values.pos.DsLinear, ...
+    electrode,spec,fitData.arg.TrefdegC ...
+);
+vect = fmincon(costFn,init,[],[],[],[],lb,ub);
+msmrDiffusionModel = fastopt.unpack(vect,spec);
+zeta = msmrDiffusionModel.zeta;
+postOpt_MSMR_DsData = electrode.Ds(msmrDiffusionModel, ...
+     'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
+
 % Separate task: optimize extended-MSMR (e-MSMR) model.
 % params.Dsref = fastopt.param('logscale',true);
 % params.mD = fastopt.param;
@@ -91,21 +113,23 @@ hyp = minimize(hyp0,@gp,-1000,@infGaussLik,meanFn,covFn,likFn,xtr,ytr);
 % thetaSpline = fitData.values.pos.DsTheta;
 % DsSpline = fitData.values.pos.DsSpline;
 
-figure;
-semilogy(xte,10.^mu0); hold on;
-fill([xte;flipud(xte)],10.^[mu0+3*sqrt(Sigma0);flipud(mu0-3*sqrt(Sigma0))],...
-       'k','EdgeColor','k','FaceAlpha',0.1,'EdgeAlpha',0.3);
-semilogy(theta,Ds,'o');
-set(gca,'xdir','reverse');
-xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
-    'Interpreter','latex');
-ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
-title('Solid Diffusivity: Initial GPR Estimate');
-legend('Estimate','3\sigma Bounds','From Linear EIS','Location','best');
-thesisFormat;
-print('-depsc',fullfile(plotdir,'Ds-initial'));
-print('-dpng',fullfile(plotdir,'Ds-initial'));
+% Plot initial GPR estimate.
+% figure;
+% semilogy(xte,10.^mu0); hold on;
+% fill([xte;flipud(xte)],10.^[mu0+3*sqrt(Sigma0);flipud(mu0-3*sqrt(Sigma0))],...
+%        'k','EdgeColor','k','FaceAlpha',0.1,'EdgeAlpha',0.3);
+% semilogy(theta,Ds,'o');
+% set(gca,'xdir','reverse');
+% xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+%     'Interpreter','latex');
+% ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
+% title('Solid Diffusivity: Initial GPR Estimate');
+% legend('Estimate','3\sigma Bounds','From Linear EIS','Location','best');
+% thesisFormat;
+% print('-depsc',fullfile(plotdir,'Ds-initial'));
+% print('-dpng',fullfile(plotdir,'Ds-initial'));
 
+% Plot optimized GPR estimate.
 figure;
 semilogy(xte,10.^mu); hold on;
 fill([xte;flipud(xte)],10.^[mu+3*sqrt(Sigma);flipud(mu-3*sqrt(Sigma))],...
@@ -120,6 +144,21 @@ legend('Estimate','3\sigma Bounds','From Linear EIS','Location','best');
 thesisFormat;
 print('-depsc',fullfile(plotdir,'Ds-optimized'));
 print('-dpng',fullfile(plotdir,'Ds-optimized'));
+
+figure;
+semilogy(postOpt_MSMR_DsData.theta,postOpt_MSMR_DsData.Ds); hold on;
+semilogy(fitData.values.pos.DsTheta,fitData.values.pos.DsLinear,'o');
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
+ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
+title('Solid Diffusivity: Optimized MSMR Estimate');
+legend('Estimate','From Linear EIS','Location','northwest');
+thesisFormat;
+print('-depsc',fullfile(plotdir,'Ds-MSMR-optimized'));
+print('-dpng',fullfile(plotdir,'Ds-MSMR-optimized'));
+
+return;
 
 % figure;
 % semilogy(postOpt_eMSMR_DsData.theta,postOpt_eMSMR_DsData.Ds); hold on;
