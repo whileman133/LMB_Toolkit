@@ -25,7 +25,7 @@ else
 end
 
 useCachedOCP = false;
-if exist('ocpData','var')
+if exist('ocpData','var') && ~isempty(ocpData)
     ocpModel = MSMR(ocpData);
     ctData = ocpModel.RctCachedOCP(params.pos,ocpData);
     dsData = ocpModel.DsCachedOCP(params.pos,ocpData);

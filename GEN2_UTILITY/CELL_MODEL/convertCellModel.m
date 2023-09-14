@@ -149,6 +149,8 @@ for s = 1:length(secNames)
             l.Q = genNumericParam('Q',p.pos.sEps*p.const.A*p.pos.L*F*p.pos.csmax*abs(p.pos.theta100-p.pos.theta0)/3600,0,'A*h');
             l.psi = genNumericParam('psi',psi,0,'V/K');
             l.W = genNumericParam('W',-kD/psi,0,'unitless');
+            l.Vmin = genNumericParam('Vmin',p.const.Vmin,'V');
+            l.Vmax = genNumericParam('Vmax',p.const.Vmax,'V');
             l.Tref = genNumericParam('Tref',p.const.Tref,0,'K');
         case 'Electrode3D'
             as = 3*p.(secName).sEps/p.(secName).Rs;
