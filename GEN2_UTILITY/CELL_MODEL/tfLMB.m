@@ -502,11 +502,7 @@ function data = tfLMB11(p,S,layerReduction)
             b(6) = -mu1p(i)/p.sigmap;
         
             % Solve linear system for coefficients.
-%             lastwarn('');
             c = A\b;
-%             [warnMsg, warnId] = lastwarn;
-%             if ~isempty(warnMsg)
-%             end
         
             % Store result.
             C(i,:) = c(:).';
