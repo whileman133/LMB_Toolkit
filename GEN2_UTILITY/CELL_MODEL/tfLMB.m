@@ -18,7 +18,7 @@ function data = tfLMB(S, model, varargin)
 %   find the second-harmonic response.
 %
 % -- Changelog --
-% 2023.08.31 | Use Warburg-impedance params | Wes H.
+% 2023.08.31 | Use Warburg params | Wes H.
 % 2023.07.02 | Updated for gen2 | Wesley Hileman <whileman@uccs.edu>
 
 parser = inputParser;
