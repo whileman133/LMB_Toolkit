@@ -38,6 +38,11 @@ calc22 = parser.Results.Calc22;
 param = parser.Results.ParameterValues;
 S = S(:);  % force S to be a column vector
 
+if isCellModel(model)
+    % Ensure we're using legacy LPM.
+    model = convertCellModel(model,'LLPM');
+end
+
 if isempty(param)
     param = getParameterValues(model,TdegC,socPct,S,calc11,calc22);
 end

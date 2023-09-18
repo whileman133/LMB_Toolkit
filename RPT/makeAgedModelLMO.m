@@ -15,6 +15,8 @@
 % [3] Dongliang Lu et al 2022 J. Electrochem. Soc. 169 080504
 
 clear; close all; clc;
+addpath('..');
+TB.addpaths;
 
 % Normalized variables that describe state-of-age of the cell.
 lamVect = linspace(0,1,5);    % degree of loss of active material (LAM)

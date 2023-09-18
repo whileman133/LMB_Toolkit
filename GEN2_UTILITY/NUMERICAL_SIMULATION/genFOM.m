@@ -360,7 +360,7 @@ function genData = genFOM(cellModel,varargin)
       switch param
         case {'sigma','kappa'}
           FOM.func(fn_name).set('fununit', 'S');
-        case {'Uocp','dUocp','Uocv'}
+        case {'Uocp','dUocp','Uocv','Vmin','Vmax'}
           FOM.func(fn_name).set('fununit', 'V');
         case {'Rf','Rdl','Rc','Rct'}
           FOM.func(fn_name).set('fununit', 'V/A');
@@ -581,8 +581,8 @@ function genData = genFOM(cellModel,varargin)
             xjss = sprintf('x%dss',j);
             FOM.variable('varsPos1d').set( ...
                 i0j,sprintf( ...
-                    'nojac(%s*nicePow(%s,%s*%s)*nicePow(%s-%s,%s*(1-%s))*nicePow(theta_e,1-%s))', ...
-                    k0j,xjss,omegaj,alphaj,Xj,xjss,omegaj,alphaj,alphaj));
+                    'nojac(%s*nicePow(%s,%s*%s)*nicePow(%s-%s,%s*(1-%s))*nicePow(theta_e,1-%s)/nicePow(%s/2,%s))', ...
+                    k0j,xjss,omegaj,alphaj,Xj,xjss,omegaj,alphaj,alphaj,Xj,omegaj));
     
             % Faradiac current of gallery j (at particle surface).
             ifj = sprintf('if%d',j);

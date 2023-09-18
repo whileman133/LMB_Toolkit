@@ -27,23 +27,21 @@
 % M. Scott, "Battery Management Systems, Volume III, Physics-Based
 % Methods," Artech House, 2021. 
 
-function [phieTF,aux] = tfPhie(s,locs,cellData)
-  % Set up some constants
-  T = cellData.const.T;
-    
-  % Initialize shared variables needed for calculating gains
-  kappad = cellData.DL.kappa;
-  kappap = cellData.pos.kappa;
-  kappas = cellData.sep.kappa;
-  kappaD = cellData.const.kD;
-
-
-  % Initialize outputs
-  s = s(:).';          % force "s" to be a row vector
-  [C,L,J,Z,Rct] = tfCommon(s,cellData); 
-  cellData.common.C = C; cellData.common.L = L; 
-  cellData.common.J = J; cellData.common.Z = Z;
+function [phieTF,aux] = tfPhie(s,locs,cellData) 
+  s = s(:).'; % force "s" to be a row vector
+  [C,L,J,Z,Rct,param] = tfCommon(s,cellData); 
+  cellData.common.C = C; 
+  cellData.common.L = L; 
+  cellData.common.J = J; 
+  cellData.common.Z = Z;
   cellData.common.Rct = Rct;
+  cellData.common.param = param;
+
+  T = cellData.const.T;
+  kappad = param.kappad;
+  kappap = param.kappap;
+  kappas = param.kappas;
+  kappaD = param.kD;
 
   phieTF = zeros(length(locs),length(s));
   aux.hfGain = calcDterm(locs);          % high-frequency gain

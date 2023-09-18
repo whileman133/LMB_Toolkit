@@ -12,7 +12,7 @@ addpath('..');
 TB.addpaths;
 
 % Constants.
-cellFile = fullfile('agemodel','cellLMO_AgeSeries.mat');
+cellFile = fullfile('agemodel','cellLMO_AgeArray.mat');
 TdegC = 25;
 Verbose = true;
 ArgHalfCycle = {0.1,100,5,TdegC,'Verbose',Verbose}; % Iavg,soc0Pct,socfPct[,...]
@@ -20,15 +20,20 @@ ArgEIS = {logspace(-3,5,50),[100 95 50 10 5],TdegC,'I',0.03,'Verbose',Verbose}; 
 cellData = load(cellFile);
 
 % Run simulations in COMSOL at each cell age.
-clear ageSeries;
-for k = length(cellData.models):-1:1
-    if Verbose
-        fprintf(['\nRunning RPT @ age=%.3f\n' ...
-            '====================\n'],cellData.ageVect(k));
-    end
-    ageSeries(k) = simRPT( ...
-        convertCellModel(cellData.models(k),'RLWRM'),ArgHalfCycle,ArgEIS);
-end
+clear ageSeries; 
+for i = size(cellData.ageArray,1):-1:1
+    for j = size(cellData.ageArray,2):-1:1
+        for k = size(cellData.ageArray,3):-1:1
+            p = cellData.ageArray(i,j,k);
+            if Verbose
+                fprintf(['\nRunning RPT @ lam=%.3f lli=%.3f sym=%.3f\n' ...
+                    '====================\n'],p.lam,p.lli,p.rxnsym);
+            end
+            ageSeries(i,j,k) = simRPT( ...
+                convertCellModel(p.model,'WRM'),ArgHalfCycle,ArgEIS);
+        end % for
+    end % for
+end % for
 simData.ageSeries = ageSeries;
 simData.TdegC = TdegC;
 simData.cellData = cellData;

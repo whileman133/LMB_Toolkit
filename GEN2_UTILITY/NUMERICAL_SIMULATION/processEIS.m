@@ -167,7 +167,7 @@ if p.EvalLinTF
     var2tf.Vcell = @getVcellTF;
     var2tf.Zcell = @getZcellTF;
     
-    cellModel = simData.param.cellModel;
+    cellModel = convertCellModel(simData.param.cellModel,'LLPM');
     socPct = simData.param.socPct;
     TdegC = simData.param.TdegC;
     tfFreq = logspace( ...
@@ -213,7 +213,7 @@ end
 function VcellTF = getVcellTF(s,~,cellModel)
     Phise = tfPhiseInt(s,[0 3],cellModel);
     PhieTilde3 = tfPhie(s,3,cellModel);
-    VcellTF = -Phise(1,:) + Phise(2,:) + PhieTilde3 - cellModel.const.Rc;
+    VcellTF = -Phise(1,:) + Phise(2,:) + PhieTilde3;
 end
 
 function ZcellTF = getZcellTF(s,~,cellModel)

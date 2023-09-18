@@ -18,14 +18,14 @@ addpath(fullfile("..","UTILITY"));
 addpath(fullfile("..","XLSX_CELLDEFS"));
 
 % Constants.
-cellFile = 'cellLMO-Lumped-MSMR.xlsx';  % Name of cell parameters spreadsheet.
+cellFile = 'cellLMO-P2DM.xlsx';  % Name of cell parameters spreadsheet.
 freq = logspace(-3,5,50);   % Frequency points to evalulate in the spectrum [Hz].
 socPct = 100:-5:5;          % Cell SOC setpoint(s) [%].
 TdegC = 25;                 % Cell temperature [degC].
 I = 0.03;                   % Amplitude of Iapp sinusoids [A].
 suffix = '';                % String to append to name of output data file.
 % Structure of additional options to pass to simFOM.
-OptSimFOM.FixExchangeCurrent = false;  % more realilistic when varies
+OptSimFOM.FixExchangeCurrent = false;  % more realilistic when i0 varies
 OptSimFOM.VcellOnly = true;
 
 % The following structure specifies which electrochemical variables to

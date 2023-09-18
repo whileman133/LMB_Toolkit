@@ -161,6 +161,7 @@ for s = 1:length(secNames)
             l.nF = genNumericParam('nF',p.(secName).nF,0,'unitless');
             l.tauF = genNumericParam('tauF',p.(secName).tauF,0,'1/s');
             l.nDL = genNumericParam('nDL',p.(secName).nDL,0,'unitless');
+            l.wDL = genNumericParam('wDL',p.(secName).wDL,0,'rad/s');
             l.Rf = genNumericParam('Rf',p.(secName).Rf/as/p.const.A/p.(secName).L,0,'Ohm');
             l.Rdl = genNumericParam('Rdl',p.(secName).Rdl/as/p.const.A/p.(secName).L,0,'Ohm');
             l.Cdl = genNumericParam('Cdl',p.(secName).Cdl*as*p.const.A*p.(secName).L,0,'F');
@@ -175,6 +176,7 @@ for s = 1:length(secNames)
             l.Rf = genNumericParam('Rf',p.(secName).Rf/p.(secName).gamma/p.const.A,0,'Ohm');
             l.Rdl = genNumericParam('Rdl',p.(secName).Rdl/p.(secName).gamma/p.const.A,0,'Ohm');
             l.Cdl = genNumericParam('Cdl',p.(secName).Cdl*p.(secName).gamma*p.const.A,0,'F');
+            l.wDL = genNumericParam('wDL',p.(secName).wDL,0,'rad/s');
         case 'ElectrolyteLayer'
             l.kappa = genNumericParam('kappa',p.const.A*p.const.kappa*(p.(secName).eEps)^p.(secName).brugDeKappa/p.(secName).L,0,'1/Ohm');
             l.tauW = genNumericParam('tauW',p.(secName).eEps*(p.(secName).L)^2/p.const.De/(p.(secName).eEps)^p.(secName).brugDeKappa,0,'s');
@@ -463,6 +465,23 @@ for s = 1:length(secNames)
         end % if
     end % if
 end % for section
+
+% Compute legacy parameters qe, kD from new parameters W, tauW.
+T = LLPM.const.T;
+W = LLPM.function.const.W(1,T);
+psi = LLPM.function.const.psi(1,T);
+kD = -psi*W;
+LLPM.function.(secName).kD = str2func(sprintf('@(x,T)(%g)',kD));
+for s = 1:length(secNames)
+    secName = secNames{s};
+    secMeta = cellModel.metadata.section.(secName);
+    if any(strcmp(secMeta.type,{'Electrode3D','ElectrolyteLayer'}))
+        kappa = LLPM.function.(secName).kappa(1,T);
+        tau = LLPM.function.(secName).tauW(1,T);
+        qe = psi*T*kappa*tau/3600;
+        LLPM.function.(secName).qe = str2func(sprintf('@(x,T)(%g)',qe));
+    end % for
+end % for
 
 % Make cell-level OCP function.
 if isfield(LLPM.function.pos,'Uocp')

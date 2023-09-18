@@ -1,4 +1,4 @@
-% function [C,Lambda,J,Z,Rct] = tfCommon(s,cellData)
+% function [C,Lambda,J,Z,Rct,param] = tfCommon(s,cellData)
 % 
 % Inputs:
 %   s        = vector of 1j*w where w is vector of frequencies at which
@@ -12,6 +12,7 @@
 %   J        = a matrix of the "j" values (e.g., required to evaluate ifdl)
 %   Z        = a matrix of interface impedances
 %   Rct      = a matrix of charge-transfer resistances
+%   param    = flat structure of parameter values required for TF eval.
 %
 % This utility function evaluates terms that are common to implementing
 % most of the cell transfer functions. It is unlikely that this function
@@ -19,9 +20,10 @@
 % TF function routines that require its outputs.
 %
 % -- Changelog --
+% 2023.09.17 | Use tfLMB() to evalulate parameter values | Wes H.
 % 2023.09.14 | Use Warburg parameters | Wesley Hileman <whileman@uccs.edu>
 %
-function [C,Lambda,J,Z,Rct] = tfCommon(s,cellData)
+function [C,Lambda,J,Z,Rct,param] = tfCommon(s,cellData)
     s = s(:).';  % Force row vector! 
     
     % first, check to see if we have already computed the relevant data...
@@ -36,6 +38,7 @@ function [C,Lambda,J,Z,Rct] = tfCommon(s,cellData)
         J = cellData.common.J;
         Z = cellData.common.Z;
         Rct = cellData.common.Rct;
+        param = cellData.common.param;
         return;
     end
     
@@ -58,11 +61,12 @@ function [C,Lambda,J,Z,Rct] = tfCommon(s,cellData)
     sigmap = p.sigmap;
     kappap = p.kappap;
     qep = p.qep;
-    Zsp = p.Zsp;
-    Zdlp = p.Zdlp;
-    Zsep = p.Zsep;
-    Isplitp = 1./(1+(Rctp + Zsp)./Zdlp);
+    Zsp = p.Zsp(:).';    % ! important, need to be row vectors
+    Zdlp = p.Zdlp(:).';
+    Zsep = p.Zsep(:).';
+    Rctp = p.Rctp;
     Rctn = p.Rctn;
+    Isplitp = 1./(1+(Rctp + Zsp)./Zdlp);
     
     % Pre-allocate storage matricies.
     C = zeros(8,length(s));
@@ -110,5 +114,6 @@ function [C,Lambda,J,Z,Rct] = tfCommon(s,cellData)
     
     J = [j1p;j2p;j3p;j4p];
     Z = [Zsep;Zsp;Isplitp]; 
-    Rct = [Rctn Rctp];           
+    Rct = [Rctn Rctp];      
+    param = p;
 end

@@ -54,13 +54,12 @@ function cellParams = evalSetpoint(cellParams,s,soc,T)
     cellParams.neg.(F{k}) = val;
   end
   
-  
   F = fields(cellParams.function.dll);
   SOC = cellParams.function.pos.soc(soc,T);
   for k = 1:length(F)
-          fn = cellParams.function.dll.(F{k});
-          val = fn(SOC,T);
-          cellParams.DL.(F{k}) = val;
+      fn = cellParams.function.dll.(F{k});
+      val = fn(SOC,T);
+      cellParams.dll.(F{k}) = val;
   end
   cellParams.pos.soc = SOC;
   
@@ -69,6 +68,13 @@ function cellParams = evalSetpoint(cellParams,s,soc,T)
     fn = cellParams.function.sep.(F{k});
     val = fn(soc,T);
     cellParams.sep.(F{k}) = val;
+  end
+
+  F = fields(cellParams.function.pkg);
+  for k = 1:length(F)
+    fn = cellParams.function.pkg.(F{k});
+    val = fn(soc,T);
+    cellParams.pkg.(F{k}) = val;
   end
   
   F = fields(cellParams.function.pos);
@@ -91,7 +97,7 @@ function cellParams = evalSetpoint(cellParams,s,soc,T)
   
   if ~isempty(s)
     cellParams.common = []; % 20200629 force "tfCommon" to overwrite 
-    [C,L,J,Z,Rct] = tfCommon(s,cellParams);
+    [C,L,J,Z,Rct,param] = tfCommon(s,cellParams);
     cellParams.common.s = s;
     cellParams.common.C = C;
     cellParams.common.L = L;
@@ -102,6 +108,6 @@ function cellParams = evalSetpoint(cellParams,s,soc,T)
       'c1DL=1;c2DL=2;c1s=3;c2s=4;c1p=5;c2p=6;c3p=7;c4p=8;'...
       'j1p=1;j2p=2;j3p=3;j4p=4;' ...
       'Zsep=1;Zsp=2;Isp=3;'];
-
+    cellParams.common.param = param;
   end
 end
