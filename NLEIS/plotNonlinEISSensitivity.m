@@ -1,49 +1,54 @@
 % plotNonlinEISSensitivity.m
 
 clear; close all; clc;
-addpath(fullfile("..","TFS"));
-addpath(fullfile("..","UTILITY"));
-addpath(fullfile("..","XLSX_CELLDEFS"));
-addpath(fullfile("..","MAT_CELLDEFS"));
-modelname = 'cellLMO';
-load([modelname '.mat']);
+addpath(fullfile('..'));
+TB.addpaths;
+modelName = 'cellLMO-P2DM';
+p2dm = loadCellModel(modelName);
+wrm = convertCellModel(p2dm,'WRM');
 
 ff = logspace(-3,5,100);
-socPct = 50;
+socPct = 5;
 TdegC = 25;
+lumped = getCellParams(wrm,'TdegC',25);
+
+lumped.pos.k0 = lumped.pos.k0*0.2;
 sensStudy.defaults = lumped;
-sensStudy.singl.values.pos.alpha = ...
-    [0.2 0.8; 0.4 0.8; 0.6 0.8; 0.8 0.8; 0.8 0.6; 0.8 0.4; 0.8 0.2];
-sensStudy.singl.multiplier.pos.k0 = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.pos.Dsref = [1/5; 1/2; 2; 5];
-sensStudy.singl.values.pos.nF = (0.5:0.1:1).';
-sensStudy.singl.values.pos.nDL = (0.5:0.1:1).';
-sensStudy.singl.multiplier.pos.sigma = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.pos.kappa = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.sep.kappa = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.DL.kappa = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.pos.qe = [0.1; 1/2; 2; 10];
-sensStudy.singl.multiplier.sep.qe = [0.1; 1/2; 2; 10];
-sensStudy.singl.multiplier.DL.qe = [0.1; 1/2; 2; 10];
-sensStudy.singl.values.neg.alpha = (0.2:0.2:0.8).';
-sensStudy.singl.multiplier.neg.k0 = [1/5; 1/2; 2; 5];
-sensStudy.singl.values.neg.nDL = (0.5:0.1:1).';
-sensStudy.singl.multiplier.const.psi = [1/5; 1/2; 2; 5];
-sensStudy.singl.multiplier.const.kD = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikD.const.psi = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikD.const.kD = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.const.psi = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.const.kD = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.pos.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.sep.qe = [1/5; 1/2; 2; 5];
-sensStudy.joint.multiplier.psikDqe.DL.qe = [1/5; 1/2; 2; 5];
+% sensStudy.singl.values.pos.alpha = ...
+%     [0.2 0.8; 0.4 0.8; 0.6 0.8; 0.8 0.8; 0.8 0.6; 0.8 0.4; 0.8 0.2];
+%sensStudy.singl.values.pos.d2Uocp = [-10; -5; -1; 0; 1; 5; 10];
+sensStudy.joint.values.Rct.pos.Rct = 0.0249.*[1/5; 1/2; 1; 2; 5];
+sensStudy.joint.values.Rct.pos.Rct2inv = -7./[1/5; 1/2; 1; 2; 5];
+% sensStudy.singl.multiplier.pos.k0 = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.pos.Dsref = [1/5; 1/2; 2; 5];
+% sensStudy.singl.values.pos.nF = (0.5:0.1:1).';
+% sensStudy.singl.values.pos.nDL = (0.5:0.1:1).';
+% sensStudy.singl.multiplier.pos.sigma = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.pos.kappa = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.sep.kappa = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.DL.kappa = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.pos.qe = [0.1; 1/2; 2; 10];
+% sensStudy.singl.multiplier.sep.qe = [0.1; 1/2; 2; 10];
+% sensStudy.singl.multiplier.DL.qe = [0.1; 1/2; 2; 10];
+% sensStudy.singl.values.neg.alpha = (0.2:0.2:0.8).';
+% sensStudy.singl.multiplier.neg.k0 = [1/5; 1/2; 2; 5];
+% sensStudy.singl.values.neg.nDL = (0.5:0.1:1).';
+% sensStudy.singl.multiplier.const.psi = [1/5; 1/2; 2; 5];
+% sensStudy.singl.multiplier.const.kD = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psikD.const.psi = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psikD.const.kD = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psikDqe.const.psi = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psikDqe.const.kD = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psikDqe.pos.qe = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psikDqe.sep.qe = [1/5; 1/2; 2; 5];
+% sensStudy.joint.multiplier.psikDqe.DL.qe = [1/5; 1/2; 2; 5];
 sensData = fastopt.runSensitivityStudy( ...
     sensStudy,@(params)calcZ(params,ff,socPct,TdegC));
 
 % Make plot directory.
 plotdir = fullfile( ...
     'plots', ...
-    sprintf('%s-SENS-H2-%dpct-%ddegC',modelname,socPct,TdegC));
+    sprintf('%s-SENS-H2-%dpct-%ddegC',modelName,socPct,TdegC));
 if ~isfolder(plotdir)
     mkdir(plotdir);
 end
@@ -58,18 +63,18 @@ for data = sensData.results
         plot(real(Z),-imag(Z));
     else
         colororder(spring(size(Z,2)));
-        plot(real(Z),-imag(Z))
+        plot(real(Z),-imag(Z));
     end
-    xlabel(['$\tilde{v}_\mathrm{cell,2,2}''$ ' ...
+    xlabel(['$\tilde{Z}_\mathrm{2,2}''$ ' ...
         '[$\mathrm{V}\,\mathrm{A}^{-2}$]'],'Interpreter','latex');
-    ylabel(['-$\tilde{v}_\mathrm{cell,2,2}''''$ ' ...
+    ylabel(['-$\tilde{Z}_\mathrm{2,2}''''$ ' ...
         '[$\mathrm{V}\,\mathrm{A}^{-2}$]'],'Interpreter','latex');
     if strcmp(data.analysisType,'joint')
         % Joint paramname too long to include on one line, use abbrev. title!
-        title(['$\tilde{v}_\mathrm{cell,2,2}$ ' ...
+        title(['$\tilde{Z}_\mathrm{2,2}$ ' ...
             'to ' data.paramname],'Interpreter','latex');
     else
-        title(['Sensitivity: $\tilde{v}_\mathrm{cell,2,2}$ ' ...
+        title(['Sensitivity: $\tilde{Z}_\mathrm{2,2}$ ' ...
             'to ' data.paramname ' (Nyquist)'],'Interpreter','latex');
     end
     if strcmp(data.perturbType,'multiplier')

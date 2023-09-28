@@ -15,7 +15,7 @@ TB.addpaths;
 cellFile = fullfile('agemodel','cellLMO_AgeArray.mat');
 TdegC = 25;
 Verbose = true;
-ArgHalfCycle = {0.1,100,5,TdegC,'Verbose',Verbose}; % Iavg,soc0Pct,socfPct[,...]
+ArgHalfCycle = {0.1,100,20,TdegC,'Verbose',Verbose}; % Iavg,soc0Pct,socfPct[,...]
 ArgEIS = {logspace(-3,5,50),[100 95 50 10 5],TdegC,'I',0.03,'Verbose',Verbose}; % freq,socPct[,...]
 cellData = load(cellFile);
 
@@ -23,15 +23,12 @@ cellData = load(cellFile);
 clear ageSeries; 
 for i = size(cellData.ageArray,1):-1:1
     for j = size(cellData.ageArray,2):-1:1
-        for k = size(cellData.ageArray,3):-1:1
-            p = cellData.ageArray(i,j,k);
-            if Verbose
-                fprintf(['\nRunning RPT @ lam=%.3f lli=%.3f sym=%.3f\n' ...
-                    '====================\n'],p.lam,p.lli,p.rxnsym);
-            end
-            ageSeries(i,j,k) = simRPT( ...
-                convertCellModel(p.model,'WRM'),ArgHalfCycle,ArgEIS);
-        end % for
+        p = cellData.ageArray(i,j);
+        if Verbose
+            fprintf(['\nRunning RPT @ lam=%.3f lli=%.3f\n' ...
+                '====================\n'],p.lam,p.lli);
+        end
+        ageSeries(i,j) = simRPT(p.model,ArgHalfCycle,ArgEIS);
     end % for
 end % for
 simData.ageSeries = ageSeries;

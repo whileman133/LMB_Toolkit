@@ -404,8 +404,25 @@ classdef MSMR < handle
                     % No lithiation scaling.
                     zeta = 1;
                 end
+                if isfield(params,'mD')
+                    % Optional multiplicity parameter scales Ds on a log
+                    % scale (raise to mD power).
+                    mD = params.mD;
+                    if isa(mD,'function_handle'), mD = mD(0,T); end
+                else
+                    % No multiplicity.
+                    mD = 1;
+                end
+                if isfield(params,'lm')
+                    % Optional linear multiplier for dUocp.
+                    lm = params.lm;
+                    if isa(lm,'function_handle'), lm = lm(0,T); end
+                else
+                    % No multiplicity.
+                    lm = 1;
+                end
                 f = obj.F/obj.R/T;
-                Ds = -Dsref.*f.*zeta.*ocpData.theta.*(1-zeta.*ocpData.theta).*zeta.*ocpData.dUocp;
+                Ds = Dsref.*(-f.*zeta.*ocpData.theta.*(1-zeta.*ocpData.theta).*zeta.*ocpData.dUocp.*lm).^mD;
             elseif all(isfield(params,{'DsSpline','DsTheta'}))
                 % Cubic spline diffusivity.
                 theta = params.DsTheta;

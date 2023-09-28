@@ -8,9 +8,9 @@
 
 clear; close all; clc;
 addpath('..');
-ocp.load('FinalFit-SionFresh_0C01','built');
+ocp.load('SionFresh_0C01','built');
 
-TdegC = 55;
+TdegC = 40;
 test = builtstudy.getTest(TdegC);
 
 figure;

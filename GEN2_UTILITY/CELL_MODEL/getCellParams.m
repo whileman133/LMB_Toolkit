@@ -212,7 +212,7 @@ function [outStruct, totalParamCount] = getGen2Params(arg,paramsStruct)
 
 % Fetch constants needed for Arrhenius temperature correction.
 R = TB.const.R;
-Tref = arg.cellModel.parameters.const.Tref;
+Tref = arg.cellModel.parameters.const.Tref.Value.value;
 T = arg.TdegC+273.15;
 totalParamCount = 0;
 

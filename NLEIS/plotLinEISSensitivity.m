@@ -11,12 +11,12 @@ ff = logspace(-3,5,100);
 socPct = 5;
 TdegC = 25;
 lumped = getCellParams(wrm,'TdegC',25);
-lumped.const.W = 10;
-lumped.pos.kappa = 10000;
+% lumped.const.W = 10;
+% lumped.pos.kappa = 10000;
 sensStudy.defaults = lumped;
 % sensStudy.singl.values.pos.alpha = ...
 %     [0.2 0.8; 0.4 0.8; 0.6 0.8; 0.8 0.8; 0.8 0.6; 0.8 0.4; 0.8 0.2];
-% sensStudy.singl.multiplier.pos.k0 = [1/5; 1/2; 2; 5];
+sensStudy.singl.multiplier.pos.k0 = [1/5; 1/2; 2; 5];
 % sensStudy.singl.multiplier.pos.Dsref = [1/5; 1/2; 2; 5];
 % sensStudy.singl.values.pos.nF = (0.5:0.1:1).';
 % sensStudy.singl.values.pos.nDL = (0.5:0.1:1).';

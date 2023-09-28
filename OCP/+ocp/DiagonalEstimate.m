@@ -38,10 +38,10 @@ classdef DiagonalEstimate < handle
             %   computation (histogram method.)
 
             p = inputParser;
-            p.addOptional('minV',[]);
+            p.addOptional('minV',[]);  % restrict voltage range
             p.addOptional('maxV',[]);
             p.addOptional('maxLagV',0.1);
-            p.addOptional('minZ',[],@(x)0<=x&&x<=1);
+            p.addOptional('minZ',[],@(x)0<=x&&x<=1); % restrict soc range
             p.addOptional('maxZ',[],@(x)0<=x&&x<=1);
             p.addOptional('maxLagZ',0.1,@(x)0<=x&&x<=1);
             p.parse(varargin{:});

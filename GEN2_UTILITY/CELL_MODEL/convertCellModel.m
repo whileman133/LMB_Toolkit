@@ -38,6 +38,7 @@ function outModel = convertCellModel(inModel,outModelType,varargin)
 % models cannot be up-converted due to irreversible parameter lumping.
 %
 % -- Changelog --
+% 2023.09.28 | Scaling for lumped MSMR constants k0 | Wes H.
 % 2023.07.24 | Add diffusion/kinetics model conversion | Wesley Hileman
 % 2023.06.22 | Created | Wesley Hileman <whileman@uccs.edu>
 
@@ -168,7 +169,13 @@ for s = 1:length(secNames)
             l.alpha = genNumericParam('alpha',p.(secName).alpha,0,'unitless');
             l.theta0 = genNumericParam('theta0',p.(secName).theta0,0,'unitless');
             l.theta100 = genNumericParam('theta100',p.(secName).theta100,0,'unitless');
-            l.k0 = genNumericParam('k0',p.const.A*p.(secName).L*as*p.(secName).k0,0,'A');
+            % Rate constant(s).
+            k0 = p.const.A*p.(secName).L*as*p.(secName).k0;
+            if all(isfield(p.(secName),{'X','omega'}))
+                % MSMR model; normalize k0.
+                k0 = k0.*(p.(secName).X/2).^(p.(secName).omega);
+            end
+            l.k0 = genNumericParam('k0',k0,0,'A');
         case 'Electrode2D'
             l.k0 = genNumericParam('k0',p.(secName).gamma*p.const.A*F*p.(secName).k0*(p.(secName).cs0)^p.(secName).alpha*p.const.ce0^(1-p.(secName).alpha),0,'A');
             l.alpha = genNumericParam('alpha',p.(secName).alpha,0,'unitless');

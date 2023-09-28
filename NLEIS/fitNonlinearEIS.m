@@ -107,10 +107,10 @@ modelspec = fastopt.modelspec(params, ...
 
 
 % Define optimization bounds ----------------------------------------------
-lb.neg.alpha = 0;
-ub.neg.alpha = 1;
-lb.pos.alphaLinear = zeros(length(v.pos.k0Theta),1); 
-ub.pos.alphaLinear = ones(length(v.pos.k0Theta),1);
+lb.neg.alpha = 0.1;
+ub.neg.alpha = 0.9;
+lb.pos.alphaLinear = 0.1*ones(length(v.pos.k0Theta),1); 
+ub.pos.alphaLinear = 0.9*ones(length(v.pos.k0Theta),1);
 
 init.neg.alpha = 0.5;
 init.pos.alphaLinear = 0.5*ones(length(v.pos.k0Theta),1);
@@ -139,8 +139,12 @@ data = fastopt.uiparticleswarm(@cost,modelspec,init,lb,ub, ...
     'UseParallel',arg.UseParallel);
 
 % Collect output data.
-data.model = setCellParam(initialModel,data.values);
-data.Zmodel = getH2Impedance(data.values,freqLab,socPctTrue,TdegC,ocpData);
+%data.model = setCellParam(initialModel,data.values);
+models = fastopt.splittemps(data.values,modelspec);
+for m = multiplicity:-1:1
+    data.Zmodel{m} = getH2Impedance( ...
+        models(m),freqLab{m},socPctTrue{m},TdegC(m),ocpData{m});
+end
 data.Zlab = Zlab;
 data.freq = freqLab;
 data.socPctTrue = socPctTrue;

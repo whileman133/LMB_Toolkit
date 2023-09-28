@@ -62,7 +62,8 @@ parser.parse(varargin{:});
 p = parser.Results;  % structure of validated params
 
 [Q,theta0,theta100] = getCellParams( ...
-    p.cellModel,'const.Q pos.theta0 pos.theta100','Output','list');
+    convertCellModel(p.cellModel,'LLPM'), ...
+    'const.Q pos.theta0 pos.theta100','Output','list');
 
 % Compute cell capacity to discharge (will be negative for charge).
 Qdis = Q*(p.soc0Pct-p.socfPct)/100;   % capacity to discharge [Ah] 

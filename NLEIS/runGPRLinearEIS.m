@@ -10,7 +10,7 @@ clear; close all; clc;
 addpath('..');
 TB.addpaths;
 addpath(genpath('gpml'));
-filename = 'EIS-16degC26degC-Ds=linear-k0=linear';
+filename = '202309_EIS-16degC26degC-Ds=linear-k0=linear';
 fitData = load(fullfile('labfitdata',[filename '.mat']));
 plotdir = fullfile('plots','linEIS-GPR');
 if ~isfolder(plotdir)
@@ -78,8 +78,39 @@ costFn = msmrDiffusivityRegressionCostFnFactory( ...
 vect = fmincon(costFn,init,[],[],[],[],lb,ub);
 msmrDiffusionModel = fastopt.unpack(vect,spec);
 zeta = msmrDiffusionModel.zeta;
+Dsref1 = msmrDiffusionModel;
 postOpt_MSMR_DsData = electrode.Ds(msmrDiffusionModel, ...
      'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
+
+% Separate task: see if we can fit (extended) MSMR model to this.
+clear params spec lb ub init electrode;
+params.Dsref = fastopt.param('logscale',true);
+params.theta0 = fastopt.param('fix',fitData.values.pos.theta0);
+params.theta100 = fastopt.param('fix',fitData.values.pos.theta100);
+params.mD = fastopt.param();
+spec = fastopt.modelspec(params);
+lb.Dsref = 1e-9;  ub.Dsref = 100;
+lb.theta0 = 0.9;  ub.theta0 = 1;
+lb.theta100 = 0;  ub.theta100 = 0.4;
+lb.mD = 1;        ub.mD = 10;
+init.Dsref = 1e-5;
+init.theta0 = fitData.values.pos.theta0;
+init.theta100 = fitData.values.pos.theta100;
+init.mD = 2.5;
+lb = fastopt.pack(lb,spec);
+ub = fastopt.pack(ub,spec);
+init = fastopt.pack(init,spec);
+electrode = MSMR(fitData.values.pos);
+costFn = msmrDiffusivityRegressionCostFnFactoryVariableTheta( ...
+    fitData.values.pos.DsTheta,fitData.values.pos.DsLinear, ...
+    electrode,spec,fitData.arg.TrefdegC ...
+);
+vect = fmincon(costFn,init,[],[],[],[],lb,ub);
+msmrDiffusionModel = fastopt.unpack(vect,spec);
+postOpt_eMSMR_DsData = electrode.Ds(msmrDiffusionModel, ...
+     'thetamin',0.01,'thetamax',0.99,'TdegC',fitData.arg.TrefdegC);
+soc = (fitData.values.pos.DsTheta-fitData.values.pos.theta0)/(fitData.values.pos.theta100-fitData.values.pos.theta0);
+theta_eMSMR = msmrDiffusionModel.theta0 + soc.*(msmrDiffusionModel.theta100-msmrDiffusionModel.theta0);
 
 % Separate task: optimize extended-MSMR (e-MSMR) model.
 % params.Dsref = fastopt.param('logscale',true);
@@ -146,17 +177,34 @@ print('-depsc',fullfile(plotdir,'Ds-optimized'));
 print('-dpng',fullfile(plotdir,'Ds-optimized'));
 
 figure;
-semilogy(postOpt_MSMR_DsData.theta,postOpt_MSMR_DsData.Ds); hold on;
-semilogy(fitData.values.pos.DsTheta,fitData.values.pos.DsLinear,'o');
+semilogy(xte,10.^mu,'k:'); hold on;
+fill([xte;flipud(xte)],10.^[mu+3*sqrt(Sigma);flipud(mu-3*sqrt(Sigma))],...
+       'k','EdgeColor','k','FaceAlpha',0.1,'EdgeAlpha',0.3);
+semilogy(postOpt_MSMR_DsData.theta,postOpt_MSMR_DsData.Ds);
 set(gca,'xdir','reverse');
 xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
     'Interpreter','latex');
 ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
 title('Solid Diffusivity: Optimized MSMR Estimate');
-legend('Estimate','From Linear EIS','Location','northwest');
+legend('GPR Estimate','3\sigma Bounds','MSMR Estimate','Location','northwest');
 thesisFormat;
 print('-depsc',fullfile(plotdir,'Ds-MSMR-optimized'));
 print('-dpng',fullfile(plotdir,'Ds-MSMR-optimized'));
+
+figure;
+semilogy(xte,10.^mu,'k:'); hold on;
+fill([xte;flipud(xte)],10.^[mu+3*sqrt(Sigma);flipud(mu-3*sqrt(Sigma))],...
+       'k','EdgeColor','k','FaceAlpha',0.1,'EdgeAlpha',0.3);
+semilogy(postOpt_eMSMR_DsData.theta,postOpt_eMSMR_DsData.Ds);
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
+ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
+title('Solid Diffusivity: Optimized e-MSMR Estimate');
+legend('GPR Estimate','3\sigma Bounds','MSMR Estimate','Location','northwest');
+thesisFormat;
+print('-depsc',fullfile(plotdir,'Ds-eMSMR-optimized'));
+print('-dpng',fullfile(plotdir,'Ds-eMSMR-optimized'));
 
 return;
 
@@ -262,6 +310,22 @@ function fn = msmrDiffusivityRegressionCostFnFactory( ...
 
     function J = cost(vect)
         model = fastopt.unpack(vect,modelspec);
+        dsData = electrode.DsCachedOCP(model,ocpData);
+        J = sum((log(DsLab(:))-log(dsData.Ds(:))).^2);
+    end % cost()
+end % costFnFactory()
+
+function fn = msmrDiffusivityRegressionCostFnFactoryVariableTheta( ...
+    theta,DsLab,electrode,modelspec,TdegC ...
+)
+    soc = (theta-electrode.zmax)/(electrode.zmin-electrode.zmax);
+    fn = @cost;
+
+    function J = cost(vect)
+        model = fastopt.unpack(vect,modelspec);
+        t = model.theta0 + soc*(model.theta100-model.theta0);
+        model.lm = (model.theta100-model.theta0)/(electrode.zmin-electrode.zmax);
+        ocpData = electrode.ocp('theta',t,'TdegC',TdegC);
         dsData = electrode.DsCachedOCP(model,ocpData);
         J = sum((log(DsLab(:))-log(dsData.Ds(:))).^2);
     end % cost()

@@ -3,6 +3,7 @@
 % Regress linear EIS model to spectra collected in the laboratory.
 %
 % -- Changelog --
+% 2023.09.23 | Fix SOC computation error | Wes H.
 % 2023.06.29 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
@@ -19,6 +20,7 @@ initialCellModelName = 'cellSionGuess-P2DM';    % model w/ initial param values
 solidDiffusionModel = 'linear';  % selects solid diffusion model for porous electrode
 kineticsModel = 'linear';        % selects kinetics model for porous electrode
 useParallel = false;             % enable/disable parallel processing
+prefix = '202309_';
 
 % Load lab impedance spectra.
 clear spectra;
@@ -46,12 +48,12 @@ fitData = fitLinearEIS(spectra,ocpfit,initialModel, ...
 
 % Save results to disk.
 tempstr = sprintf('%.0fdegC',[spectra.TdegC]);
-fileName = fullfile( ...
-    'labfitdata', ...
-    sprintf('EIS-%s-Ds=%s-k0=%s', ...
-            tempstr,solidDiffusionModel,kineticsModel) ...
-);
-save(fileName,'-struct','fitData');
+fileName = sprintf( ...
+    'EIS-%s-Ds=%s-k0=%s',tempstr,solidDiffusionModel,kineticsModel);
+if ~isempty(prefix)
+    fileName = [prefix fileName];
+end
+save(fullfile('labfitdata',fileName),'-struct','fitData');
 
 % Residual weighting function. Returns relative weight corresponding to the
 % specified frequency, SOC setpoint, and temperature.

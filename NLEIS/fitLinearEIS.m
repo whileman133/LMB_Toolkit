@@ -28,6 +28,7 @@ function data = fitLinearEIS(labSpectra,labOCPFit,initialModel,varargin)
 %   .arg         Structure of arguments supplied to the function.
 %
 % -- Changelog --
+% 2023.09.19 | Fix error computing theta, wrong theta min/max | Wes H.
 % 2023.08.27 | Store separate IS for Ds/i0 based on distance | Wes H.
 % 2023.08.10 | Add option to save intermediate solutions (IS) | Wes H.
 % 2023.07.26 | Update for multiple temperatures | Wes H.
@@ -64,8 +65,12 @@ F = TB.const.F;  % Faraday's constant [C/mol]
 % Fetch OCP parameters fit to laboratory data.
 ocpmodel = MSMR(labOCPFit.MSMR);
 ocptest = labOCPFit.ocptest;
-zmin = ocpmodel.zmin;
-zmax = ocpmodel.zmax;
+% !!! Important: We need to compute theta min/max from the voltage limits of 
+% the cell, NOT the values in labOCPFit.MSMR, as our lab data may have been
+% augmented with additional data collected over wider lithiation range.
+ocpTmp = ocpmodel.ocp('voltage',[ocptest.vmin ocptest.vmax]);
+thetamin = min(ocpTmp.theta);
+thetamax = max(ocpTmp.theta);
 
 % Collect linear impedance measured in the laboratory.
 freqLab = cell(multiplicity,1);
@@ -84,7 +89,7 @@ ocpData = cell(multiplicity,1);
 for m = 1:multiplicity
     QdisAhCum = cumsum(arg.labSpectra(m).QdisAh);
     socPctTrue{m} = 100*(1-QdisAhCum/ocptest.QAh);
-    thetaTrue{m} = zmax + (socPctTrue{m}/100)*(zmin-zmax);
+    thetaTrue{m} = thetamax + (socPctTrue{m}/100)*(thetamin-thetamax);
     ocpData{m} = ocpmodel.ocp('theta',thetaTrue{m},'TdegC',TdegC(m));
 end
 nsocavg = round(mean(cellfun(@length,socPctTrue)));
@@ -98,8 +103,8 @@ p = struct;
 p.pos.U0 = ocpmodel.Uj0;
 p.pos.X = ocpmodel.Xj;
 p.pos.omega = ocpmodel.Wj;
-p.pos.theta0 = ocpmodel.zmax;
-p.pos.theta100 = ocpmodel.zmin;
+p.pos.theta0 = thetamax;
+p.pos.theta100 = thetamin;
 initialModel = setCellParam(initialModel,p);
 
 % Convert cell model to reduced-layer Warburg-resistance model.
@@ -124,8 +129,8 @@ initial = getCellParams(initialModel,'TdegC',arg.TrefdegC);
 % Build model -------------------------------------------------------------
 % Known parameters.
 params.const.Q = fastopt.param('fix',ocptest.QAh);
-params.pos.theta0 = fastopt.param('fix',ocpmodel.zmax);
-params.pos.theta100 = fastopt.param('fix',ocpmodel.zmin);
+params.pos.theta0 = fastopt.param('fix',thetamax);
+params.pos.theta100 = fastopt.param('fix',thetamin);
 params.pos.X = fastopt.param('fix',ocpmodel.Xj);
 params.pos.U0 = fastopt.param('fix',ocpmodel.Uj0);
 params.pos.omega = fastopt.param('fix',ocpmodel.Wj);

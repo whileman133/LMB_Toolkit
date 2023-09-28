@@ -175,11 +175,31 @@ if isParam('pos','X') && isParam('pos','U0') && isParam('pos','omega')
         dUocpVect = dataCt.dUocp;
         thetaVect = dataCt.theta;
         Rct2InvVect = dataCt.Rct2Inv;
-        p.Uocpp = interp1(thetaVect,UocpVect,p.thetap,'linear','extrap');
-        p.dUocpp = interp1(thetaVect,dUocpVect,p.thetap,'linear','extrap');
-        p.Rctp = interp1(thetaVect,RctVect,p.thetap,'linear','extrap');
-        p.d2Uocpp = interp1(thetaVect,dataCt.d2Uocp,p.thetap,'linear','extrap');
-        p.Rct2invp = interp1(thetaVect,Rct2InvVect,p.thetap,'linear','extrap');
+        if ~isParam('pos','Uocp')
+            p.Uocpp = interp1(thetaVect,UocpVect,p.thetap,'linear','extrap');
+        else
+            p.Uocpp = getParam('pos','Uocp');
+        end
+        if ~isParam('pos','dUocp')
+            p.dUocpp = interp1(thetaVect,dUocpVect,p.thetap,'linear','extrap');
+        else
+            p.dUocpp = getParam('pos','dUocp');
+        end
+        if ~isParam('pos','Rct')
+            p.Rctp = interp1(thetaVect,RctVect,p.thetap,'linear','extrap');
+        else
+            p.Rctp = getParam('pos','Rct');
+        end
+        if ~isParam('pos','d2Uocp')
+            p.d2Uocpp = interp1(thetaVect,dataCt.d2Uocp,p.thetap,'linear','extrap');
+        else
+            p.d2Uocpp = getParam('pos','d2Uocp');
+        end
+        if ~isParam('pos','Rct2inv')
+            p.Rct2invp = interp1(thetaVect,Rct2InvVect,p.thetap,'linear','extrap');
+        else
+            p.Rct2invp = getParam('pos','Rct2inv');
+        end
     end
 elseif isParam('pos','Uocp') && isParam('pos','dUocp')
     % Non-MSMR model.

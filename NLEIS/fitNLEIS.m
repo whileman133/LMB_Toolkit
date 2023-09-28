@@ -3,6 +3,7 @@
 % Regress nonlinear EIS model to spectra collected in the laboratory.
 %
 % -- Changelog --
+% 2023.09.23 | Fix SOC computation error | Wes H.
 % 2023.08.31 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
@@ -10,7 +11,7 @@ addpath('..');
 TB.addpaths();
 
 % Constants.
-linearFitName = 'EIS-16degC26degC-Ds=linear-k0=linear';
+linearFitName = '202309_EIS-16degC26degC-Ds=linear-k0=linear';
 eisExpirementNames = {
     '(NL)EIS-SionCell395534_15degC'  % directories w/ raw EIS data
     '(NL)EIS-SionCell395534_25degC'
@@ -45,5 +46,9 @@ function w = getWeight(freq,socPct,TdegC)
     w = 1;
     if freq<=10e-3
         w = 2; % compensate for lower point density below 10mHz
+    end
+    if freq>10
+        w = 0; % examination of phase indicates mostly noise above 10Hz;
+               % do not include these data-points in model regression
     end
 end
