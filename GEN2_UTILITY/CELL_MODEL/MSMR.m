@@ -215,9 +215,13 @@ classdef MSMR < handle
                 vmin = obj.lith2ocp(thetamax,'TdegC',TdegC);
                 Uocp = linspace(vmin, vmax, npoints);
             elseif ~isempty(theta)
-                vmax = obj.lith2ocp(min(theta),'TdegC',TdegC);
-                vmin = obj.lith2ocp(max(theta),'TdegC',TdegC);
-                Uocp = linspace(vmin, vmax, npoints);
+                if length(theta)>1
+                    vmax = obj.lith2ocp(min(theta),'TdegC',TdegC);
+                    vmin = obj.lith2ocp(max(theta),'TdegC',TdegC);
+                    Uocp = linspace(vmin,vmax,npoints);
+                else
+                    Uocp = obj.lith2ocp(theta,'TdegC',TdegC);
+                end
             else
                 vmax = obj.lith2ocp(obj.zmin,'TdegC',TdegC);
                 vmin = obj.lith2ocp(obj.zmax,'TdegC',TdegC);
@@ -237,7 +241,7 @@ classdef MSMR < handle
                      *f^2;
 
             % Interpolate over requested stiochiometry vector (if supplied).
-            if ~isempty(theta)
+            if length(theta)>1
                 Unew = interp1(Z,Uocp,theta,'linear','extrap');
                 dUdzNew = interp1(Z,dUocp,theta,'linear','extrap');
                 d2UocpNew = interp1(Z,d2Uocp,theta,'linear','extrap');

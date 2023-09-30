@@ -319,7 +319,11 @@ function ROMout = outBlend(simData,ROM,varargin)
     F         = cellData.const.F;
     R         = cellData.const.R;    
     Q         = cellData.function.const.Q(); % cell capacity in Ah
-    Rc        = cellData.function.const.Rc();
+    if isfield(cellData.function.const,'Rc')
+        Rc    = cellData.function.const.Rc();
+    else
+        Rc    = 0;
+    end
     theta0p   = cellData.function.pos.theta0();
     theta100p = cellData.function.pos.theta100();
     
@@ -476,8 +480,15 @@ function ROMout = outBlend(simData,ROM,varargin)
 
     % Compute overpotential at current-collectors via asinh method (eta)
     k0p = cellData.function.pos.k0(ROMout.posSOC(k+1),T);
-    i0p = k0p*sqrt(ROMout.Thetae(k+1,end)*...
-               (1-ROMout.posThetass3(k+1))*ROMout.posThetass3(k+1));
+    if length(k0p)>1
+        % MSMR kinetics.
+        electrode = MSMR(cellData.function.pos);
+        ctData = electrode.Rct(cellData.function.pos,'theta',SOCpAvg);
+        i0p = ctData.i0;
+    else
+        i0p = k0p*sqrt(ROMout.Thetae(k+1,end)*...
+                   (1-ROMout.posThetass3(k+1))*ROMout.posThetass3(k+1));
+    end
     
     ROMout.posEta3(k+1) = 2*R*T/F*asinh(ROMout.posIf3(k+1)/(2*i0p));
 
