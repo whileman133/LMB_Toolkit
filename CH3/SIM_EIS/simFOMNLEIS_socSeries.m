@@ -21,7 +21,7 @@ TB.addpaths;
 % Constants.
 cellFile = 'cellLMO-P2DM.xlsx';  % Name of cell parameters spreadsheet.
 freq = logspace(-3,5,50);   % Frequency points to evalulate in the spectrum [Hz].
-socPct = 100:-5:5;          % Cell SOC setpoint(s) [%].
+socPct = [95 50 5];         % Cell SOC setpoint(s) [%].
 TdegC = 25;                 % Cell temperature [degC].
 I = 0.03;                   % Amplitude of Iapp sinusoids [A].
 suffix = '';                % String to append to name of output data file.

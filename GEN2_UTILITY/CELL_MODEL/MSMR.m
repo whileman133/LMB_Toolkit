@@ -271,6 +271,9 @@ classdef MSMR < handle
             ocpData.X = obj.Xj;
             ocpData.thetamin = obj.zmin;
             ocpData.thetamax = obj.zmax;
+            ocpData.R = obj.R;
+            ocpData.F = obj.F;
+            ocpData.T = TdegC+273.15;
             ocpData.origin__ = 'MSMR.ocp';
         end
 

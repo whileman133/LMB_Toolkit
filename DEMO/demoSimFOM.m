@@ -26,7 +26,7 @@ addpath('..');
 TB.addpaths;
 
 % Constants.
-cellFile = 'cellSionGuess-P2DM.xlsx';  % Name of cell parameters spreadsheet.
+cellFile = 'cellLMO-P2DM.xlsx';  % Name of cell parameters spreadsheet.
 
 
 % 1. Working with cell models. --------------------------------------------
@@ -35,11 +35,6 @@ cellFile = 'cellSionGuess-P2DM.xlsx';  % Name of cell parameters spreadsheet.
 p2dm = loadCellModel(cellFile);  % pseudo two-dimensional model
 % Convert standard cell model to lumped-parameter Warburg-resistance model.
 wrm = convertCellModel(p2dm,'WRM');
-
-% `cellModel.function` is now a structure containing the parameters of the cell
-% as functions of lithiation (x) and absolute temperature (T). The
-% structure has fields for each region of the cell (neg,dll,sep,pos) as well
-% as constants (const).
 
 % Evaluate some cell parameters at 25degC...
 % Use `help getCellParams.m` for more information.
@@ -73,6 +68,15 @@ genData.FOM.save('demoFOM.mph');
 
 % Using loadInput...
 inputUDDS = loadInput('inputUDDS.xlsx');
+% Rescale avg dis/charge current to 1C.
+Iavg = mean(abs(inputUDDS.Iapp));
+inputUDDS.Iapp = inputUDDS.Iapp*(Q/Iavg);
+% Ensure SOC bounds are not violated.
+QdisAh = cumtrapz(inputUDDS.time,inputUDDS.Iapp);
+socAvgPct = inputUDDS.SOC0 - 100*QdisAh/3600/Q;
+if max(socAvgPct)>95 || min(socAvgPct)<5
+    error('UDDS cycle brings cell too close to SOC limits.')
+end
 
 % Programatically...
 inputCCDis.SOC0 = 100; % starting SOC [%].
@@ -89,7 +93,7 @@ inputCCDis.TSHIFT = 0; % see comment in simFOM.m, need nonzero value if Iapp(0)~
 % more information on using these types of inputs.)
 
 % Run simulation in COMSOL. (This may take several seconds/minutes.)
-[FOMwithResults,simData] = simFOM(genData,inputCCDis);
+[FOMwithResults,simData] = simFOM(genData,inputUDDS);
 
 % simData now contains the time-domain results of the simulation. 
 % We plot some quantities below...

@@ -11,6 +11,9 @@
 %   ROMout   = output structure contains simulated info
 %
 % This function simulates the physics-based ROM, using output-blending
+%
+% -- Changelog --
+% 2023.09.30 | Compute i0p from MSMR | Wesley Hileman <whileman@uccs.edu>
 
 
 function ROMout = outBlend(simData,ROM,varargin)
@@ -483,7 +486,8 @@ function ROMout = outBlend(simData,ROM,varargin)
     if length(k0p)>1
         % MSMR kinetics.
         electrode = MSMR(cellData.function.pos);
-        ctData = electrode.Rct(cellData.function.pos,'theta',SOCpAvg);
+        ctData = electrode.Rct( ...
+            cellData.function.pos,'theta',ROMout.posThetass3(k+1));
         i0p = ctData.i0;
     else
         i0p = k0p*sqrt(ROMout.Thetae(k+1,end)*...

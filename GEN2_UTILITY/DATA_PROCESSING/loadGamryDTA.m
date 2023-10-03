@@ -19,7 +19,8 @@ function data = loadGamryDTA(filename, varargin)
 %   detected and converted to type double.
 %
 % -- Changelog --
-% 01.14.2023 | Created | Wesley Hileman <whileman@uccs.edu>
+% 2023.09.30 | Fix issue accessing table columns by name | Wes H.
+% 2023.01.14 | Created | Wesley Hileman <whileman@uccs.edu>
 
 p = inputParser;
 p.addParameter('NotesMode','off', ...
@@ -95,6 +96,12 @@ while nline <= length(S)
         end
         tab = table(tabdata{:},'VariableNames',labels);
         tab.Properties.VariableUnits = units;
+
+        % 2023.09.30 Not sure why this makes a difference, but it prevents 
+        % errors sometimes when accessing columns by name. Happens at least
+        % for large tables produced by GITT. MATLAB version R2021b.
+        tab = tab(:,:);
+
         data.tables.(tabname) = tab;
         state = S_DEFAULT;
         tabname = "";
