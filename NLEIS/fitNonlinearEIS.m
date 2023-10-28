@@ -82,6 +82,7 @@ params.eff.kappa = fastopt.param('fix',v.pos.kappa);
 params.pos.Rdl = fastopt.param('fix',v.pos.Rdl);
 params.pos.Cdl = fastopt.param('fix',v.pos.Cdl);
 params.pos.nDL = fastopt.param('fix',v.pos.nDL);
+params.pos.wDL = fastopt.param('fix',v.pos.wDL);
 params.pos.Rf = fastopt.param('fix',v.pos.Rf);
 params.pos.k0Theta = fastopt.param('fix',v.pos.k0Theta);
 params.pos.k0Linear = fastopt.param('fix',v.pos.k0Linear);
@@ -93,6 +94,7 @@ params.pos.sigma = fastopt.param('fix',v.pos.sigma);
 % Lithium-metal electrode.
 params.neg.Rdl = fastopt.param('fix',v.neg.Rdl);
 params.neg.Cdl = fastopt.param('fix',v.neg.Cdl);
+params.neg.wDL = fastopt.param('fix',v.neg.wDL);
 params.neg.nDL = fastopt.param('fix',v.neg.nDL);
 params.neg.Rf = fastopt.param('fix',v.neg.Rf);
 params.neg.k0 = fastopt.param('fix',v.neg.k0);

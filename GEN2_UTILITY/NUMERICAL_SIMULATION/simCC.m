@@ -15,6 +15,9 @@ function simData = simCC(varargin)
 %   instead of the default (Tend/1000, where Tend is the duration of the
 %   input).
 %
+% simData = simCC(...,'Trelax',Tr) allows the cell to relax for Tr [sec]
+%   after the current is removed before ending the simulation.
+%
 % simData = simCC(...,'Verbose',true) outputs status information to
 %   the command window.
 %
@@ -46,6 +49,7 @@ parser.addRequired('soc0Pct',@(x)isscalar(x)&&0<=x&&x<=100);
 parser.addRequired('socfPct',@(x)isscalar(x)&&0<=x&&x<=100);
 parser.addOptional('TdegC',25,@(x)isscalar(x));
 parser.addParameter('Ts',[],@(x)isscalar(x)&&x>0);
+parser.addParameter('Trelax',0,@(x)isscalar(x)&&x>=0);
 parser.addParameter('Verbose',false,@(x)isscalar(x)&&islogical(x));
 parser.addParameter('OptSimFOM',struct,@isstruct);
 parser.addParameter('DryRun',false,@(x)isscalar(x)&&islogical(x));
@@ -57,12 +61,14 @@ Qtot = getCellParams(arg.cellModel,'const.Q');
 Qdis = Qtot*(arg.soc0Pct-arg.socfPct)/100;   % capacity to discharge [Ah] 
 
 % Compute constant-current waveform parameters.
-Tend = 3600*Qdis/arg.I;         % time at end of dis/charge [s]
+Tend = 3600*abs(Qdis)/arg.I;    % time at end of dis/charge [s]
+Tsim = Tend+arg.Trelax;         % time at end of simulation [s]
 if isempty(arg.Ts)
     arg.Ts = Tend/1000;         % default sampling interval [s]
 end
-time = 0:arg.Ts:Tend;           % time vector [s]
-iapp = arg.I*ones(size(time));  % applied current vector [A]
+time = 0:arg.Ts:Tsim;           % time vector [s]
+iapp = sign(Qdis)*abs(arg.I)*ones(size(time));  % applied current vector [A]
+iapp(time>Tend) = 0;
 
 if ~arg.DryRun
     % Generate COMSOL model.
@@ -97,6 +103,7 @@ if ~arg.DryRun
 end
 simData.Qdis = Qdis;
 simData.Tend = Tend;
+simData.Tsim = Tsim;
 simData.arg = arg;
 simData.origin__ = 'simCC';
 

@@ -90,7 +90,12 @@ function cellParams = evalSetpoint(cellParams,s,soc,T)
   cellParams.const.T = T;
   
   % SOC-dependent Ds
-  if isfield(cellParams.pos,'Dsref')
+  if isfield(cellParams.pos,'U0')
+    electrode = MSMR(cellParams.pos);
+    dsData = electrode.Ds( ...
+        cellParams.pos,'theta',cellParams.pos.soc,'TdegC',T-273.15);
+    cellParams.pos.Ds = dsData.Ds;
+  elseif isfield(cellParams.pos,'Dsref')
     cellParams.pos.Ds = cellParams.pos.Dsref*cellParams.const.F/cellParams.const.R/T...
         *cellParams.pos.soc*(cellParams.pos.soc-1)*cellParams.pos.dUocp;
   end

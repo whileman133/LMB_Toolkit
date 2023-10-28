@@ -58,6 +58,10 @@ hyp = minimize(hyp0,@gp,-1000,@infGaussLik,meanFn,covFn,likFn,xtr,ytr);
 % Compute prdictions.
 [mu0,Sigma0] = gp(hyp0,@infGaussLik,meanFn,covFn,likFn,xtr,ytr,xte);
 [mu,Sigma] = gp(hyp,@infGaussLik,meanFn,covFn,likFn,xtr,ytr,xte);
+est.log10Ds = mu;
+est.sigma = Sigma;
+est.theta = xte;
+save(fullfile('gpr',[filename '_DsEstimate.mat']),'est');
 
 % Separate task: see if we can fit MSMR model to this.
 params.Dsref = fastopt.param('logscale',true);
@@ -162,10 +166,11 @@ theta_eMSMR = msmrDiffusionModel.theta0 + soc.*(msmrDiffusionModel.theta100-msmr
 
 % Plot optimized GPR estimate.
 figure;
-semilogy(xte,10.^mu); hold on;
+semilogy(xte,10.^mu,'k:'); hold on;
 fill([xte;flipud(xte)],10.^[mu+3*sqrt(Sigma);flipud(mu-3*sqrt(Sigma))],...
        'k','EdgeColor','k','FaceAlpha',0.1,'EdgeAlpha',0.3);
-semilogy(theta,Ds,'o');
+semilogy(theta,Ds,'ro');
+semilogy(xte,10.^mu,'k:');
 set(gca,'xdir','reverse');
 xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
     'Interpreter','latex');

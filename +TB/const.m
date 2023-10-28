@@ -4,9 +4,10 @@ classdef const
     properties(Constant)
         OCPROOT = TB.getAbsPath('OCP');
         NLEISROOT = TB.getAbsPath('NLEIS');
-        SDPROOT = TB.getAbsPath('SDP');
-        MDPROOT = TB.getAbsPath('MDP');
         RPTROOT = TB.getAbsPath('RPT');
+        GITTROOT = TB.getAbsPath('GITT');
+        ROMROOT = TB.getAbsPath('ROM');
+        DEMOROOT = TB.getAbsPath('DEMO');
         VERSION = '2.0.0';
         AUTHOR = 'Wesley Hileman <whileman@uccs.edu>';
 

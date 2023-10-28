@@ -162,7 +162,7 @@ for s = 1:length(secNames)
             l.nF = genNumericParam('nF',p.(secName).nF,0,'unitless');
             l.tauF = genNumericParam('tauF',p.(secName).tauF,0,'1/s');
             l.nDL = genNumericParam('nDL',p.(secName).nDL,0,'unitless');
-            l.wDL = genNumericParam('wDL',p.(secName).wDL,0,'rad/s');
+            l.tauDL = genNumericParam('tauDL',p.(secName).tauDL,0,'s');
             l.Rf = genNumericParam('Rf',p.(secName).Rf/as/p.const.A/p.(secName).L,0,'Ohm');
             l.Rdl = genNumericParam('Rdl',p.(secName).Rdl/as/p.const.A/p.(secName).L,0,'Ohm');
             l.Cdl = genNumericParam('Cdl',p.(secName).Cdl*as*p.const.A*p.(secName).L,0,'F');
@@ -180,10 +180,10 @@ for s = 1:length(secNames)
             l.k0 = genNumericParam('k0',p.(secName).gamma*p.const.A*F*p.(secName).k0*(p.(secName).cs0)^p.(secName).alpha*p.const.ce0^(1-p.(secName).alpha),0,'A');
             l.alpha = genNumericParam('alpha',p.(secName).alpha,0,'unitless');
             l.nDL = genNumericParam('nDL',p.(secName).nDL,0,'unitless');
+            l.tauDL = genNumericParam('tauDL',p.(secName).tauDL,0,'s');
             l.Rf = genNumericParam('Rf',p.(secName).Rf/p.(secName).gamma/p.const.A,0,'Ohm');
             l.Rdl = genNumericParam('Rdl',p.(secName).Rdl/p.(secName).gamma/p.const.A,0,'Ohm');
             l.Cdl = genNumericParam('Cdl',p.(secName).Cdl*p.(secName).gamma*p.const.A,0,'F');
-            l.wDL = genNumericParam('wDL',p.(secName).wDL,0,'rad/s');
         case 'ElectrolyteLayer'
             l.kappa = genNumericParam('kappa',p.const.A*p.const.kappa*(p.(secName).eEps)^p.(secName).brugDeKappa/p.(secName).L,0,'1/Ohm');
             l.tauW = genNumericParam('tauW',p.(secName).eEps*(p.(secName).L)^2/p.const.De/(p.(secName).eEps)^p.(secName).brugDeKappa,0,'s');
@@ -489,6 +489,8 @@ for s = 1:length(secNames)
         LLPM.function.(secName).qe = str2func(sprintf('@(x,T)(%g)',qe));
     end % for
 end % for
+% Legacy tab resistance parameter.
+LLPM.function.const.Rc = LLPM.function.pkg.R0;
 
 % Make cell-level OCP function.
 if isfield(LLPM.function.pos,'Uocp')

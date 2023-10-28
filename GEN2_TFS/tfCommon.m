@@ -25,6 +25,7 @@
 %
 function [C,Lambda,J,Z,Rct,param] = tfCommon(s,cellData)
     s = s(:).';  % Force row vector! 
+    ind0 = s==0; % logical indicies to zero frequencies
     
     % first, check to see if we have already computed the relevant data...
     % don't recompute unless necessary!
@@ -76,6 +77,8 @@ function [C,Lambda,J,Z,Rct,param] = tfCommon(s,cellData)
     j3p = zeros(1,length(s));
     j4p = zeros(1,length(s));
     
+    warning('off','MATLAB:nearlySingularMatrix');
+    warning('off','MATLAB:singularMatrix');
     for i=1:length(s)
         Lambda1s = sqrt(((3600*qes/(psi*T)/kappas)*s(i))^nEs); 
         Lambda1DL = sqrt(((3600*qed/(psi*T)/kappad)*s(i))^nEdl); 
@@ -98,7 +101,13 @@ function [C,Lambda,J,Z,Rct,param] = tfCommon(s,cellData)
         c8 = [ 0, 0, 0, 0,exp(-Lambda1p)*Lambda1p^3, -(Lambda1p)^3, exp(-Lambda2p)*(Lambda2p)^3, -(Lambda2p)^3];
         b = [-1/(kappad*(psi*T)); 0; 0; 0; 0; mu1p/kappap; 0; -mu1p/sigmap];
         A = [c1;c2;c3;c4;c5;c6;c7;c8];
+
+        lastwarn('', '');
         Cs = A\b;
+        [warnMsg, warnId] = lastwarn();
+        if ~isempty(warnId)
+            fprintf("\ttfCommon: %s (A @ f=%.10gHz)\n",warnMsg,s(i)/1j/2/pi);
+        end
         
         c1p = Cs(5);
         c2p = Cs(6);
@@ -111,6 +120,8 @@ function [C,Lambda,J,Z,Rct,param] = tfCommon(s,cellData)
         Lambda(:,i) = [Lambda1DL;Lambda1s;Lambda1p;Lambda2p]; 
         C(:,i) = Cs;
     end % for
+    warning('on','MATLAB:nearlySingularMatrix');
+    warning('on','MATLAB:singularMatrix');
     
     J = [j1p;j2p;j3p;j4p];
     Z = [Zsep;Zsp;Isplitp]; 

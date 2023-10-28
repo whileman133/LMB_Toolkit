@@ -102,18 +102,20 @@ p.Q           = getParam('const','Q');
 p.sigmap      = getParam('pos','sigma');
 p.kappap      = getParam('pos','kappa');
 p.taup        = getParam('pos','tauW');
-p.nF          = getParam('pos','nF');
-p.tauF        = getParam('pos','tauF');
+p.nFp         = getParam('pos','nF');
+p.tauFp       = getParam('pos','tauF');
 p.Rfp         = getParam('pos','Rf');
 p.Rdlp        = getParam('pos','Rdl');
 p.Cdlp        = getParam('pos','Cdl');
 p.nDLp        = getParam('pos','nDL');
+p.tauDLp       = getParam('pos','tauDL');
 p.theta0p     = getParam('pos','theta0');
 p.theta100p   = getParam('pos','theta100');
 p.Rfn         = getParam('neg','Rf');
 p.Rdln        = getParam('neg','Rdl');
 p.Cdln        = getParam('neg','Cdl');
 p.nDLn        = getParam('neg','nDL');
+p.tauDLn      = getParam('neg','tauDL');
 p.k0n         = getParam('neg','k0');
 p.alphan      = getParam('neg','alpha');
 % Code later in this file implements Warburg CPE factor for inert layers;
@@ -251,28 +253,51 @@ else
     p.Dsp = interp1(dataDs.theta,dataDs.Ds,p.thetap,'linear','extrap');
 end
 
+% Quantities needed to evalulate dc gain.
+p.Dseffp = p.Dsp^p.nFp*p.tauFp^(p.nFp-1);
+p.Cdleffp = p.Cdlp^p.nDLp*p.tauDLp^(1-p.nDLp); % double-layer cap @ dc
+p.Cdleffn = p.Cdln^p.nDLn*p.tauDLn^(1-p.nDLn); % double-layer cap @ dc
+p.Csp = -3600*p.Q/p.dUocpp/abs(p.theta100p-p.theta0p); % cell cap @ dc
+p.V0p = -p.dUocpp*(1+p.Cdleffp/p.Csp);
+p.R0p = p.Rctp + 1/15/p.Csp/p.Dseffp;
+p.R2p = 1/6/p.sigmap - ... 
+        (1+p.W)/3/p.kappap - ... 
+        ((p.Rdlp+p.Rfp)*p.Cdleffp^2+(p.R0p+p.Rfp)*p.Csp^2+...
+          2*p.Rfp*p.Cdleffp*p.Csp+...
+          p.tauDLp*(1-p.nDLp)*p.Cdleffp+...
+          p.tauFp*(1-p.nFp)*p.Csp)...
+        /(p.Cdleffp+p.Csp)^2;
+
 % Compute Zse.
-DeltaQp = abs(p.theta100p - p.theta0p);
-p.csmaxp = 10800*p.Q*p.Dsp/DeltaQp;
-p.gammap = sqrt((S/p.Dsp).^p.nF);
-p.ZspIntegrator = (p.Dsp./S).*((1+S.*p.tauF)./p.Dsp./p.tauF).^(1-p.nF);
-p.Zsp = (p.dUocpp/p.csmaxp)...
-   *((p.gammap.^2 + 3*(1-p.gammap.*coth(p.gammap)))...
-   ./(p.gammap.^2.*(1-p.gammap.*coth(p.gammap))) - 3*p.ZspIntegrator);
-p.Zdlp = p.Rdlp + 1./p.Cdlp./(S.^p.nDLp);
+ind0 = S==0;  % logical indicies to zero frequencies
+p.Zs0 = abs(p.theta100p-p.theta0p)*p.dUocpp/10800/p.Dseffp/p.Q;
+p.zetap = (p.Dsp./S).*((1+S*p.tauFp)/p.tauFp/p.Dsp).^(1-p.nFp);
+p.betap = sqrt(1./p.zetap);
+p.Zsp = ...
+   p.Zs0*( ...
+     (p.betap.^2 + 3*(1-p.betap.*coth(p.betap))) ...
+       ./(p.betap.^2.*(1-p.betap.*coth(p.betap))) ...
+     - 3*p.zetap ...
+   );
+p.Zsp(ind0) = Inf;  % replace NaN at zero frequency
+p.Zdlp = p.Rdlp + ((p.Cdlp/p.tauDLp)*(1+p.tauDLp*S)).^(1-p.nDLp)./p.Cdlp./S;
 p.Zsep = p.Rfp + 1./(1./(p.Rctp + p.Zsp) + 1./p.Zdlp);
-p.Zdln = p.Rdln + 1./p.Cdln./(S.^p.nDLn);
+p.Zdln = p.Rdln + ((p.Cdln/p.tauDLn)*(1+p.tauDLn*S)).^(1-p.nDLn)./p.Cdln./S;
 p.Zsen = p.Rfn + p.Zdln.*p.Rctn./(p.Zdln+p.Rctn);
 
 % Compute Zse2 (double the frequency!)
-p.gamma2p = sqrt((2*S/p.Dsp).^p.nF);
-p.Zs2pIntegrator = (p.Dsp./S/2).*((1+S/2.*p.tauF)./p.Dsp./p.tauF).^(1-p.nF);
-p.Zs2p = (p.dUocpp/p.csmaxp)...
-   *((p.gamma2p.^2 + 3*(1-p.gamma2p.*coth(p.gamma2p)))...
-   ./(p.gamma2p.^2.*(1-p.gamma2p.*coth(p.gamma2p))) - 3*p.Zs2pIntegrator);
-p.Zdl2p = p.Rdlp + 1./p.Cdlp./(2*S).^p.nDLp;
+p.zeta2p = 2*S/p.Dsp./((1+2*S*p.tauFp)/p.tauFp/p.Dsp).^(1-p.nFp);
+p.beta2p = sqrt(p.zeta2p);
+p.Zs2p = ...
+   p.Zs0*( ...
+     (p.beta2p.^2 + 3*(1-p.beta2p.*coth(p.beta2p))) ...
+       ./(p.beta2p.^2.*(1-p.betap.*coth(p.beta2p))) ...
+      - 3./p.zeta2p ...
+   );
+p.Zs2p(ind0) = Inf;  % replace NaN at zero frequency
+p.Zdl2p = p.Rdlp + ((p.Cdlp/p.tauDLp)*(1+p.tauDLp*S)).^(1-p.nDLp)./p.Cdlp./2./S;
 p.Zse2p = p.Rfp + p.Zdl2p.*(p.Rctp+p.Zs2p)./(p.Zdl2p+p.Rctp+p.Zs2p);
-p.Zdl2n = p.Rdln + 1./p.Cdln./(2*S).^p.nDLn;
+p.Zdl2n = p.Rdln + ((p.Cdln/p.tauDLn)*(1+p.tauDLn*S)).^(1-p.nDLn)./p.Cdln./2./S;
 p.Zse2n = p.Rfn + p.Zdl2n.*p.Rctn./(p.Zdl2n+p.Rctn);
 
 % Additional.
@@ -403,14 +428,19 @@ function data = tfLMB11(p,S,layerReduction)
     data.tfDThetae = @(r,X)getThetae(meta,X,r);
     data.tfIfdl = @(X)getIfdl(meta,X,0);
     data.tfDIfdl = @(r,X)getIfdl(meta,X,r);
+    data.tfIf = @(X)getIf(meta,X,0);
     data.tfPhise = @(X)getPhise(meta,X,0);
     data.tfDPhise = @(r,X)getPhise(meta,X,r);
+    data.tfPhiseStar = @(X)getPhiseStar(meta,X,0);
     data.tfThetass = @(X)getThetass(meta,X,0);
     data.tfDThetass = @(r,X)getThetass(meta,X,r);
+    data.tfThetassStar = @(X)getThetassStar(meta,X,0);
     data.tfEta = @(X)getEta(meta,X,0);
     data.tfDEta = @(r,X)getEta(meta,X,r);
     data.tfPhie = @(X)getPhie(meta,X);
-    data.tfVcell = @()getVcell(meta);
+    data.tfPhieTilde = @(X)getPhieTilde(meta,X);
+    data.tfZcell = @()getZcell(meta);
+    data.tfZcellStar = @()getZcellStar(meta);
     data.meta = meta;
 
     function C = solveTwoInertLayers
@@ -429,6 +459,13 @@ function data = tfLMB11(p,S,layerReduction)
         C = zeros(ns,8);
         
         for i = 1:ns
+            if S(i)==0
+                % dc frequency; do not evalulate by solving system of
+                % equations; instead, we will compute the dc gain
+                % separately in the tfXX functions.
+                continue;
+            end
+
             % Update A matrix.
             LS  = LambdaS(i);  expnLS = expnLambdaS(i);
             LD  = LambdaD(i);  expnLD = expnLambdaD(i);
@@ -492,6 +529,13 @@ function data = tfLMB11(p,S,layerReduction)
         C = zeros(ns,6);
         
         for i = 1:ns
+            if S(i)==0
+                % dc frequency; do not evalulate by solving system of
+                % equations; instead, we will compute the dc gain
+                % separately in the tfXX functions.
+                continue;
+            end
+
             % Update A matrix.
             LS  = LambdaS(i);  expnLS = expnLambdaS(i);
             L1P = Lambda1P(i); expnL1P = expnLambda1P(i);
@@ -535,7 +579,7 @@ function data = tfLMB11(p,S,layerReduction)
     end
 end
 
-function Thetae = getThetae(meta,X,r)
+function [Thetae, data] = getThetae(meta,X,r)
     [Z, bins] = meta.param.split(X);
     Thetae = zeros(meta.ns,length(X));
 
@@ -554,7 +598,6 @@ function Thetae = getThetae(meta,X,r)
                 meta.c1s.*LSr.*exp(LS.*(Z.n-1)) + meta.c2s.*negLSr.*exp(-LS.*Z.n);
         end
     end
-
     if any(bins.d)
         LD = meta.LambdaD;
         LDr = LD.^r;
@@ -562,7 +605,6 @@ function Thetae = getThetae(meta,X,r)
         Thetae(:,bins.d) = ...
             meta.c1d.*LDr.*exp(LD.*(Z.d-1)) + meta.c2d.*negLDr.*exp(-LD.*Z.d);
     end
-    
     if any(bins.s)
         LS = meta.LambdaS;
         LSr = LS.^r;
@@ -570,7 +612,6 @@ function Thetae = getThetae(meta,X,r)
         Thetae(:,bins.s) = ...
             meta.c1s.*LSr.*exp(LS.*(Z.s-1)) + meta.c2s.*negLSr.*exp(-LS.*Z.s);
     end
-
     if any(bins.p)
         L1P = meta.Lambda1P;
         L1Pr = L1P.^r;
@@ -583,9 +624,36 @@ function Thetae = getThetae(meta,X,r)
             meta.c3p.*L2Pr.*exp(L2P.*(Z.p-1)) + meta.c4p.*negL2Pr.*exp(-L2P.*Z.p);
         Thetae(:,bins.p) = Thetae(:,bins.p).*(-1).^r; % dz/dx = -1
     end
+
+    % Compute dc gain.
+    dcGain = zeros(1,length(X));
+    p = meta.param;
+    psiT = p.psi*p.T;
+    Thetae0 = p.taud/2+(1/2+p.kappas/p.kappad)*p.taus+(1/3+p.kappap/p.kappad+p.kappap/p.kappas)*p.taup;
+    Thetae0 = Thetae0/(p.kappad*p.taud+p.kappas*p.taus+p.kappap*p.taup)/psiT;
+    if any(bins.n)
+        dcGain(bins.n) = Thetae0;
+    end
+    if any(bins.d)
+        dcGain(bins.d) = Thetae0-Z.d/p.kappad/psiT;
+    end
+    if any(bins.s)
+        dcGain(bins.s) = Thetae0-(1/p.kappad+Z.s/p.kappas)/psiT;
+    end
+    if any(bins.p)
+        dcGain(bins.p) = Thetae0-(1/p.kappad+1/p.kappas+(1-Z.p).*(1+Z.p)/2/p.kappap)/psiT;
+    end
+
+    % Assign dc gain to zero frequencies.
+    ind0 = meta.S==0; % logical indicies to dc frequencies
+    if any(ind0) && r==0
+        Thetae(ind0,:) = dcGain.*ones(sum(ind0),1);
+    end % any ind0
+
+    data.dcGain = dcGain;
 end
 
-function Ifdl = getIfdl(meta,X,r)
+function [Ifdl, data] = getIfdl(meta,X,r)
     [Z, bins] = meta.param.split(X);
     Ifdl = zeros(meta.ns,length(X));
 
@@ -618,6 +686,70 @@ function Ifdl = getIfdl(meta,X,r)
             + meta.j4p.*negL2Pr.*exp(-L2P.*Z.p);
         Ifdl(:,bins.p) = Ifdl(:,bins.p).*(-1).^r; % dz/dx = -1
     end
+
+    % Compute dc gain.
+    dcGain = zeros(1,length(X));
+    if any(bins.n|bins.d|bins.s)
+        dcGain(bins.n|bins.d|bins.s) = NaN;
+    end
+    if any(bins.p)
+        dcGain(bins.p) = -1;
+    end
+
+    % Assign dc gain to zero frequencies.
+    ind0 = meta.S==0; % logical indicies to dc frequencies
+    if any(ind0) && r==0
+        Ifdl(ind0,:) = dcGain.*ones(sum(ind0),1);
+    end % any ind0
+
+    data.dcGain = dcGain;
+end
+
+function [If, data] = getIf(meta,X,r)
+    [~, bins] = meta.param.split(X);
+    If = zeros(meta.ns,length(X));
+
+    if any(bins.n)
+        if r == 0
+            If(:,bins.n) = 1;
+        else
+            If(:,bins.n) = NaN;
+        end
+    end
+    if any(bins.d)
+        If(:,bins.d) = NaN;
+    end
+    if any(bins.s)
+        If(:,bins.s) = NaN;
+    end
+    if any(bins.p)
+        If(:,bins.p) = meta.divFactorIfp.*getIfdl(meta,X(bins.p),r);
+    end
+
+    data = struct;
+
+    % Compute dc gain.
+    dcGain = zeros(1,length(X));
+    if any(bins.n)
+        dcGain(bins.n) = 1;
+    end
+    if any(bins.d|bins.s)
+        dcGain(bins.d|bins.s) = NaN;
+    end
+    if any(bins.p)
+        p = meta.param;
+        Cs = p.Csp;
+        Cdl = p.Cdleffp;
+        dcGain(bins.p) = -Cs/(Cs+Cdl);
+    end
+
+    % Assign dc gain to zero frequencies.
+    ind0 = meta.S==0; % logical indicies to dc frequencies
+    if any(ind0) && r==0
+        If(ind0,:) = dcGain.*ones(sum(ind0),1);
+    end % any ind0
+
+    data.dcGain = dcGain;
 end
 
 function Phise = getPhise(meta,X,r)
@@ -631,21 +763,124 @@ function Phise = getPhise(meta,X,r)
             Phise(:,bins.n) = NaN;
         end
     end
-
     if any(bins.d)
         Phise(:,bins.d) = NaN;
     end
-
     if any(bins.s)
         Phise(:,bins.s) = NaN;
     end
-
     if any(bins.p)
         Phise(:,bins.p) = meta.param.Zsep.*getIfdl(meta,X(bins.p),r);
     end
 end
 
-function Thetass = getThetass(meta,X,r)
+function [Phise, data] = getPhiseStar(meta,X,r)
+    [Z, bins] = meta.param.split(X);
+    Phise = zeros(meta.ns,length(X));
+
+    % Compute integrator residue.
+    p = meta.param;
+    Cs = p.Csp;
+    Cdl = p.Cdleffp;
+    res0 = -1/(Cs+Cdl);
+
+    if any(bins.n)
+        if r == 0
+            Phise(:,bins.n) = meta.param.Zsen;
+        else
+            Phise(:,bins.n) = NaN;
+        end
+    end
+    if any(bins.d)
+        Phise(:,bins.d) = NaN;
+    end
+    if any(bins.s)
+        Phise(:,bins.s) = NaN;
+    end
+    if any(bins.p)
+        Phise(:,bins.p) = meta.param.Zsep.*getIfdl(meta,X(bins.p),r) - res0./meta.S;
+    end
+
+    % Compute dc gain.
+    dcGain = zeros(1,length(X));
+    if any(bins.n)
+        dcGain(bins.n) = meta.param.Rctn+meta.param.Rfn;
+    end
+    if any(bins.d|bins.s)
+        dcGain(bins.d|bins.s) = NaN;
+    end
+    if any(bins.p)
+        sp = p.sigmap;
+        kp = p.kappap;
+        W = p.W;
+        dcGain(bins.p) = p.R2p + ... 
+            (2/sp+3/kp-(1/sp+1/kp).*(5-Z.p)./2-W.*(-1-Z.p)/2/kp).*(1-Z.p);
+    end
+
+    % Assign dc gain to zero frequencies.
+    ind0 = meta.S==0; % logical indicies to dc frequencies
+    if any(ind0) && r==0
+        Phise(ind0,:) = dcGain.*ones(sum(ind0),1);
+    end % any ind0
+
+    data.dcGain = dcGain;
+end
+
+function [Thetass, data] = getThetassStar(meta,X,r)
+%GETTHETASSTILDE Thetass TF without integrator.
+
+    % Compute integrator residue.
+    p = meta.param;
+    Cs = p.Csp;
+    Cdldc = p.Cdleffp;
+    dUocp = p.dUocpp;
+    res0 = -1/dUocp/(Cs+Cdldc);
+
+    [Z, bins] = meta.param.split(X);
+    Thetass = zeros(meta.ns,length(X));
+
+    if any(bins.n|bins.d|bins.s)
+        Thetass(:,bins.n|bins.d|bins.s) = NaN;
+    end
+    if any(bins.p)
+        If = getIf(meta,X(bins.p),r);
+        Thetass(:,bins.p) = (p.Zsp./dUocp).*If - res0./meta.S;
+    end
+
+    % Compute dc gain.
+    dcGain = zeros(1,length(X));
+    p = meta.param;
+    if any(bins.n|bins.d|bins.s)
+        dcGain(bins.n|bins.d|bins.s) = NaN;
+    end
+    if any(bins.p)
+        sp = p.sigmap;
+        kp = p.kappap;
+        W = p.W;
+        dUocp = p.dUocpp;
+        Cdldc = p.Cdleffp;
+        Cs = p.Csp;
+        Rct = p.Rctp;
+        Rf = p.Rfp;
+        R2 = p.R2p;
+        R3 = (2/sp+3/kp-(1/sp+1/kp).*(5-Z.p)./2-W.*(-1-Z.p)/2/kp).*(1-Z.p);
+        dcGain(bins.p) = ( ... 
+           R2+R3+Rf + (Cs/(Cs+Cdldc))*Rct ...
+        )/dUocp;
+    end
+
+    % Assign dc gain to zero frequencies.
+    ind0 = meta.S==0; % logical indicies to dc frequencies
+    if any(ind0) && r==0
+        Thetass(ind0,:) = dcGain.*ones(sum(ind0),1);
+    end % any ind0
+
+    data.dcGain = dcGain;
+    data.res0 = res0;
+end
+
+function [Thetass, data] = getThetass(meta,X,r)
+%GETTHETASS Thetass TF with integrator.
     [~, bins] = meta.param.split(X);
     Thetass = zeros(meta.ns,length(X));
 
@@ -654,13 +889,15 @@ function Thetass = getThetass(meta,X,r)
     end
 
     if any(bins.p)
-        Thetass(:,bins.p) = ...
-            (meta.param.Zsp.*meta.divFactorIfp./meta.param.dUocpp)...
-            .*getIfdl(meta,X(bins.p),r);
+        p = meta.param;
+        If = meta.divFactorIfp.*getIfdl(meta,X(bins.p),r);
+        Thetass(:,bins.p) = (p.Zsp./p.dUocpp).*(If  );
     end
+
+    data = struct;
 end
 
-function Eta = getEta(meta,X,r)
+function [Eta, data] = getEta(meta,X,r)
     [~, bins] = meta.param.split(X);
     Eta = zeros(meta.ns,length(X));
 
@@ -673,20 +910,49 @@ function Eta = getEta(meta,X,r)
             Eta(:,bins.n) = NaN;
         end
     end
-
     if any(bins.d|bins.s)
         Eta(:,bins.d|bins.s) = NaN;
     end
-
     if any(bins.p)
         Rctp = meta.param.Rctp;
         divFactorIfp = meta.divFactorIfp;
         Eta(:,bins.p) = ...
             (Rctp.*divFactorIfp).*getIfdl(meta,X(bins.p),r);
     end
+
+     % Compute dc gain.
+    dcGain = zeros(1,length(X));
+    if any(bins.n)
+        dcGain(bins.n) = meta.param.Rctn;
+    end
+    if any(bins.d|bins.s)
+        dcGain(bins.d|bins.s) = NaN;
+    end
+    if any(bins.p)
+        p = meta.param;
+        Cs = p.Csp;
+        Cdl = p.Cdleffp;
+        Rct = p.Rctp;
+        dcGain(bins.p) = -Rct*Cs/(Cs+Cdl);
+    end
+
+    % Assign dc gain to zero frequencies.
+    ind0 = meta.S==0; % logical indicies to dc frequencies
+    if any(ind0) && r==0
+        Eta(ind0,:) = dcGain.*ones(sum(ind0),1);
+    end % any ind0
+
+    data.dcGain = dcGain;
 end
 
 function [Phie, data] = getPhie(meta,X)
+    PhieTilde = getPhieTilde(meta,X);
+    Phise0 = getPhise(meta,0,0);
+    Phie = PhieTilde - Phise0;
+    data = struct;
+end
+
+function [Phie, data] = getPhieTilde(meta,X)
     [Z, bins] = meta.param.split(X);
     Phie1 = zeros(meta.ns,length(X));
 
@@ -699,11 +965,11 @@ function [Phie, data] = getPhie(meta,X)
     end
 
     if any(bins.d)
-        Phie1(:,bins.d) = -( Z.d/kappad );
+        Phie1(:,bins.d) = -( Z.d/kappad ).*ones(meta.ns,1);
     end
 
     if any(bins.s)
-        Phie1(:,bins.s) = -( 1/kappad + Z.s/kappas );
+        Phie1(:,bins.s) = -( 1/kappad + Z.s/kappas ).*ones(meta.ns,1);
     end
 
     if any(bins.p)
@@ -724,17 +990,54 @@ function [Phie, data] = getPhie(meta,X)
     Phie = Phie1 + Phie2;
     data.Phie1 = Phie1;
     data.Phie2 = Phie2;
+
+    % Compute dc gain.
+    dcGain = zeros(1,length(X));
+    p = meta.param;
+    if any(bins.n)
+        dcGain(bins.n) = 0;
+    end
+    if any(bins.d)
+        dcGain(bins.d) = -(1+p.W)*Z.d/p.kappad;
+    end
+    if any(bins.s)
+        dcGain(bins.s) = -(1+p.W)*(1/p.kappad+Z.s/p.kappas);
+    end
+    if any(bins.p)
+        dcGain(bins.p) = -(1+p.W)*(1/p.kappad+1/p.kappas+(1-Z.p).*(1+Z.p)/2/p.kappap);
+    end
+
+    % Assign dc gain to zero frequencies.
+    ind0 = meta.S==0; % logical indicies to dc frequencies
+    if any(ind0)
+        Phie(ind0,:) = dcGain.*ones(sum(ind0),1);
+    end % any ind0
+
+    data.dcGain = dcGain;
 end
 
-function [Vcell, data] = getVcell(meta)
+function [Zcell, data] = getZcell(meta)
     Phise = getPhise(meta,[meta.param.xlim.min meta.param.xlim.max],0);
     Phise0 = Phise(:,1);
     PhiseL = Phise(:,2);
-    PhieL = getPhie(meta,meta.param.xlim.max);
-    Vcell = -(PhiseL + PhieL - Phise0);
+    PhieL = getPhieTilde(meta,meta.param.xlim.max);
+    Zcell = -(PhiseL + PhieL - Phise0);
     data.Zneg = Phise0;
     data.Zpos = -PhiseL;
     data.Zel = -PhieL;
+end
+
+function [Zcell, data] = getZcellStar(meta)
+    [PhiseStar, PhiseStarData] = getPhiseStar(meta,[meta.param.xlim.min meta.param.xlim.max],0);
+    PhiseStar0 = PhiseStar(:,1);
+    PhiseStarL = PhiseStar(:,2);
+    [PhieL, PhieLData] = getPhieTilde(meta,meta.param.xlim.max);
+    Zcell = -(PhiseStarL + PhieL - PhiseStar0);
+    Rcell = -(PhiseStarData.dcGain(2)+PhieLData.dcGain-PhiseStarData.dcGain(1));
+    data.Zneg = PhiseStar0;
+    data.Zpos = -PhiseStarL;
+    data.Zel = -PhieL;
+    data.dcGain = Rcell;
 end
 
 

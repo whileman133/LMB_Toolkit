@@ -457,7 +457,7 @@ classdef MSMR < handle
                 Ds = Ds(:);
                 Ds = 10.^interp1(theta,log10(Ds),ocpData.theta,'linear','extrap');
             else
-                error('Dsref or DsSpline/DsSplineTheta parameter values not found!')
+                error('Dsref or DsSpline/DsTheta or DsLinear/DsTheta parameter values not found!')
             end
 
             dsData = ocpData;

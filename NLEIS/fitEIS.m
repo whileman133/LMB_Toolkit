@@ -2,6 +2,10 @@
 %
 % Regress linear EIS model to spectra collected in the laboratory.
 %
+% NOTE: With useParallel=false, this regression saves multiple solutions
+% from the optimization. This is needed for estimating diffusivity Ds and
+% charge-transfer resistance in the runGPRLinearEIS.m script.
+%
 % -- Changelog --
 % 2023.09.23 | Fix SOC computation error | Wes H.
 % 2023.06.29 | Created | Wesley Hileman <whileman@uccs.edu>
@@ -19,8 +23,8 @@ ocpExpirementName = 'FinalFit-SionFresh_0C01';  % file w/ regressed OCP data
 initialCellModelName = 'cellSionGuess-P2DM';    % model w/ initial param values
 solidDiffusionModel = 'linear';  % selects solid diffusion model for porous electrode
 kineticsModel = 'linear';        % selects kinetics model for porous electrode
-useParallel = false;             % enable/disable parallel processing
-prefix = '202309_';
+useParallel = false;              % enable/disable parallel processing
+prefix = '202310_';
 
 % Load lab impedance spectra.
 clear spectra;

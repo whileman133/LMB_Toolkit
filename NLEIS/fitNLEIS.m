@@ -11,7 +11,7 @@ addpath('..');
 TB.addpaths();
 
 % Constants.
-linearFitName = '202309_EIS-16degC26degC-Ds=linear-k0=linear';
+linearFitName = '202310_EIS-16degC26degC-Ds=linear-k0=linear';
 eisExpirementNames = {
     '(NL)EIS-SionCell395534_15degC'  % directories w/ raw EIS data
     '(NL)EIS-SionCell395534_25degC'

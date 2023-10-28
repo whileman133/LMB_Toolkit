@@ -44,7 +44,7 @@ for k = 1:nsoc
         params.pos.Ds = dsData.Ds(k);
     end
     tfData = tfLMB(s,params,'TdegC',TdegC,'socPct',socPct(k));
-    Z(:,k) = tfData.h11.tfVcell();
+    Z(:,k) = tfData.h11.tfZcell();
 end % for
 
 % Add impedance contributed by package.

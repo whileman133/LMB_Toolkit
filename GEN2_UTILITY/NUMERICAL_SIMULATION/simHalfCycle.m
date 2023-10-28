@@ -49,7 +49,7 @@ function simData = simHalfCycle(varargin)
 % 2023.05.30 | Created | Wesley Hileman <whileman@uccs.edu>
 
 parser = inputParser;
-parser.addRequired('cellModel',@(x)isscalar(x)&&isstruct(x));
+parser.addRequired('cellModelOrQ',@(x)isscalar(x)&&(isstruct(x)||isnumeric(x)));
 parser.addRequired('Iavg',@(x)isscalar(x)&&x>0);
 parser.addRequired('soc0Pct',@(x)isscalar(x)&&0<=x&&x<=100);
 parser.addRequired('socfPct',@(x)isscalar(x)&&0<=x&&x<=100);
@@ -61,9 +61,16 @@ parser.addParameter('DryRun',false,@(x)isscalar(x)&&islogical(x));
 parser.parse(varargin{:});
 p = parser.Results;  % structure of validated params
 
-[Q,theta0,theta100] = getCellParams( ...
-    convertCellModel(p.cellModel,'LLPM'), ...
-    'const.Q pos.theta0 pos.theta100','Output','list');
+cellModelType = getCellModelType(p.cellModelOrQ,false);
+if isempty(cellModelType)
+    Q = p.cellModelOrQ;  % not a cell model, interpret as capacity!
+    theta0 = NaN;
+    theta100 = NaN;
+else
+    cellModel = convertCellModel(p.cellModelOrQ,'LLPM');
+    [Q,theta0,theta100] = getCellParams(cellModel, ...
+        'const.Q pos.theta0 pos.theta100','Output','list');
+end
 
 % Compute cell capacity to discharge (will be negative for charge).
 Qdis = Q*(p.soc0Pct-p.socfPct)/100;   % capacity to discharge [Ah] 
