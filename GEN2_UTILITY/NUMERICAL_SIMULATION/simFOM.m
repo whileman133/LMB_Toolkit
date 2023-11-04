@@ -281,12 +281,18 @@ function [FOM,FOMout] = simFOM(genData,simData,varargin)
   function collectResults
     msg('\nCollecting results...');  
 
+    if isfield(cellModel.function.const,'Rc')
+        Rc = cellModel.function.const.Rc();
+    else
+        Rc = 0;
+    end
+
     if p.VcellOnly
         % User requests the cell voltage only.
-        data_pos = mpheval(FOM,'phi_s','Edim',1,'Selection',3);
-        FOMout.Vcell = data_pos.d1(:,end);
         input = mpheval(FOM,'Iapp');   
         FOMout.Iapp = input.d1(:,end);
+        data_pos = mpheval(FOM,'phi_s','Edim',1,'Selection',3);
+        FOMout.Vcell = data_pos.d1(:,end) - FOMout.Iapp*Rc;
         return;
     end
 
@@ -352,7 +358,7 @@ function [FOM,FOMout] = simFOM(genData,simData,varargin)
     FOMout.Ides = input.d1(:,end);
     input = mpheval(FOM,'Iapp');   
     FOMout.Iapp = input.d1(:,end);
-    FOMout.Vcell = data_pos.d1(:,end); 
+    FOMout.Vcell = data_pos.d1(:,end) - FOMout.Iapp*Rc; 
 
     data_pos = mpheval(FOM,'thetasavg_pos');
     FOMout.posSOC = data_pos.d1;

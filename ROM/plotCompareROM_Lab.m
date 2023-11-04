@@ -5,44 +5,29 @@ addpath('..');
 TB.addpaths;
 
 % Constants ---------------------------------------------------------------
-romFilename = '202309_EIS-16degC26degC-Ds=linear-k0=linear_defaultHRA';
-labDirectory = fullfile(TB.const.GITTROOT,'labdata');
-labFilename = 'Sion202309_GITT_Cell3955XX_P25_10m_60m';
-TdegC = 25;
+simFile = 'Sion202309_GITT_Cell3955XX_P25_10m_60m_202310_EIS-16degC26degC-Ds=linear-k0=linear_defaultHRA';
+data = load(fullfile('SIM_FILES',[simFile '.mat']));
 
-% Collect lab data --------------------------------------------------------
-file = fullfile(labDirectory,labFilename,'PWRGITT.DTA');
-labData = loadGamryDTA(file,'NotesMode','KeyValue');
-labTab = labData.tables.CURVE;
-time = labTab.Time(:)';
-timeMin = time/60;
-Vcell = labTab.Vf(:)';
-Iapp = -labTab.Im(:)'; % Gramy uses opposite sign convention
-soc0Pct = labData.notes.soc0Pct;
-name = labData.notes.name;
-
-% Collect ROM -------------------------------------------------------------
-romData = load(fullfile('ROM_FILES',[romFilename '.mat']));
-ROM = romData.ROM;
-LLPM = romData.LLPM;
-
-% Perform ROM simulation --------------------------------------------------
-simData.SOC0 = soc0Pct;
-simData.Iapp = Iapp;
-simData.T = TdegC*ones(size(time));
-simData.time = time;
-ROMout = simROM(ROM,simData,'outBlend');
+ROMout = data.ROMout;
+time = data.labData.time;
+timeHr = time/60/60;
+Vcell = data.labData.Vcell;
+Iapp = data.labData.Iapp;
 
 % Plotting ----------------------------------------------------------------
 figure;
-plot(timeMin,ROMout.Vcell); hold on;
-plot(timeMin,Vcell,':');
-title('Cell Voltage vs. Time');
-xlabel('Time, t [min]');
+plot(timeHr,ROMout.Vcell); hold on;
+plot(timeHr,Vcell,':');
+xlim([min(timeHr) max(timeHr)]);
+ylim([min(Vcell) max(Vcell)]);
+title('Cell Voltage vs. Time: GITT (10m/60m 0.1C)');
+xlabel('Time, t [hr]');
 ylabel('v_{cell}(t)');
-legend('ROM','Lab','Location','best');
+legend('HRA/Out-Blend Prediction','Laboratory Measurement','Location','northeast');
 thesisFormat;
+addInset([20 25],[350/60 3.3],2.5);
 
 % RMSE Computation --------------------------------------------------------
-vcellRMSE = sqrt(mean((ROMout.Vcell(:)-Vcell(:)).^2));
+ind = ~isnan(ROMout.Vcell(:));
+vcellRMSE = sqrt(mean((ROMout.Vcell(ind)-Vcell(ind).').^2));
 fprintf('RMSE:Vcell = %10.3f mV\n',vcellRMSE*1000);

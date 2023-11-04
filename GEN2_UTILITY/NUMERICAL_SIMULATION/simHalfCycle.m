@@ -92,7 +92,7 @@ if ~p.DryRun
     if p.Verbose
         fprintf('Generating COMSOL model for half-cycle simulation... ');
     end
-    modelCOMSOL = genFOM(p.cellModel,'DebugFlag',false);
+    modelCOMSOL = genFOM(cellModel,'DebugFlag',false);
     if p.Verbose
         fprintf('done!\n');
     end

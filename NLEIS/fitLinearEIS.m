@@ -190,14 +190,14 @@ params.pos.nF = fastopt.param;
 params.pos.tauF = fastopt.param('logscale',true);
 params.pos.Cdl = fastopt.param;
 params.pos.nDL = fastopt.param;
-params.pos.wDL = fastopt.param('logscale',true);
+params.pos.tauDL = fastopt.param('logscale',true);
 params.pos.Rf = fastopt.param;
 
 % Lithium-metal electrode parameters.
 params.neg.k0 = fastopt.param('logscale',true,'tempfcn','Eact');
 params.neg.Cdl = fastopt.param;
 params.neg.nDL = fastopt.param;
-params.neg.wDL = fastopt.param('logscale',true);
+params.neg.tauDL = fastopt.param('logscale',true);
 
 % Cell package parameters.
 params.pkg.R0 = fastopt.param('tempfcn','lut');  % Tab resistance.
@@ -264,7 +264,7 @@ end
 lb.pos.sigma = init.pos.sigma/1000; ub.pos.sigma = init.pos.sigma*1000;
 lb.pos.Cdl = init.pos.Cdl/10;       ub.pos.Cdl = init.pos.Cdl*100;
 lb.pos.nDL = 0.5;                   ub.pos.nDL = 1;
-lb.pos.wDL = 1e-6;                  ub.pos.wDL = 10;
+lb.pos.tauDL = 1e-6;                ub.pos.tauDL = 1e6;
 lb.pos.Rf = init.pos.Rf/100;        ub.pos.Rf = init.pos.Rf*100;
 
 % Lithium-metal electrode parameters.
@@ -272,7 +272,7 @@ lb.neg.k0 = init.neg.k0/1000;       ub.neg.k0 = init.neg.k0*1000;
 lb.neg.k0_Eact = 0;                 ub.neg.k0_Eact = 100000;
 lb.neg.Cdl = init.neg.Cdl/10;       ub.neg.Cdl = init.neg.Cdl*10;
 lb.neg.nDL = 0.5;                   ub.neg.nDL = 1;
-lb.neg.wDL = 1e-6;                  ub.neg.wDL = 10;
+lb.neg.tauDL = 1e-6;                ub.neg.tauDL = 1e6;
 
 % Cell package parameters.
 lb.pkg.R0 = 0;                      ub.pkg.R0 = init.pkg.R0*10;

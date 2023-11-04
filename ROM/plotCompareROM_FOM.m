@@ -7,9 +7,10 @@ TB.addpaths;
 % Constants ---------------------------------------------------------------
 simFile = 'cellLMO-P2DM_defaultHRA';
 % Variables and x-locations to plot vs time.
-vars.Phie = 3;
+vars.PhieTilde = 3;
 vars.Phise = [0 3];
 vars.Thetae = [0 1 2 3];
+vars.Thetass = [2 3];
 
 % Collect simulation data -------------------------------------------------
 simData = load(fullfile('SIM_FILES',[simFile '.mat']));
@@ -49,7 +50,7 @@ plot(timeMin,vcellFOM,':');
 title('Cell Voltage vs. Time');
 xlabel('Time, t [min]');
 ylabel('v_{cell}(t)');
-legend('ROM','COMSOL','Location','best');
+legend('HRA','COMSOL','Location','best');
 thesisFormat;
 
 varNames = fieldnames(varData);
@@ -63,7 +64,7 @@ for k = 1:length(varNames)
         xloc = var.xloc(j);
         plot(timeMin,var.ROM(:,j), ...
             'Color',colorsROM(j,:), ...
-            'DisplayName',sprintf('x=%.0f ROM',xloc)); 
+            'DisplayName',sprintf('x=%.0f HRA',xloc)); 
         hold on;
     end % for
     for j = 1:length(var.xloc)
@@ -81,4 +82,14 @@ end % for varData
 
 % RMSE Computation --------------------------------------------------------
 vcellRMSE = sqrt(mean((vcellROM-vcellFOM).^2));
-fprintf('RMSE:Vcell = %10.3f mV\n',vcellRMSE*1000);
+fprintf('RMSE:%-13s = %10.3f mV\n','Vcell',vcellRMSE*1000);
+varNames = fieldnames(varData);
+for k = 1:length(varNames)
+    varName = varNames{k};
+    var = varData.(varName);
+    for j = 1:length(var.xloc)
+        xloc = var.xloc(j);
+        rmse = sqrt(mean((var.ROM(:,j)-var.FOM(:,j)).^2));
+        fprintf('RMSE:%-10s(%d) = %10.3f m\n',varName,xloc,rmse*1000);
+    end % for
+end

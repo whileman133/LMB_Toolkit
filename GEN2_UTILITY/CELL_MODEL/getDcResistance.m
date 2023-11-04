@@ -1,43 +1,41 @@
-function data = getPerturbationResistance(model, thetaAvg, varargin)
-%GETPERTURBATIONRESISTANCE Compute Baker-Verbrugge perturbation resistance
-%  of a LMB cell. Lumped-parameter model.
+function data = getDcResistance(cellModel, theta, varargin)
+%GETDCRESISTANCE Compute low-frequency resistance of an LMB cell.
 %
-% Rtotal = GETPERTURBATIONRESISTANCE(model,thetaAvg) computes the
-%   perturbation resistance of the LMB cell specified by MODEL at the average 
-%   lithiation values given in the vector THETAAVG. RTOTAL is a column
-%   vector of the perturbation resistances.
+% data = GETDCRESISTANCE(cellModel,theta) computes the dc
+%   perturbation resistance of the LMB cell specified by CELLMODEL at the 
+%   lithiation values given in the vector THETA. The output, DATA, is a 
+%   structure with the following fields:
 %
-% [Rtotal,parts] = GETPERTURBATIONRESISTANCE(...) also returns
-%   a structure PARTS of individual resistances making up the perturbation 
-%   resistance:
-%      parts.R0 = SOC-invariant part (equivalent series resistance) [scalar].
-%      parts.Rct_n = charge-transfer resistance of the negative electrode,
-%         a component of R0 [scalar].
-%      parts.Rdiff = resistance due to SOC-dependent solid diffusion [vector].
-%      parts.Rct_p = total charge-transfer resistance of the intercalate
-%        electrode interface, SOC variant [vector].
-%   If the optional argument pair ('computeRctj',true) is also supplied,
-%   then the PARTS structure has an additional element:
-%      parts.Rctj_p = charge-transfer resistance associated with each MSMR
-%        gallery [matrix]. Columns correspond to SOC setpoints. The total
-%        charge-transfer resistance is given by: Rct_p = sum(Rctj_p).
+%   .Rtotal       = column vector of the dc resistance [Ohm]
+%   .Uocp         = column vector of cel OCP at THETA (i.e., 
+%                   the dynamic equilibrium solution). U is computed 
+%                   internally in the course of determining the MSMR 
+%                   gallery partial lithiations xj, which are needed 
+%                   to compute Rctp.
+%   .parts.R0     = SOC-invariant part (equivalent series resistance) [scalar].
+%   .parts.Rctn   = charge-transfer resistance of the negative electrode,
+%                   a component of R0 [scalar].
+%   .parts.Rd     = resistance due to SOC-dependent solid diffusion [vector].
+%   .parts.Rctp   = total charge-transfer resistance of the intercalate
+%                   electrode interface, SOC variant [vector].
+%   .parts.Rctjp  = charge-transfer resistance associated with each MSMR
+%                   gallery [matrix]. Columns correspond to SOC setpoints. 
+%                   The total charge-transfer resistance is given by: 
+%                   Rct_p = sum(Rctj_p).
+%                   **Included only if the optional argument pair 
+%                    ('ComputeRctj',true) is also supplied!**
 %
-% [Rtotal,parts,U] =  GETPERTURBATIONRESISTANCE(...) also returns the OCV 
-%   evalulated at each lithiation setpoint THETAAVG (i.e., the dynamic 
-%   equilibrium solution). U is computed internally in the course of 
-%   determining the  MSMR gallery partial lithiations xj, which are needed 
-%   to compute Rctp.
-%
-% [...] = GETPERTURBATIONRESISTANCE(...,'TdegC',T) performs the calculation
+% [...] = GETDCRESISTANCE(...,'TdegC',T) performs the calculation
 %   at temperature T instead of the default 25degC.
 %
 % -- Performance options --
-% [...] = GETPERTURBATIONRESISTANCE(...,'ocpData',ocpData) performs the
+% [...] = GETDCRESISTANCE(...,'ocpData',ocpData) performs the
 %   calculation using the OCV vector UOCV instead of computing the OCV
-%   for each lithiation point in THETAAVG. This can speed up the computation 
+%   for each lithiation point in THETA. This can speed up the computation 
 %   if this function is called repeatedly inside an optimization routine
-%   each time with the same THETAAVG, temperature, and MSMR OCP parameters.
-%   If the MSMR parameters change each iteration, this option cannot be used.
+%   each time with the same THETA, temperature, and MSMR OCP parameters.
+%   If the MSMR parameters change each iteration, this option cannot be 
+%   used.
 %
 % -- Background --
 % The reduced-order perturbation approximation developed by 
@@ -49,9 +47,14 @@ function data = getPerturbationResistance(model, thetaAvg, varargin)
 % dynamic-equilibrium solution. thetaAvg(t) is the average lithiation of
 % the positive electrode ("absolute" SOC).
 %
+% This model also coincides with the dc limit of the transfer-function
+% model developed at UCCS, hence the name "dc resistance".
+%
+% -- References --
 % [1] Daniel R. Baker and Mark W. Verbrugge 2021 J. Electrochem. Soc. 168 050526
 %
 % -- Changelog --
+% 2023.11.04 | 
 % 2023.06.02 | Coerce output into column vector | Wesley Hileman
 % 2022.08.22 | Created | Wesley Hileman <whileman@uccs.edu>
 
@@ -61,12 +64,12 @@ parser.addRequired('thetaAvg',@(x)isnumeric(x)&&isvector(x));
 parser.addParameter('TdegC',25,@(x)isnumeric(x)&&isscalar(x));
 parser.addParameter('ocpData',[],@istruct);
 parser.addParameter('ComputeRctj',false,@islogical)
-parser.parse(model,thetaAvg,varargin{:});
+parser.parse(cellModel,theta,varargin{:});
 arg = parser.Results; % structure of validated arguments
 
-if isCellModel(model)
+if isCellModel(cellModel)
     % Covert to legacy lumped-parameter model for use with code below.
-    model = convertCellModel(model,'LLPM');
+    cellModel = convertCellModel(cellModel,'LLPM');
 else
     % Assume a structure of parameter values was supplied instead;
     % no need to convert for code below.
@@ -77,27 +80,27 @@ f = TB.const.F/TB.const.R/T;
 computeRctj = arg.ComputeRctj;
 
 % Ensure lithiation is a row vector.
-thetaAvg = thetaAvg(:)';
+theta = theta(:)';
 
 % Define getters depending on the form of the model (functions or structure
 % of values).
-if isfield(model,'function')
+if isfield(cellModel,'function')
     % Toolbox cell model.
-    isReg = @(reg)isfield(model.function,reg);
-    getReg = @(reg)model.function.(reg);
-    getParam = @(reg,p)model.function.(reg).(p)(0,T);
+    isReg = @(reg)isfield(cellModel.function,reg);
+    getReg = @(reg)cellModel.function.(reg);
+    getParam = @(reg,p)cellModel.function.(reg).(p)(0,T);
 else
     % Set of model parameters already evalulated at setpoint.
-    isReg = @(reg)isfield(model,reg);
-    getReg = @(reg)model.(reg);
-    getParam = @(reg,p)model.(reg).(p);
+    isReg = @(reg)isfield(cellModel,reg);
+    getReg = @(reg)cellModel.(reg);
+    getParam = @(reg,p)cellModel.(reg).(p);
 end
 
 % Compute series resistance component (does not vary with SOC).
-if isfield(model.const,'R0')
+if isfield(cellModel.const,'R0')
     % Model specifies R0 directly.
     Rct_n = NaN;
-    R0 = model.const.R0;
+    R0 = cellModel.const.R0;
 else
     % Compute R0 from model parameters.
     W = getParam('const','W');
@@ -126,7 +129,7 @@ Q = getParam('const','Q');
 theta0 = getParam('pos','theta0');
 theta100 = getParam('pos','theta100');
 Dsref = getParam('pos','Dsref');
-Rdiff = abs(theta100-theta0)/f/Q/Dsref./thetaAvg./(1-thetaAvg)/5/10800;
+Rd = abs(theta100-theta0)/f/Q/Dsref./theta./(1-theta)/5/10800;
 
 % Calculate Rct(pos) at each stoichiometry setpoint.
 if ~isempty(arg.ocpData)
@@ -136,30 +139,30 @@ else
     % Last resort: compute the OCP using the MSMR parameters 
     % (will call fzero twice and interp1 once, even slower).
     msmr = MSMR(getReg('pos'));
-    ocpData = msmr.ocp('theta',thetaAvg,'TdegC',arg.TdegC);
+    ocpData = msmr.ocp('theta',theta,'TdegC',arg.TdegC);
 end
 ctData = msmr.RctCachedOCP(getReg('pos'),ocpData);
-Rct_p = ctData.Rct;
+Rctp = ctData.Rct;
 if computeRctj
-    Rctj_p = ctData.Rctj;
+    Rctjp = ctData.Rctj;
 end
 
 % Finally, calculate the perturbation resistance.
-Rtotal = R0 + Rct_p(:) + Rdiff(:);
+Rtotal = R0 + Rctp(:) + Rd(:);
 
 % Assign individual components of the resistance.
 parts.R0 = R0(:);
-parts.Rct_n = Rct_n(:);
-parts.Rdiff = Rdiff(:);
-parts.Rct_p = Rct_p(:);
+parts.Rctn = Rct_n(:);
+parts.Rd = Rd(:);
+parts.Rctp = Rctp(:);
 if computeRctj
-    parts.Rctj_p = Rctj_p;
+    parts.Rctjp = Rctjp;
 end
 
 data.Rtotal = Rtotal;
 data.parts = parts;
 data.U = ctData.Uocp;
-data.param = arg;
-data.origin__ = 'getPerturbationResistance';
+data.arg = arg;
+data.origin__ = 'getDcResistance';
 
 end

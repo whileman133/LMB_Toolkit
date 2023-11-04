@@ -15,8 +15,10 @@ outdir = 'ROM_FILES';
 
 % Generate ROM
 P2DM = loadCellModel([cellFile '.xlsx']);
-LLPM = convertCellModel(P2DM,'LLPM');
+WRM = convertCellModel(P2DM,'WRM');
+LLPM = convertCellModel(WRM,'LLPM');
 xraData = loadXRA([xraConfigFile '.xlsx']);
+%xraData.debug = true;
 ROM = genROM(LLPM,xraData,'HRA');
 
 % Save ROM.
@@ -25,7 +27,7 @@ if ~isfolder(outdir)
 end
 save( ...
     fullfile(outdir,[cellFile '_' xraConfigFile '.mat']), ...
-    'ROM','P2DM','LLPM' ...
+    'ROM','P2DM','WRM','LLPM' ...
 );
 
 

@@ -7,6 +7,7 @@
 % charge-transfer resistance in the runGPRLinearEIS.m script.
 %
 % -- Changelog --
+% 2023.11.02 | Use tauDL parameter instead of wDL parameter | Wes H.
 % 2023.09.23 | Fix SOC computation error | Wes H.
 % 2023.06.29 | Created | Wesley Hileman <whileman@uccs.edu>
 

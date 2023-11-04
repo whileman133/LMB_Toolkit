@@ -364,7 +364,7 @@ function genData = genFOM(cellModel,varargin)
           FOM.func(fn_name).set('fununit', 'V');
         case {'Rf','Rdl','Rc','Rct'}
           FOM.func(fn_name).set('fununit', 'V/A');
-        case {'nF','nDL','nE','alpha','theta0','theta100','soc','wDL','Thetas'}
+        case {'nF','nDL','nE','alpha','theta0','theta100','soc','Thetas'}
           FOM.func(fn_name).set('fununit', ''); 
         case {'Dsref','Ds'}
           FOM.func(fn_name).set('fununit', '1/s');
@@ -388,7 +388,7 @@ function genData = genFOM(cellModel,varargin)
             FOM.func(fn_name).set('fununit', 'K');
         case {'W'}
             FOM.func(fn_name).set('fununit', '');
-        case {'tauW','tauF'}
+        case {'tauW','tauF','tauDL'}
             FOM.func(fn_name).set('fununit', 's');
         case paramnamesMSMR.pos.U0
           FOM.func(fn_name).set('fununit','V');

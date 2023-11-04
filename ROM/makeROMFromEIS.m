@@ -10,7 +10,7 @@ clear; close all; clc;
 addpath('..');
 TB.addpaths;
 
-eisFile = '202309_EIS-16degC26degC-Ds=linear-k0=linear';
+eisFile = '202310_EIS-16degC26degC-Ds=linear-k0=linear';
 xraConfigFile = 'defaultHRA';
 outdir = 'ROM_FILES';
 TdegC = 25;

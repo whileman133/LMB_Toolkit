@@ -15,8 +15,8 @@ TB.addpaths;
 cellFile = fullfile('agemodel','cellLMO_AgeArray.mat');
 TdegC = 25;
 Verbose = true;
-ArgHalfCycle = {0.1,100,20,TdegC,'Verbose',Verbose}; % Iavg,soc0Pct,socfPct[,...]
-ArgEIS = {logspace(-3,5,50),[100 95 50 10 5],TdegC,'I',0.03,'Verbose',Verbose}; % freq,socPct[,...]
+ArgHalfCycle = {0.1,100,0,TdegC,'Verbose',Verbose}; % Iavg,soc0Pct,socfPct[,...]
+ArgEIS = {logspace(-1,5,30),100:-5:5,TdegC,'I',0.03,'Verbose',Verbose}; % freq,socPct[,...]
 cellData = load(cellFile);
 
 % Run simulations in COMSOL at each cell age.

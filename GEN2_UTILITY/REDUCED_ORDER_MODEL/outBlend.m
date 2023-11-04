@@ -149,73 +149,70 @@ function ROMout = outBlend(simData,ROM,varargin)
 
     % Electrolyte potential across cell width
     ROM.ind.negPhie = find(strcmp(tfName,'negPhie') == 1);
-    ROM.ind.dlPhie = find(strcmp(tfName,'dlPhie') == 1);
+    ROM.ind.dllPhie = find(strcmp(tfName,'dllPhie') == 1);
     ROM.ind.sepPhie = find(strcmp(tfName,'sepPhie') == 1); 
     ROM.ind.posPhie = find(strcmp(tfName,'posPhie') == 1);
     ROM.loc.negPhie = tfLocs(ROM.ind.negPhie);
-    ROM.loc.dlPhie = tfLocs(ROM.ind.dlPhie);
+    ROM.loc.dllPhie = tfLocs(ROM.ind.dllPhie);
     ROM.loc.sepPhie = tfLocs(ROM.ind.sepPhie); 
     ROM.loc.posPhie = tfLocs(ROM.ind.posPhie);
 
-    ROM.ind.Phie = [ROM.ind.negPhie; ROM.ind.dlPhie;ROM.ind.sepPhie;ROM.ind.posPhie];
-    ROM.loc.Phie = [ROM.loc.negPhie; ROM.loc.dlPhie;ROM.loc.sepPhie;ROM.loc.posPhie];
+    ROM.ind.Phie = [ROM.ind.negPhie; ROM.ind.dllPhie; ROM.ind.sepPhie; ROM.ind.posPhie];
+    ROM.loc.Phie = [ROM.loc.negPhie; ROM.loc.dllPhie;ROM.loc.sepPhie;ROM.loc.posPhie];
 
     % Electrolyte normalized concentration across cell width
-    ROM.ind.dlThetae  = find(strcmp(tfName,'dlThetae')== 1);
+    ROM.ind.negThetae  = find(strcmp(tfName,'negThetae')== 1);
+    ROM.ind.dllThetae  = find(strcmp(tfName,'dllThetae')== 1);
     ROM.ind.sepThetae  = find(strcmp(tfName,'sepThetae')== 1); 
     ROM.ind.posThetae  = find(strcmp(tfName,'posThetae')== 1);
-    ROM.loc.dlThetae = tfLocs(ROM.ind.dlThetae);
+    ROM.loc.negThetae = tfLocs(ROM.ind.negThetae);
+    ROM.loc.dllThetae = tfLocs(ROM.ind.dllThetae);
     ROM.loc.sepThetae = tfLocs(ROM.ind.sepThetae); 
     ROM.loc.posThetae = tfLocs(ROM.ind.posThetae);
 
-    ROM.ind.Thetae = [ROM.ind.dlThetae;ROM.ind.sepThetae;...
+    ROM.ind.Thetae = [ROM.ind.negThetae;ROM.ind.dllThetae;ROM.ind.sepThetae;...
                        ROM.ind.posThetae];
-    ROM.loc.Thetae = [ROM.loc.dlThetae;ROM.loc.sepThetae;...
+    ROM.loc.Thetae = [ROM.loc.negThetae;ROM.loc.dllThetae;ROM.loc.sepThetae;...
                        ROM.loc.posThetae];
 
     %-- Verify that variables required for nonlinear corrections exist 
     % Need to check:
-    %  1. Ifdl    at both current-collectors
-    %  2. If   at both current-collectors
-    %  3. ROMout.Thetae  at both current-collectors
-    %  4. Thetass at both current-collectors
-    %  5. Phise   at negative-electrode current-collector 
-    %  6. ROMout.Phie    at positive-electrode current-collector
+    %  1. Ifdl at both pos cc
+    %  2. If at neg/pos cc
+    %  3. Thetae at both cc
+    %  4. Thetass at pos cc
+    %  5. Phie at positive-electrode cc
 
     % Find location indexes
-    ROM.ind.negIfdl0    = find(strcmp(tfName,'negIfdl') == 1 ...
-                                & tfLocs == 0);
-    ROM.ind.posIfdl3    = find(strcmp(tfName,'posIfdl') == 1 ...
-                                & tfLocs == 3);
-    ROM.ind.negIf0   = find(strcmp(tfName,'negIf') == 1);
-    ROM.ind.posIf3   = find(strcmp(tfName,'posIf') == 1 ...
-                                & tfLocs == 3);
-    ROM.ind.posThetass3 = find(strcmp(tfName,'posThetass') == 1 ...
-                                & tfLocs == 3);
-    ROM.ind.negPhise0   = find(strcmp(tfName,'negPhise') == 1 ...
-                                & tfLocs == 0);
+    ROM.ind.posIfdl3    = find(strcmp(tfName,'posIfdl')==1&tfLocs==3);
+    ROM.ind.negIf0      = find(strcmp(tfName,'negIf')==1&tfLocs==0);
+    ROM.ind.posIf3      = find(strcmp(tfName,'posIf')==1&tfLocs==3);
+    ROM.ind.posThetass3 = find(strcmp(tfName,'posThetass')==1&tfLocs==3);
+    ROM.ind.negThetae0  = find(strcmp(tfName,'negThetae')==1&tfLocs==0);
+    ROM.ind.posThetae3  = find(strcmp(tfName,'posThetae')==1&tfLocs==3);
+    ROM.ind.posPhie3    = find(strcmp(tfName,'posPhie')==1&tfLocs==3);
 
     % Check #1
-%     if isempty(ROM.ind.negIfdl0)
-%       error('Simulation requires ifdl at negative-collector!'); 
-%     end
+    % NOTE: not required at neg for LMB!
     if isempty(ROM.ind.posIfdl3)
       error('Simulation requires ifdl at positive-collector!'); 
     end
 
     % Check #2
-%     if isempty(ROM.ind.negIf0)
-%       error('Simulation requires if at negative-collector!'); 
-%     end
+    if isempty(ROM.ind.negIf0)
+      error('Simulation requires if at neg!'); 
+    end
     if isempty(ROM.ind.posIf3)
       error('Simulation requires if at positive-collector!'); 
     end
 
     % Check #3
     if ROM.loc.Thetae(1) > 0
-      error('Simulation requires thetae at negative-collector!'); end
+      error('Simulation requires thetae at neg!'); 
+    end
     if or(ROM.loc.Thetae(end)>3+eps,ROM.loc.Thetae(end)<3-eps)
-      error('Simulation requires thetae at positive-collector!'); end
+      error('Simulation requires thetae at positive-collector!'); 
+    end
 
     % Check #4
     if isempty(ROM.ind.posThetass3)
@@ -223,11 +220,6 @@ function ROMout = outBlend(simData,ROM,varargin)
     end
 
     % Check #5
-%     if isempty(ROM.ind.negPhise0)
-%       error('Simulation requires phise at negative-collector!'); 
-%     end
-
-    % Check #6
     if ROM.loc.Phie(1) == 0
       shortWarn('First phie x-location should not be zero. Ignoring');
       ROM.ind.Phie = ROM.ind.Phie(2:end);
@@ -245,16 +237,10 @@ function ROMout = outBlend(simData,ROM,varargin)
     duration = length(ik);
     
     % At negative electrode and its current collector
-    ROMout.negIfdl    = zeros(duration,length(ROM.ind.negIfdl));
-    ROMout.negIf      = zeros(duration,length(ROM.ind.negIf));
-%     ROMout.negIdl     = zeros(duration,length(ROM.ind.negIdl));   
-    ROMout.negPhie   = zeros(duration,length(ROM.ind.negPhie));
+    ROMout.negIfdl    = zeros(duration,1);
+    ROMout.negIf      = zeros(duration,length(ROM.ind.negIf));  
+    ROMout.negPhie    = zeros(duration,length(ROM.ind.negPhie));
     ROMout.negPhise   = zeros(duration,length(ROM.ind.negPhise));
-    ROMout.negIfdl0    = zeros(duration,length(ROM.ind.negIfdl0));
-    ROMout.negIf0   = zeros(duration,length(ROM.ind.negIf0));
-%     ROMout.negEta0     = zeros(duration,length(ROM.ind.negIf0));
-    ROMout.negPhise0   = zeros(duration,length(ROM.ind.negPhise0));
-
 
     % At positive electrode and its current collector
     ROMout.posIfdl    = zeros(duration,length(ROM.ind.posIfdl));
@@ -264,14 +250,9 @@ function ROMout = outBlend(simData,ROM,varargin)
     ROMout.posPhise   = zeros(duration,length(ROM.ind.posPhise));
     ROMout.posThetass = zeros(duration,length(ROM.ind.posThetass));
 
-    ROMout.posIfdl3    = zeros(duration,length(ROM.ind.posIfdl3));
-    ROMout.posIf3   = zeros(duration,length(ROM.ind.posIf3));
-    ROMout.posEta3     = zeros(duration,length(ROM.ind.posIf3));
-    ROMout.posThetass3 = zeros(duration,length(ROM.ind.posThetass3));
-
     % Electrolyte variables
-    ROMout.Phie   = zeros(duration,length(ROM.ind.Phie)+1); % add x=0 loc
-    ROMout.Thetae = zeros(duration,length(ROM.ind.Thetae));
+    ROMout.PhieTilde  = zeros(duration,length(ROM.ind.Phie));
+    ROMout.Thetae     = zeros(duration,length(ROM.ind.Thetae));
 
     % Other cell and electrode quantities
     ROMout.Vcell   = zeros(duration,1);
@@ -302,7 +283,6 @@ function ROMout = outBlend(simData,ROM,varargin)
         bigA(:,ind) = real(diag(ROMi.A));
 
         % Don't forget to change res0 because we need only [phise]*
-%         ROMmdls(tt,zz).C(ROM.ind.negPhise,end) = 0;
         ROMmdls(tt,zz).C(ROM.ind.posPhise,end) = 0;
       end
     end
@@ -323,23 +303,16 @@ function ROMout = outBlend(simData,ROM,varargin)
     R         = cellData.const.R;    
     Q         = cellData.function.const.Q(); % cell capacity in Ah
     if isfield(cellData.function.const,'Rc')
-        Rc    = cellData.function.const.Rc();
-    elseif isfield(cellData.function,'pkg') && isfield(cellData.function.pkg,'R0')
-        Rc    = cellData.function.pkg.R0();
+        Rc = cellData.function.const.Rc();
     else
-        Rc    = 0;
+        Rc = 0;
     end
     theta0p   = cellData.function.pos.theta0();
     theta100p = cellData.function.pos.theta100();
-    
-%     wDLn      = cellData.function.neg.wDL(SOC0n,T); 
-    wDLp      = cellData.function.pos.wDL(SOC0p,T); 
-%     Cdln      = cellData.function.neg.Cdl(SOC0n,T); 
+    tauDLp    = cellData.function.pos.tauDL(SOC0p,T); 
     Cdlp      = cellData.function.pos.Cdl(SOC0p,T);
-%     nDLn      = cellData.function.neg.nDL();
     nDLp      = cellData.function.pos.nDL();
-%     Cdleffn   = (Cdln^(2-nDLn))*(wDLn^(nDLn-1));
-    Cdleffp   = (Cdlp^(2-nDLp))*(wDLp^(nDLp-1));
+    Cdldcp    = Cdlp^nDLp*tauDLp^(1-nDLp); % double-layer cap @ dc
 
     % Load present model state from "cellState"
     bigX      = cellState.bigX;
@@ -353,9 +326,9 @@ function ROMout = outBlend(simData,ROM,varargin)
     ROMout.cellSOC(k+1) = (SOCpAvg - theta0p)/(theta100p - theta0p);
 
     % Compute integrator input gains
-    dUocppAvg = cellData.function.pos.dUocp(SOCpAvg,T);  
+    dUocppAvg = cellData.function.pos.dUocp(SOCpAvg,T);
     dQp       = abs(theta100p-theta0p);   
-    res0p     =  dQp/(3600*Q-Cdleffp*dQp*dUocppAvg);
+    res0p     = dQp/(3600*Q-Cdldcp*dQp*dUocppAvg);
    
     % Compute average positive-electrode SOC
     SOCpAvg = SOCpAvg + res0p*Iapp*(tk(2)-tk(1));
@@ -428,21 +401,41 @@ function ROMout = outBlend(simData,ROM,varargin)
     % -------------------------------------------------------
     % Step 5: Add nonlinear corrections to the linear output
     % -------------------------------------------------------
+
+    % Compute variables at specific x-locations.
+    Thetae0 = yk(ROM.ind.negThetae0) + 1;
+    Thetae3 = yk(ROM.ind.posThetae3) + 1;
+    Thetass3 = yk(ROM.ind.posThetass3) + SOC0p;
+    If0 = yk(ROM.ind.negIf0);
+    If3 = yk(ROM.ind.posIf3);
+    PhieTilde3 = yk(ROM.ind.posPhie3);
+    Ifdl3 = yk(ROM.ind.posIfdl3);
+    % Compute overpotential at current-collectors via asinh method (eta)
+    if isfield(cellData.function.pos,'U0')
+        % MSMR kinetics.
+        electrode = MSMR(cellData.function.pos);
+        ctData = electrode.Rct( ...
+            cellData.function.pos,'theta',Thetass3);
+        i0p = ctData.i0*sqrt(Thetae3);
+    else
+        k0p = cellData.function.pos.k0(ROMout.posSOC(k+1),T);
+        i0p = k0p*sqrt(Thetae3*(1-Thetass3)*Thetass3);
+    end
+    k0n = cellData.function.neg.k0(ROMout.posSOC(k+1),T);
+    i0n = k0n*sqrt(Thetae0);
+    posEta3 = 2*R*T/F*asinh(If3/(2*i0p));
+    negEta0 = 2*R*T/F*asinh(If0/(2*i0n));
+
     % Interfacial total molar rate (ifdl)
-    ROMout.negIfdl(k+1,:) = yk(ROM.ind.negIfdl);
     ROMout.posIfdl(k+1,:) = yk(ROM.ind.posIfdl);
-    ROMout.negIfdl0(k+1)  = yk(ROM.ind.negIfdl0);
-    ROMout.posIfdl3(k+1)  = yk(ROM.ind.posIfdl3);
 
     % Interfacial faradaic molar rate (if)
-%     ROMout.negIf(k+1,:)   = yk(ROM.ind.negIf);
+    ROMout.negIf(k+1,:)   = yk(ROM.ind.negIf);
     ROMout.posIf(k+1,:)   = yk(ROM.ind.posIf);
-    ROMout.negIf0(k+1)    = yk(ROM.ind.negIf0);
-    ROMout.posIf3(k+1)    = yk(ROM.ind.posIf3);
 
     % Interfacial nonfaradaic molar rate (Idl)
 %     ROMout.negIdl(k+1,:)  = yk(ROM.ind.negIdl);
-    ROMout.posIdl(k+1,:)  = yk(ROM.ind.posIdl);
+%     ROMout.posIdl(k+1,:)  = yk(ROM.ind.posIdl);
 
     % Solid surface stoichiometries (thetass)
     ROMout.posThetass(k+1,:) = yk(ROM.ind.posThetass) + SOC0p;
@@ -455,27 +448,14 @@ function ROMout = outBlend(simData,ROM,varargin)
       ROMout.posThetass(ROMout.posThetass > 1) = 1-1e-6;
     end
 
-
-    ROMout.posThetass3(k+1) = yk(ROM.ind.posThetass3) + SOC0p;
-    if any(ROMout.posThetass3(k+1) < 0)
-      shortWarn('posThetass3 < 0'); 
-      ROMout.posThetass3(ROMout.posThetass3 < 0) = 1e-6;
-    end
-    if any(ROMout.posThetass3(k+1) > 1)
-      shortWarn('posThetass3 > 1'); 
-      ROMout.posThetass3(ROMout.posThetass3 > 1) = 1-1e-6;
-    end
-
     % Solid-electrolyte potential difference (phise)
     % The linear output from yk is integrator-removed version
     UocppAvg = cellData.function.pos.Uocp(ROMout.posSOC(k+1),T);
-%     ROMout.negPhise(k+1,:) = yk(ROM.ind.negPhise)  + UocpnAvg;
+    ROMout.negPhise(k+1,:) = yk(ROM.ind.negPhise);
     ROMout.posPhise(k+1,:) = yk(ROM.ind.posPhise)  + UocppAvg;
-    ROMout.negPhise0(k+1)  = yk(ROM.ind.negPhise0) ;
 
-    % Compute electrolyte potential: first phie(0,t) then phie(1:3,t)
-    ROMout.Phie(k+1,1)     = yk(ROM.ind.negPhie); 
-    ROMout.Phie(k+1,2:end) = yk(ROM.ind.Phie) + yk(ROM.ind.negPhie); 
+    % Compute electrolyte potential.
+    ROMout.PhieTilde(k+1,:) = yk(ROM.ind.Phie);
 
     % Compute electrolyte stoichiometries (thetae)
     ROMout.Thetae(k+1,:) = yk(ROM.ind.Thetae) + 1;
@@ -483,36 +463,18 @@ function ROMout = outBlend(simData,ROM,varargin)
       shortWarn('Thetae < 0'); ROMout.Thetae(ROMout.Thetae < 0) = 1e-6;
     end
 
-    % Compute overpotential at current-collectors via asinh method (eta)
-    if isfield(cellData.function.pos,'U0')
-        % MSMR kinetics.
-        electrode = MSMR(cellData.function.pos);
-        ctData = electrode.Rct( ...
-            cellData.function.pos,'theta',ROMout.posThetass3(k+1));
-        i0p = ctData.i0;
-    else
-        k0p = cellData.function.pos.k0(ROMout.posSOC(k+1),T);
-        i0p = k0p*sqrt(ROMout.Thetae(k+1,end)*...
-                   (1-ROMout.posThetass3(k+1))*ROMout.posThetass3(k+1));
-    end
-    
-    ROMout.posEta3(k+1) = 2*R*T/F*asinh(ROMout.posIf3(k+1)/(2*i0p));
-
     % Compute cell voltage (ROMout.Vcell)
-    Uocpp3 = cellData.function.pos.Uocp(ROMout.posThetass3(k+1),T);
+    Uocpp3 = cellData.function.pos.Uocp(Thetass3,T);
     Rfn    = cellData.function.neg.Rf(0.5,T);
-    ROMout.negEta0(k+1) = -ROMout.Phie(k+1,1) - Rfn*Iapp;
     Rfp    = cellData.function.pos.Rf(ROMout.posSOC(k+1),T);
-
-    ROMout.Vcell(k+1) = ROMout.posEta3(k+1) - ROMout.negEta0(k+1)...
-        + yk(ROM.ind.Phie(end)) + Uocpp3 ...
-        + (Rfp*ROMout.posIfdl3(k+1) - Rfn*ROMout.negIfdl(k+1));
+    ROMout.Vcell(k+1) = ...
+        (posEta3+Uocpp3+Rfp*Ifdl3)-(negEta0+Rfn*Iapp)+PhieTilde3;
 
     % Finally, compute solid potential (phis)
     ROMout.posPhis(k+1,:) = yk(ROM.ind.posPhis) + ROMout.Vcell(k+1);
-    
-    % Update Vcell if Rc is nonzero
-    ROMout.Vcell(k+1) = ROMout.Vcell(k+1) - Rc*Iapp;
+
+    % Correct Vcell for tab resistance (must do after Phis computation!).
+     ROMout.Vcell(k+1) =  ROMout.Vcell(k+1) - Iapp*Rc;
     
     % Function outputs: voltage and updated cell state
     Vcell = ROMout.Vcell(k+1);
@@ -537,34 +499,28 @@ function ROMout = outBlend(simData,ROM,varargin)
     ROMout.T        = Tk(:);
 
     % Save each variable
-    ROMout.Ifdl    = [ROMout.negIfdl0 ROMout.posIfdl];
-%     ROMout.Ifdl    = [ROMout.negIfdl ROMout.posIfdl];
-    ROMout.If      = [ ROMout.negIf0 ROMout.posIf]; % [ROMout.negIf ROMout.posIf];
-    ROMout.Idl     = [ ROMout.posIdl];% [ROMout.negIdl ROMout.posIdl];
+    ROMout.Ifdl    = [ROMout.posIfdl];
+    ROMout.If      = [ROMout.negIf ROMout.posIf];
+    ROMout.Idl     = [ROMout.posIdl];
     ROMout.Phis    = [ROMout.posPhis];
-    ROMout.Phise   = [ROMout.negPhise0 ROMout.posPhise]; % [ROMout.negPhise ROMout.posPhise];
+    ROMout.Phise   = [ROMout.negPhise ROMout.posPhise];
     ROMout.Thetass = [ROMout.posThetass];
 
     % Save locations of each variable
     tfLocs               = ROM.tfLocs;
-%     ROMout.xLocs.Ifdl    = [tfLocs(ROM.ind.negIfdl);...
-%                             tfLocs(ROM.ind.posIfdl)];
-%     ROMout.xLocs.If      = [tfLocs(ROM.ind.negIf);...
-%                             tfLocs(ROM.ind.posIf)];
-%     ROMout.xLocs.Idl     = [tfLocs(ROM.ind.negIdl);...
-%                             tfLocs(ROM.ind.posIdl)];
-    ROMout.xLocs.Ifdl    = [tfLocs(ROM.ind.negIfdl); tfLocs(ROM.ind.posIfdl)];
+    ROMout.xLocs.Ifdl    = [tfLocs(ROM.ind.posIfdl)];
     ROMout.xLocs.If      = [tfLocs(ROM.ind.negIf); tfLocs(ROM.ind.posIf)];
-%     ROMout.xLocs.Idl     = [tfLocs(ROM.ind.posIdl)];
     ROMout.xLocs.Phis    = [tfLocs(ROM.ind.posPhis)];
-    ROMout.xLocs.Phie    = [tfLocs(ROM.ind.negPhie);tfLocs(ROM.ind.dlPhie);...
+    ROMout.xLocs.PhieTilde = [tfLocs(ROM.ind.negPhie);
+                            tfLocs(ROM.ind.dllPhie);...
                             tfLocs(ROM.ind.sepPhie);...
                             tfLocs(ROM.ind.posPhie)];
     ROMout.xLocs.Phise   = [tfLocs(ROM.ind.negPhise);...
                             tfLocs(ROM.ind.posPhise)];
-   ROMout.xLocs.Phise   = [tfLocs(ROM.ind.negPhise) ; tfLocs(ROM.ind.posPhise)];
+    ROMout.xLocs.Phise   = [tfLocs(ROM.ind.negPhise) ; tfLocs(ROM.ind.posPhise)];
     ROMout.xLocs.Thetass = [tfLocs(ROM.ind.posThetass)];
-    ROMout.xLocs.Thetae  = [tfLocs(ROM.ind.dlThetae);...
+    ROMout.xLocs.Thetae  = [tfLocs(ROM.ind.negThetae);
+                            tfLocs(ROM.ind.dllThetae);...
                             tfLocs(ROM.ind.sepThetae);...
                             tfLocs(ROM.ind.posThetae)];
   end
