@@ -11,8 +11,9 @@ addpath('..');
 TB.addpaths();
 
 % Load simulation data.
-simName = 'cellLMO-P2DM-100pct-0pct';
+simName = 'cellSionGuess-P2DM-99pct-1pct';
 load(fullfile('simdata','multhalfcyc',[simName '.mat']));
+plotdir = fullfile('plots','multhalfcycle',simName);
 
 % Fetch time, iapp(t), vcell(t) vectors.
 halfcycData = [simData.iappSeries];
@@ -71,68 +72,91 @@ end
 
 % Compute true OCP and Rcell for comparison.
 LLPM = convertCellModel(simData.cellModel,'LLPM');
-Rc = getCellParams(LLPM,'const.Rc');
-ocpData = MSMR(LLPM.function.pos).ocp('theta',thetaAvg,'TdegC',simData.TdegC);
+ocpData = MSMR(LLPM.function.pos).Ds( ...
+    LLPM.function.pos,'theta',thetaAvg,'TdegC',simData.TdegC);
 UocpTrue = ocpData.Uocp;
 UocpRMSE = rms(UocpEst-UocpTrue);
-resData = getPerturbationResistance(LLPM,thetaAvg);
-RcellTrue = resData.Rtotal + Rc; % correct for tab resistance!
+resData = getDcResistance(LLPM,thetaAvg);
+RcellTrue = resData.Rdc;
 RcellIsNaN = isnan(RcellEst);
 RcellRMSE = rms(RcellEst(~RcellIsNaN)-RcellTrue(~RcellIsNaN));
 
-figure;
-plot(thetaAvg,VcellNorm); hold on;
-plot(thetaAvg,UocpTrue-IappNorm.*RcellTrue,':');
-thesisFormat;
-
-figure; 
-plot(thetaAvg,UocpEst); hold on;
-plot(thetaAvg,UocpTrue,':');
-thesisFormat;
-
-figure;
-plot(thetaAvg,RcellEst); hold on;
-plot(thetaAvg,RcellTrue,':');
-thesisFormat;
-
-return;
+% Compute voltage-prediction RMSE.
+VcellTrue = VcellNorm;
+VcellHat = UocpTrue-IappNorm.*RcellTrue;
+VcellRMSE = rms(VcellTrue-VcellHat);
+disp(simData.IavgC);
+disp(VcellRMSE*1000);
 
 % -- Plotting -------------------------------------------------------------
-
-% Plotting constants.
-titlePrefix = sprintf( ...
-    'Half-Cycle Discharge (%d\\rightarrow%d%% SOC)', ...
-    simData.soc0Pct,simData.socfPct);
-plotdir = fullfile('plots',simName);
 if ~isfolder(plotdir)
     mkdir(plotdir);
 end
 
-% Plot Iapp(t).
-labels1 = arrayfun( ...
-    @(I)sprintf('%.1fC avg',I),simData.IavgC,'UniformOutput',false);
-figure; colororder(spring(size(Iapp,2)));
-plot(time/3600,Iapp/Q);
-legend(labels1{:},'NumColumns',1,'Location','best');
-title([titlePrefix ': i_{app}(t)']);
-xlabel('Time, t [hr]');
-ylabel('i_{app} [C-rate]');
-thesisFormat([0.2 0.1 0.1 0.2]);
+figure;
+lab1 = arrayfun(@(I)sprintf('COMSOL'),simData.IavgC,'UniformOutput',false);
+lab2 = arrayfun(@(I)sprintf('DC Model @ %+.2fC',I),simData.IavgC,'UniformOutput',false);
+plot(thetaAvg,VcellNorm); hold on;
+plot(thetaAvg,UocpTrue-IappNorm.*RcellTrue,':');
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
+ylabel('Cell voltage, v_{cell} [V]');
+title('Half-Cycle Dis/charge');
+l = legend(lab1{:},lab2{:},'Location','best','NumColumns',2);
+thesisFormat;
+l.FontSize = 10;
+print(fullfile(plotdir,'hc-dis'),'-depsc');
+print(fullfile(plotdir,'hc-dis'),'-dpng');
 
-% Plot Vcell(t).
-labels1 = arrayfun( ...
-    @(I)sprintf('%.1fC avg FOM',I),simData.IavgC,'UniformOutput',false);
-labels2 = arrayfun( ...
-    @(err)sprintf('PM (%.3f%% RMSE)',err),rmsePct,'UniformOutput',false);
-labels3 = arrayfun( ...
-    @(I)sprintf('OCV'),simData.IavgC,'UniformOutput',false);
-figure; colororder(spring(size(Vcell,2)));
-plot(time/3600,Vcell); hold on;
-plot(time/3600,VcellModel,'k--');
-%plot(time/3600,Uocv,':');
-legend(labels1{:},labels2{:},'NumColumns',2,'Location','northeast');
-%legend(labels1{:},labels2{:},labels3{:},'NumColumns',3,'Location','best');
-title([titlePrefix ': v_{cell}(t)']);
-xlabel('Time, t [hr]');
-ylabel('v_{cell} [V]');
-thesisFormat([0.2 0.1 0.1 0.2]);
+figure;
+subplot(211);
+lab = arrayfun(@(I)sprintf('Iavg=%+.2fC',I),simData.IavgC,'UniformOutput',false);
+plot(thetaAvg,(VcellHat-VcellTrue)*1000); hold on;
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
+ylabel('Prediction error, $\hat{v}_{cell}-v_{cell}$ [mV]','Interpreter','latex');
+title('Prediction Error of dc Model');
+legend(lab,'Location','best','NumColumns',2);
+subplot(212); 
+yyaxis left;
+plot(thetaAvg,ocpData.d2Uocp);
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
+ylabel('OCP curvature, U_{ocp}'''' [V]');
+title('OCP Curvature and Solid Diffusivity');
+yyaxis right;
+plot(thetaAvg,ocpData.Ds,':');
+ylabel('Solid-diffusion coefficient D_s [s^{-1}]');
+thesisFormat('PlotBoxPaddingInches',[0 0 0.5 0]);
+print(fullfile(plotdir,'d2Uocp-Ds'),'-depsc');
+print(fullfile(plotdir,'d2Uocp-Ds'),'-dpng');
+return;
+
+figure; 
+plot(thetaAvg,UocpTrue); hold on;
+plot(thetaAvg,UocpEst,':');
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
+ylabel('U_{ocp} [V vs. Li/Li+]');
+title(sprintf('OCP Estimate (%.3fmV RMSE)',UocpRMSE*1000));
+legend('True OCP','Estimate','Location','best');
+thesisFormat;
+print(fullfile(plotdir,'OCPEst'),'-depsc');
+print(fullfile(plotdir,'OCPEst'),'-dpng');
+
+figure;
+plot(thetaAvg,RcellTrue); hold on;
+plot(thetaAvg,RcellEst,':');
+set(gca,'xdir','reverse');
+xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
+    'Interpreter','latex');
+ylabel('R_{dc} [\Omega]');
+title(sprintf('DC Resistance Estimate (%.3fm\\Omega RMSE)',RcellRMSE*1000));
+legend('True DC Resistance','Estimate','Location','best');
+thesisFormat;
+print(fullfile(plotdir,'RdcEst'),'-depsc');
+print(fullfile(plotdir,'RdcEst'),'-dpng');

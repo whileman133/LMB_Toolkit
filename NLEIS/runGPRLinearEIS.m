@@ -10,7 +10,7 @@ clear; close all; clc;
 addpath('..');
 TB.addpaths;
 addpath(genpath('gpml'));
-filename = '202309_EIS-16degC26degC-Ds=linear-k0=linear';
+filename = '202310_EIS-16degC26degC-Ds=linear-k0=linear';
 fitData = load(fullfile('labfitdata',[filename '.mat']));
 plotdir = fullfile('plots','linEIS-GPR');
 if ~isfolder(plotdir)
@@ -178,6 +178,8 @@ ylabel('Extrinsic Diffusivity, D_s [s^{-1}]');
 title('Solid Diffusivity: Optimized GPR Estimate');
 legend('Estimate','3\sigma Bounds','From Linear EIS','Location','best');
 thesisFormat;
+set(gcf,'Color',[239, 229, 195]/255);
+set(gcf, 'InvertHardcopy', 'off');
 print('-depsc',fullfile(plotdir,'Ds-optimized'));
 print('-dpng',fullfile(plotdir,'Ds-optimized'));
 
@@ -210,8 +212,6 @@ legend('GPR Estimate','3\sigma Bounds','MSMR Estimate','Location','northwest');
 thesisFormat;
 print('-depsc',fullfile(plotdir,'Ds-eMSMR-optimized'));
 print('-dpng',fullfile(plotdir,'Ds-eMSMR-optimized'));
-
-return;
 
 % figure;
 % semilogy(postOpt_eMSMR_DsData.theta,postOpt_eMSMR_DsData.Ds); hold on;
@@ -293,10 +293,11 @@ print('-depsc',fullfile(plotdir,'i0p-initial'));
 print('-dpng',fullfile(plotdir,'i0p-initial'));
 
 figure;
-semilogy(xte,10.^mu); hold on;
+semilogy(xte,10.^mu,'k:'); hold on;
 fill([xte;flipud(xte)],10.^[mu+3*sqrt(Sigma);flipud(mu-3*sqrt(Sigma))],...
        'k','EdgeColor','k','FaceAlpha',0.1,'EdgeAlpha',0.3);
-semilogy(theta,k0,'o');
+semilogy(theta,k0,'ro');
+semilogy(xte,10.^mu,'k:');
 set(gca,'xdir','reverse');
 xlabel('$x$ in $\mathrm{Li}_x\mathrm{Ni}_y\mathrm{Mn}_z\mathrm{Co}_{1-y-z}\mathrm{O}_2$', ...
     'Interpreter','latex');
@@ -304,6 +305,8 @@ ylabel('Exchange Current , i_{0}^{p} [A]');
 title('i_{0}^{p}: Optimized GPR Estimate');
 legend('Estimate','3\sigma Bounds','From Linear EIS','Location','best');
 thesisFormat;
+set(gcf,'Color',[239, 229, 195]/255);
+set(gcf, 'InvertHardcopy', 'off');
 print('-depsc',fullfile(plotdir,'i0p-optimized'));
 print('-dpng',fullfile(plotdir,'i0p-optimized'));
 

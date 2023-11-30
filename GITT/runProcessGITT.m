@@ -13,7 +13,7 @@ TB.addpaths;
 
 % Constants.
 dataFolder = 'labdata';
-gittFolder = 'Sion202309_GITT_Cell3955XX_P25_2m_60m';
+gittFolder = 'Sion202309_GITT_Cell395530_P25_2m_20m';
 dtaName = 'PWRGITT.DTA';
 ocpFile = 'FinalFit-SionFresh_0C01';  % file w/ regressed OCP data
 plotDir = 'plots';

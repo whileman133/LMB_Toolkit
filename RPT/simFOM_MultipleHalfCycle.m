@@ -14,8 +14,8 @@ TB.addpaths;
 
 % Constants.
 cellFile = 'cellLMO-P2DM.xlsx';  % Name of cell parameters spreadsheet.
-soc0Pct = 100;         % Initial cell SOC for dischg (final for chg) [%].
-socfPct = 0;           % Final cell SOC for dischg (initial for chg) [%].
+soc0Pct = 99;         % Initial cell SOC for dischg (final for chg) [%].
+socfPct = 1;          % Final cell SOC for dischg (initial for chg) [%].
 TdegC = 25;            % Cell temperature [degC].
 IavgC = [-1:0.2:-0.6 0.6:0.2:1];   % Amplitude of Iapp sinusoid (- for chg) [average C-rate].
 suffix = '';           % String to append to name of output data file.
@@ -26,27 +26,11 @@ OptSimFOM.DebugFlag = false;
 % Load cell parameters.
 cellModel = loadCellModel(cellFile);
 cellModel = convertCellModel(cellModel,'RLWRM');
-Q = getCellParams(cellModel,'const.Q');
-Iavg = IavgC*Q; % average iapp in Amps
 
-% Run EIS simulation(s) in COMSOL at each SOC setpoint.
-clear iappSeries;
-for k = length(Iavg):-1:1
-    fprintf('Simulating Iavg=%5.2fC (#%d)... ',IavgC(k),k);
-    zo = soc0Pct;
-    zf = socfPct;
-    if Iavg(k)<0
-        % Discharge
-        zo = socfPct;
-        zf = soc0Pct;
-    end
-    iappSeries(k) = simHalfCycle( ...
-        cellModel,abs(Iavg(k)),zo,zf,TdegC, ...
-        'Verbose',false,'OptSimFOM',OptSimFOM);
-    fprintf('done!\n')
-end
+iappSeries = simHalfCycle( ...
+        cellModel,IavgC,soc0Pct,socfPct,TdegC, ...
+        'Verbose',true,'OptSimFOM',OptSimFOM);
 simData.iappSeries = iappSeries;
-simData.Iavg = Iavg;
 simData.IavgC = IavgC;
 simData.TdegC = TdegC;
 simData.soc0Pct = soc0Pct;

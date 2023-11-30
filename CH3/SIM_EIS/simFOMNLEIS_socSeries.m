@@ -23,7 +23,7 @@ cellFile = 'cellLMO-P2DM.xlsx';  % Name of cell parameters spreadsheet.
 freq = logspace(-3,5,50);   % Frequency points to evalulate in the spectrum [Hz].
 socPct = [95 50 5];         % Cell SOC setpoint(s) [%].
 TdegC = 25;                 % Cell temperature [degC].
-I = 0.03;                   % Amplitude of Iapp sinusoids [A].
+I = 0.1; %0.03;                   % Amplitude of Iapp sinusoids [A].
 suffix = '';                % String to append to name of output data file.
 % Structure of additional options to pass to simFOM.
 OptSimFOM.FixExchangeCurrent = false;  % more realilistic when i0 varies

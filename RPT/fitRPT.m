@@ -20,9 +20,8 @@ function fitData = fitRPT(meas,modelspec,init,lb,ub,varargin)
 % -- Data Format --
 % Input: Measurement Structure (MEAS)
 %  .halfCycle   : Structure containing processed half-cycle discharge data.
-%    .iapp      : applied current vector [A]
 %    .socAvgPct : average cell SOC vector [%]
-%    .vcell     : cell voltage vector [V]
+%    .Rdc       : dc resistance vector [Omega]
 %    .TdegC     : average cell temperature [degC]
 %  .eis         : Structure containing processed (NL)EIS data.
 %    .lin.Z     : matrix of linear spectra (dim1=freq, dim2=SOC) [V/A]
@@ -35,11 +34,12 @@ function fitData = fitRPT(meas,modelspec,init,lb,ub,varargin)
 %  .lb              : structure of lower bounds (user could have changed)
 %  .ub              : structure of upper bounds (user could have changed)
 %  .J               : cost function value for the final estimate
-%  .predict.hcVcell : half-cycle voltage predicted by regressed model [V]
+%  .predict.Rdc     : dc resistance predicted by regressed model [V]
 %  .predict.linZ    : linear spectra predicted by regressed model [V/A]
 %  .arg             : structure of arguments supplied to this function
 %
 % -- Changelog --
+% 2023.11.14 | Updated for new RPT protocol | Wes H.
 % 2023.09.12 | Created | Wesley Hileman <whileman@uccs.edu>
 
 parser = inputParser;
@@ -94,15 +94,15 @@ psoData = fastopt.uiparticleswarm(@cost,modelspec,init,lb,ub, ...
 fitData.estimate = psoData.values;
 fitData.lb = psoData.lb;
 fitData.ub = psoData.ub;
-[fitData.J, fitData.predict.hcVcell, fitData.predict.linZ] = ... 
+[fitData.J, fitData.predict.Rdc, fitData.predict.linZ] = ... 
     cost(psoData.values);
 fitData.arg = arg;
 
 
-function [J, vmodel, Zmodel] = cost(model)
+function [J, Rmodel, Zmodel] = cost(model)
     J = 0;
 
-    % 1. EIS
+    % 1. EIS component
     % Calculate impedance predicted by the linear EIS model.
     % Compute total residual between model impedance and measured
     % impedance across all spectra.
@@ -112,16 +112,20 @@ function [J, vmodel, Zmodel] = cost(model)
     warning('on','MATLAB:nearlySingularMatrix');
     J = J + sum(eis.weights.*(abs(Zmodel-eis.lin.Z)./abs(eis.lin.Z)).^2,'all');
     
-    % 2. Half cycle
-    % Calculate vcell predicted by perturbation model.
-    % Compute total residual between model and cell voltage measured in the
-    % laboratory.
-    thetaAvg = model.pos.theta0+...
-        (hcyc.socAvgPct/100)*(model.pos.theta100-model.pos.theta0);
-    pData = getPerturbationResistance( ...
+    % 2. Half-cycle component
+    % Calculate Rdc predicted by perturbation model.
+    % Compute total residual between model and dc resistance measured in 
+    % the laboratory.
+    if isempty(hcyc.thetaAvg)
+        thetaAvg = model.pos.theta0+...
+            (hcyc.socAvgPct/100)*(model.pos.theta100-model.pos.theta0);
+    else
+        thetaAvg = hcyc.thetaAvg;
+    end
+    dcData = getDcResistance( ...
         model,thetaAvg,'TdegC',hcyc.TdegC,'ocpData',hcyc.ocpData);
-    vmodel = pData.U - hcyc.iapp.*pData.Rtotal;
-    J = J + sum((vmodel-hcyc.vcell).^2,'all');
+    Rmodel = dcData.Rdc;
+    J = J + sum((Rmodel-hcyc.Rdc).^2./hcyc.Rdc.^2,'all');
 end
 
 end

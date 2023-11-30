@@ -6,7 +6,7 @@ clear; close all; clc;
 addpath(fullfile('..','..'));
 TB.addpaths;
 
-filename = '202309_EIS-16degC26degC-Ds=linear-k0=linear';
+filename = '202310_EIS-16degC26degC-Ds=linear-k0=linear';
 fitData = load(fullfile('labfitdata',[filename '.mat']));
 
 TdegCvect = fitData.TdegC;
@@ -37,7 +37,7 @@ for k = 1:length(fitData.Zmodel)
     cellName = cellName{1};
     TdegC = TdegCvect(k);
     nsoc = length(fitData.socPctTrue{k});
-    indSOC = [1 2 3:2:nsoc-2 nsoc-1 nsoc];
+    indSOC = [1 3:4:nsoc-2 nsoc];
     nsocPlot = length(indSOC);
     freq = fitData.freq{k};
     Zlab = fitData.Zlab{k};
@@ -47,14 +47,14 @@ for k = 1:length(fitData.Zmodel)
     rmseReal = sqrt(mean((real(Zlab(:))-real(Zmodel(:))).^2));
     rmseImag = sqrt(mean((imag(Zlab(:))-imag(Zmodel(:))).^2));
     fprintf('%10.0f%10.3f%10.3f%10.3f%10.3f\n', ...
-        TdegC,rmseMag,rmsePhs,rmseReal,rmseImag);
+        TdegC,rmseMag*1000,rmsePhs,rmseReal*1000,rmseImag*1000);
 
     [~,indbreakf] = min(abs(fdlp(:).'-freq(:)));
     
     figure;
-    l = tiledlayout(3,ceil(nsocPlot/3));
+    l = tiledlayout(ceil(nsocPlot/2),2);
     l.Title.String = sprintf( ...
-        'Linear Impedance Spectra: Cell %s (%.0f\\circC)',cellName,TdegC);
+        'Linear Impedance (%.0f\\circC)',TdegC);
     l.XLabel.String = 'Z'' [\Omega]';
     l.YLabel.String = '-Z'''' [\Omega]';
     for j = 1:nsocPlot
@@ -62,17 +62,21 @@ for k = 1:length(fitData.Zmodel)
         zlab = Zlab(:,ind);
         zmod = Zmodel(:,ind);
         nexttile;
-        plot(real(zlab),-imag(zlab),'b.'); hold on;
-        plot(real(zmod),-imag(zmod),'r');
-        plot(real(zmod(indbreakf(ind))),-imag(zmod(indbreakf(ind))),'k+');
+        plot(real(zmod),-imag(zmod),'r'); hold on;
+        plot(real(zlab),-imag(zlab),'b.');
+        %plot(real(zmod(indbreakf(ind))),-imag(zmod(indbreakf(ind))),'k+');
         title(sprintf('%.0f%% SOC',fitData.socPctTrue{k}(ind)));
         setAxesNyquist;
     end
-    legend('Lab','Fit Model','Location','northwest');
-    thesisFormat('FigSizeInches',[10 6]);
+    legend('Model','Lab','Location','northwest');
+    thesisFormat('FigSizeInches',[5 6],'FigMarginInches',[.1 .1 .1 .1]);
+    set(gcf,'Color',[239, 229, 195]/255);
+    set(gcf, 'InvertHardcopy', 'off');
     print(fullfile(plotdir,sprintf('Z-Nyq-%.0fdegC',TdegC)),'-depsc');
     print(fullfile(plotdir,sprintf('Z-Nyq-%.0fdegC',TdegC)),'-dpng');
 end
+
+return;
 
 % Plot i0.
 figure;

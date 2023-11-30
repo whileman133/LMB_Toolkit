@@ -62,13 +62,18 @@ parser.parse(cellModel,varargin{:});
 arg = parser.Results;  % structure of validated arguments
 
 % Determine type of model input.
-cellModelType = getCellModelType(arg.cellModel);
+cellModelType = getCellModelType(arg.cellModel,false);
 
 % Normalize paramList argument.
 paramsStruct = struct;
-if strcmp(cellModelType,'LLPM')
+if isempty(cellModelType)
+    % Structure of parameter values.
+    cellParams = arg.cellModel;
+elseif strcmp(cellModelType,'LLPM')
+    % Gen1 LPM.
     cellParams = arg.cellModel.function;
 else
+    % Gen2 model.
     cellParams = arg.cellModel.parameters;
 end
 if isempty(arg.paramList)
@@ -113,7 +118,10 @@ elseif isstruct(arg.paramList)
     paramsStruct = arg.paramList;
 end
 
-if strcmp(cellModelType,'LLPM')
+if isempty(cellModelType)
+    % Structure of parameter values.
+    [outStruct, totalParamCount] = getStructParams(arg,paramsStruct);
+elseif strcmp(cellModelType,'LLPM')
     % Gen1 legacy LPM.
     [outStruct, totalParamCount] = getGen1Params(arg,paramsStruct);
 else
@@ -182,6 +190,26 @@ elseif strcmpi(arg.Output,'list')
         end % for param
     end % fo sec
 end % if
+
+end
+
+function [outStruct, totalParamCount] = getStructParams(arg,paramsStruct)
+
+totalParamCount = 0;
+secNames = fieldnames(paramsStruct);
+secCount = length(secNames);
+for s = 1:secCount
+    secName = secNames{s};
+    secStruct = paramsStruct.(secName);
+    paramNames = fieldnames(secStruct);
+    paramCount = length(paramNames);
+    totalParamCount = totalParamCount + paramCount;
+    for p = 1:paramCount
+        paramName = paramNames{p};
+        paramValue = arg.cellModel.(secName).(paramName);
+        outStruct.(secName).(paramName) = paramValue;
+    end % for param
+end % for sec
 
 end
 
@@ -266,7 +294,11 @@ for s = 1:secCount
     paramCount = length(paramNames);
     for p = 1:paramCount
         paramName = paramNames{p};
-        fieldName = [paramName secName];
+        if strcmp(secName,'const')
+            fieldName = paramName;
+        else
+            fieldName = [paramName secName];
+        end
         postfixStruct.(fieldName) = nestedStruct.(secName).(paramName);
     end % for param
 end % for sec

@@ -7,17 +7,19 @@ TB.addpaths;
 % Constants ---------------------------------------------------------------
 simFile = 'cellLMO-P2DM_defaultHRA';
 % Variables and x-locations to plot vs time.
-vars.PhieTilde = 3;
-vars.Phise = [0 3];
+vars.PhieTilde = [1 2 3];
+vars.Phise = [2 3];
 vars.Thetae = [0 1 2 3];
 vars.Thetass = [2 3];
+vars.Ifdl = [2 3];
+vars.If = [2 3];
 
 % Collect simulation data -------------------------------------------------
 simData = load(fullfile('SIM_FILES',[simFile '.mat']));
 ROMout = simData.ROMout;
 FOMout = simData.FOMout;
 % Fetch time and cell voltage vectors.
-timeMin = FOMout.time/60;
+timeHr = FOMout.time/60/60;
 vcellROM = ROMout.Vcell;
 vcellFOM = FOMout.Vcell;
 % Fetch other variables.
@@ -44,14 +46,21 @@ for k = 1:length(varNames)
 end % for vars
 
 % Plotting ----------------------------------------------------------------
+plotdir = fullfile('PLOTS',simFile);
+if ~isfolder(plotdir)
+    mkdir(plotdir);
+end
+
 figure;
-plot(timeMin,vcellROM); hold on;
-plot(timeMin,vcellFOM,':');
-title('Cell Voltage vs. Time');
-xlabel('Time, t [min]');
+plot(timeHr,vcellROM); hold on;
+plot(timeHr,vcellFOM,':');
+title('Cell Voltage vs. Time: C/4 Discharge');
+xlabel('Time, t [hr]');
 ylabel('v_{cell}(t)');
 legend('HRA','COMSOL','Location','best');
 thesisFormat;
+print(fullfile(plotdir,'vcell'),'-depsc');
+print(fullfile(plotdir,'vcell'),'-dpng');
 
 varNames = fieldnames(varData);
 for k = 1:length(varNames)
@@ -62,22 +71,24 @@ for k = 1:length(varNames)
     figure;
     for j = 1:length(var.xloc)
         xloc = var.xloc(j);
-        plot(timeMin,var.ROM(:,j), ...
+        plot(timeHr,var.ROM(:,j), ...
             'Color',colorsROM(j,:), ...
             'DisplayName',sprintf('x=%.0f HRA',xloc)); 
         hold on;
     end % for
     for j = 1:length(var.xloc)
         xloc = var.xloc(j);
-        plot(timeMin,var.FOM(:,j),':', ...
+        plot(timeHr,var.FOM(:,j),':', ...
             'Color',colorsFOM(j,:), ...
             'DisplayName',sprintf('x=%.1f COMSOL',xloc)); 
     end % for
-    xlabel('Time, t [min]');
+    xlabel('Time, t [hr]');
     ylabel(varName);
     title(sprintf('%s vs. Time',varName));
     legend('Location','best','NumColumns',2);
     thesisFormat;
+    print(fullfile(plotdir,varName),'-depsc');
+    print(fullfile(plotdir,varName),'-dpng');
 end % for varData
 
 % RMSE Computation --------------------------------------------------------

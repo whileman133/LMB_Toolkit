@@ -6,8 +6,9 @@
 % 2023.05.15 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
-addpath(fullfile("..","UTILITY"));
-expname = '(NL)EIS-SionCell395524';
+addpath('..');
+TB.addpaths;
+expname = '(NL)EIS-SionCell395534_25degC';
 expdir = fullfile('labdata',expname);
 spectra = loadLabNLEIS(expdir);
 

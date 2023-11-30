@@ -26,11 +26,10 @@ paramTable = loadSpreadsheet(filename,'Parameters');
 sectionStruct = sectionParameterTable(paramTable);
 modelStruct = buildModelStruct(sectionStruct);
 modelStruct = convertParameterValues(modelStruct);
-modelStruct = validateAndPostProcess(modelStruct);
-
 modelStruct.type__ = 'cellModel';
 modelStruct.origin__ = 'loadCellModel';
 modelStruct.arg__ = arg;
+modelStruct = validateAndPostProcess(modelStruct);
 
 end % loadCellModel()
 
@@ -241,6 +240,30 @@ for s = 1:length(sectionNames)
             J = lenU;
             modelStruct.metadata.section.(sec.name).ocp.type = 'msmr';
             modelStruct.metadata.section.(sec.name).ocp.J = J;
+
+            % Ensure lithiation bounds are consistent with Vmin/Vmax definitions!
+            if all(isfield(modelStruct.parameters.const,{'Vmin','Vmax'}))
+                [vmin, vmax] = getCellParams( ...
+                    modelStruct,'const.Vmin,const.Vmax','Output','list');
+                [theta100, theta0] = getCellParams( ...
+                    modelStruct,'pos.theta100,pos.theta0','Output','list');
+                electrodeParams = getCellParams( ...
+                    modelStruct,[sec.name '.*']);
+                ocpData = MSMR(electrodeParams).ocp('voltage',[vmin vmax]);
+                thetamin = ocpData.theta(2);
+                thetamax = ocpData.theta(1);
+                if theta100<=theta0
+                    theta100 = thetamin;
+                    theta0 = thetamax;
+                else
+                    theta100 = thetamax;
+                    theta0 = thetamin;
+                end
+                newParams = struct;
+                newParams.(sec.name).theta100 = theta100;
+                newParams.(sec.name).theta0 = theta0;
+                modelStruct = setCellParam(modelStruct,newParams);
+            end
         elseif all(isfield(modelStruct.parameters.(sec.name),{'Uocp','dUocp'}))
             modelStruct.metadata.section.(sec.name).ocp.type = 'explicit';
         else

@@ -54,8 +54,8 @@ function data = getDcResistance(cellModel, theta, varargin)
 % [1] Daniel R. Baker and Mark W. Verbrugge 2021 J. Electrochem. Soc. 168 050526
 %
 % -- Changelog --
-% 2023.11.04 | 
-% 2023.06.02 | Coerce output into column vector | Wesley Hileman
+% 2023.11.04 | Incorporate double-layer and CPE effects | Wes H.
+% 2023.06.02 | Coerce output into column vector | Wesley H.
 % 2022.08.22 | Created | Wesley Hileman <whileman@uccs.edu>
 
 parser = inputParser;
@@ -67,101 +67,80 @@ parser.addParameter('ComputeRctj',false,@islogical)
 parser.parse(cellModel,theta,varargin{:});
 arg = parser.Results; % structure of validated arguments
 
-if isCellModel(cellModel)
-    % Covert to legacy lumped-parameter model for use with code below.
-    cellModel = convertCellModel(cellModel,'LLPM');
-else
-    % Assume a structure of parameter values was supplied instead;
-    % no need to convert for code below.
-end
-
-T = arg.TdegC+273.15;
-f = TB.const.F/TB.const.R/T;
-computeRctj = arg.ComputeRctj;
-
 % Ensure lithiation is a row vector.
 theta = theta(:)';
 
-% Define getters depending on the form of the model (functions or structure
-% of values).
-if isfield(cellModel,'function')
-    % Toolbox cell model.
-    isReg = @(reg)isfield(cellModel.function,reg);
-    getReg = @(reg)cellModel.function.(reg);
-    getParam = @(reg,p)cellModel.function.(reg).(p)(0,T);
-else
-    % Set of model parameters already evalulated at setpoint.
-    isReg = @(reg)isfield(cellModel,reg);
-    getReg = @(reg)cellModel.(reg);
-    getParam = @(reg,p)cellModel.(reg).(p);
-end
+% Setup physical constants.
+f = TB.const.f(arg.TdegC); % (F/T) at TdegC.
 
-% Compute series resistance component (does not vary with SOC).
-if isfield(cellModel.const,'R0')
-    % Model specifies R0 directly.
-    Rct_n = NaN;
-    R0 = cellModel.const.R0;
-else
-    % Compute R0 from model parameters.
-    W = getParam('const','W');
-    Rf_p = getParam('pos','Rf');
-    kappa_p = getParam('pos','kappa');
-    sigma_p = getParam('pos','sigma');
-    k0_n = getParam('neg','k0');
-    Rf_n = getParam('neg','Rf');
-    Rct_n = 1/f/k0_n;
-    if isReg('eff')
-        % eff layer combines dll and sep
-        kappa_eff = getParam('eff','kappa');
-        R0 = (Rf_p+Rct_n+Rf_n) + 1/sigma_p/3 + ...
-             (1+W)*(1/kappa_p/3 + 1/kappa_eff);
-    else
-        % individual dll and sep layers
-        kappa_s = getParam('sep','kappa');
-        kappa_d = getParam('dll','kappa');
-        R0 = (Rf_p+Rct_n+Rf_n) + 1/sigma_p/3 + ...
-             (1+W)*(1/kappa_p/3 + 1/kappa_s + 1/kappa_d);
-    end
-end
-
-% Calculate the diffusion resistance at each stoichiometry setpoint.
-Q = getParam('const','Q');
-theta0 = getParam('pos','theta0');
-theta100 = getParam('pos','theta100');
-Dsref = getParam('pos','Dsref');
-Rd = abs(theta100-theta0)/f/Q/Dsref./theta./(1-theta)/5/10800;
-
-% Calculate Rct(pos) at each stoichiometry setpoint.
+% Fetch struct of cell parameters.
+cellParams = getCellParams(cellModel,'TdegC',arg.TdegC);
+% Fetch OCP, charge-transfer resistance, Ds at each lithiation point.
 if ~isempty(arg.ocpData)
     % First choice: Use Uocv provided to function (cached vector, fastest).
     ocpData = arg.ocpData;
 else
-    % Last resort: compute the OCP using the MSMR parameters 
+    % Second resort: compute the OCP using the MSMR parameters 
     % (will call fzero twice and interp1 once, even slower).
-    msmr = MSMR(getReg('pos'));
+    msmr = MSMR(cellParams.pos);
     ocpData = msmr.ocp('theta',theta,'TdegC',arg.TdegC);
 end
-ctData = msmr.RctCachedOCP(getReg('pos'),ocpData);
-Rctp = ctData.Rct;
-if computeRctj
-    Rctjp = ctData.Rctj;
+ctData = msmr.RctCachedOCP(cellParams.pos,ocpData);
+dsData = msmr.DsCachedOCP(cellParams.pos,ocpData);
+
+% Compute parameters needed to evalulate dc resistance.
+Q = cellParams.const.Q;
+W = cellParams.const.W;
+Rc = cellParams.const.Rc;  % tab resistance
+theta0p = cellParams.pos.theta0;
+theta100p = cellParams.pos.theta100;
+nFp = cellParams.pos.nF;
+tauFp = cellParams.pos.tauF;
+nDLp = cellParams.pos.nDL;
+tauDLp = cellParams.pos.tauDL;
+sp = cellParams.pos.sigma;
+kp = cellParams.pos.kappa;
+Rfp = cellParams.pos.Rf;
+Rdlp = cellParams.pos.Rdl;
+Cdlp = cellParams.pos.Cdl;
+dUocpp = ocpData.dUocp; % pos electrode OCP slope (vector)
+Rctp = ctData.Rct;      % pos electrode charge-transfer resistance (vector)
+Dsp = dsData.Ds;        % pos electrode diffusion coefficient (vector)
+Dsdcp = Dsp.^nFp*tauFp.^(nFp-1); % diffusion coefficient @ dc (vector)
+Cdldcp = Cdlp.^nDLp.*tauDLp.^(1-nDLp); % double-layer cap @ dc
+Csp = -3600*Q./dUocpp./abs(theta100p-theta0p); % cell cap @ dc
+Rfn = cellParams.neg.Rf;
+k0n = cellParams.neg.k0;
+Rctn = 1./f./k0n;
+if isfield(cellParams,'eff')
+    % eff layer combines dll and sep layers
+    kd = Inf;
+    ks = cellParams.eff.kappa;
+else
+    % individual dll and sep layers
+    kd = cellParams.dll.kappa;
+    ks = cellParams.sep.kappa;
 end
 
-% Finally, calculate the perturbation resistance.
-Rtotal = R0 + Rctp(:) + Rd(:);
+% Compute SOC-independent resistance.
+R0 = Rc + Rctn + Rfn + (1+W)*(1/kd+1/ks+1/3/kp) + 1/3/sp;
 
-% Assign individual components of the resistance.
-parts.R0 = R0(:);
-parts.Rctn = Rct_n(:);
-parts.Rd = Rd(:);
-parts.Rctp = Rctp(:);
-if computeRctj
-    parts.Rctjp = Rctjp;
-end
+% Compute diffusion resistance.
+Rd = 1./15./Csp./Dsdcp;
 
-data.Rtotal = Rtotal;
-data.parts = parts;
-data.U = ctData.Uocp;
+% Finally, calculate the total dc resistance.
+Rdc = R0+( ... 
+    (Rdlp+Rfp).*Cdldcp.^2 + 2.*Rfp.*Cdldcp.*Csp + (Rctp+Rd+Rfp).*Csp.^2 ...
+    - tauDLp.*(1-nDLp).*Cdldcp - tauFp.*(1-nFp).*Csp ...
+)./(Cdldcp+Csp).^2;
+
+% Assign output struct.
+data.Rdc = Rdc;
+data.Uocp = ctData.Uocp;
+data.parts.R0 = R0(:);
+data.parts.Rd = Rd(:);
+data.parts.Rctp = Rctp(:);
+data.parts.Rctn = Rctn(:);
 data.arg = arg;
 data.origin__ = 'getDcResistance';
 

@@ -18,8 +18,8 @@ Q = getCellParams(LLPM,'const.Q');
 % Constants.
 socPct0 = 100;  % starting SOC [%]
 Tstart = 10;    % time at application of current [s]
-Tend = 3600;    % time at end of simulation [s]
-I = Q/2;        % discharge current magnitude [A]
+Tend = 3*3600;  % time at end of simulation [s]
+I = Q/4;        % discharge current magnitude [A]
 TdegC = 25;     % cell temperature [degC]
 
 % Build simulation waveforms.

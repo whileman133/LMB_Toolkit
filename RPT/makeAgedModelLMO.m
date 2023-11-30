@@ -20,8 +20,8 @@ addpath('..');
 TB.addpaths;
 
 % Normalized variables that describe state-of-age of the cell.
-lamVect = linspace(0,1,5);    % degree of loss of active material (LAM)
-lliVect = linspace(0,1,5);    % degree of loss of lithium inventory (LLI)
+lamVect = linspace(0,1,3);    % degree of loss of active material (LAM)
+lliVect = linspace(0,1,3);    % degree of loss of lithium inventory (LLI)
 
 % Model of fresh cell.
 model0 = loadCellModel('cellLMO-P2DM');

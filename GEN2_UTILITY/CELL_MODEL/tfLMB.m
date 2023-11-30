@@ -290,18 +290,18 @@ p.Zdln = p.Rdln + ((p.Cdln/p.tauDLn)*(1+p.tauDLn*S)).^(1-p.nDLn)./p.Cdln./S;
 p.Zsen = p.Rfn + p.Zdln.*p.Rctn./(p.Zdln+p.Rctn);
 
 % Compute Zse2 (double the frequency!)
-p.zeta2p = 2*S/p.Dsp./((1+2*S*p.tauFp)/p.tauFp/p.Dsp).^(1-p.nFp);
-p.beta2p = sqrt(p.zeta2p);
+p.Dskern2p = (p.Dsp./S/2).*((1+2*S*p.tauFp)/p.tauFp/p.Dsp).^(1-p.nFp);
+p.beta2p = sqrt(1./p.Dskern2p);
 p.Zs2p = ...
    p.Zs0*( ...
      (p.beta2p.^2 + 3*(1-p.beta2p.*coth(p.beta2p))) ...
-       ./(p.beta2p.^2.*(1-p.betap.*coth(p.beta2p))) ...
-      - 3./p.zeta2p ...
+       ./(p.beta2p.^2.*(1-p.beta2p.*coth(p.beta2p))) ...
+     - 3*p.Dskern2p ...
    );
 p.Zs2p(ind0) = Inf;  % replace NaN at zero frequency
-p.Zdl2p = p.Rdlp + ((p.Cdlp/p.tauDLp)*(1+p.tauDLp*S)).^(1-p.nDLp)./p.Cdlp./2./S;
-p.Zse2p = p.Rfp + p.Zdl2p.*(p.Rctp+p.Zs2p)./(p.Zdl2p+p.Rctp+p.Zs2p);
-p.Zdl2n = p.Rdln + ((p.Cdln/p.tauDLn)*(1+p.tauDLn*S)).^(1-p.nDLn)./p.Cdln./2./S;
+p.Zdl2p = p.Rdlp + ((p.Cdlp/p.tauDLp)*(1+p.tauDLp*2*S)).^(1-p.nDLp)./p.Cdlp./S/2;
+p.Zse2p = p.Rfp + 1./(1./(p.Rctp + p.Zs2p) + 1./p.Zdl2p);
+p.Zdl2n = p.Rdln + ((p.Cdln/p.tauDLn)*(1+p.tauDLn*2*S)).^(1-p.nDLn)./p.Cdln./S/2;
 p.Zse2n = p.Rfn + p.Zdl2n.*p.Rctn./(p.Zdl2n+p.Rctn);
 
 % Additional.
@@ -1762,7 +1762,7 @@ function [Phie, data] = getPhie22(meta,X,delinearize)
         i2Thetae22 = interp1(meta.xsoln,meta.i2Thetae22.',X(bins.p)).';
         Phie1(:,bins.p) = psi*T*(Thetae(:,bins.p)-ThetaeSP) ...
             - (3600*qep*2*S/kappap).*i2Thetae22 ...
-            - psi*T*d1ThetaeSP*(X(bins.p)-meta.param.xlim.sp);
+            - psi*T*d1ThetaeSP.*(X(bins.p)-meta.param.xlim.sp);
     end
 
     Phie = Phie1 + Phie2;

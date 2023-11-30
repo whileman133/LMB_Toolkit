@@ -4,6 +4,7 @@
 % number of aged cell models.
 %
 % -- Changelog --
+% 2023.11.14 | Update for new RPT protocol | Wes H
 % 2023.09.12 | Update for gen2 toolkit | Wes H
 % 2023.06.11 | Created | Wesley Hileman <whileman@uccs.edu>
 
@@ -15,8 +16,8 @@ TB.addpaths;
 cellFile = fullfile('agemodel','cellLMO_AgeArray.mat');
 TdegC = 25;
 Verbose = true;
-ArgHalfCycle = {0.1,100,0,TdegC,'Verbose',Verbose}; % Iavg,soc0Pct,socfPct[,...]
-ArgEIS = {logspace(-1,5,30),100:-5:5,TdegC,'I',0.03,'Verbose',Verbose}; % freq,socPct[,...]
+ArgHalfCycle = {[-1 -0.5 +0.5 +1],99,1,TdegC,'Verbose',Verbose}; % IavgC,soc0Pct,socfPct,TdegC[,...]
+ArgEIS = {logspace(-1,5,30),100:-5:5,TdegC,'I',0.03,'Verbose',Verbose}; % freq,socPct,TdegC[,...]
 cellData = load(cellFile);
 
 % Run simulations in COMSOL at each cell age.

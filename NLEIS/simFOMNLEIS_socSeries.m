@@ -40,11 +40,11 @@ OptSimFOM.VcellOnly = true;
 Vars = struct;  % no other variables except for Vcell
 
 % Load cell parameters.
-cellModel = loadCellParams(cellFile);
+cellModel = loadCellModel(cellFile);
 
 % Run EIS simulation(s) in COMSOL at each SOC setpoint.
 clear socSeries;
-for idxSOC = length(socPct):-1:1
+for k = length(socPct):-1:1
     socSeries(k) = simEIS(cellModel,freq,socPct(k),TdegC, ...
         'Vars',Vars,'I',I,'Verbose',true,'OptSimFOM',OptSimFOM);
 end

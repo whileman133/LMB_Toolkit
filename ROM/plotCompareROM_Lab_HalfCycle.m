@@ -25,14 +25,11 @@ plot(timeHr,ROMout.Vcell); hold on;
 plot(timeHr,Vcell,':');
 xlim([min(timeHr) max(timeHr)]);
 ylim([min(Vcell) max(Vcell)]);
-title('Cell Voltage vs. Time: Half Sine (C/4 avg)');
+title('Cell Voltage vs. Time: Half Cycle (C/4 avg.)');
 xlabel('Time, t [hr]');
 ylabel('v_{cell}(t)');
 legend('HRA/Out-Blend Prediction','Laboratory Measurement','Location','northeast');
 thesisFormat;
-%addInset([20 25],[350/60 3.3],2.5);
-set(gcf,'Color',[239, 229, 195]/255);
-set(gcf, 'InvertHardcopy', 'off');
 print(fullfile(plotdir,'vcell'),'-depsc');
 print(fullfile(plotdir,'vcell'),'-dpng');
 

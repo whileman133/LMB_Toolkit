@@ -41,7 +41,7 @@ function spectra = processEIS(simData,varargin)
 % SINGLE SOC SETPOINT
 % Let:
 %   spectra = processEIS(simData);
-% where simData.param.socPct was set to 50%.
+% where simData.arg.socPct was set to 50%.
 % 
 % 1. Fetch the linear impedance spectrum:
 %    Z1 = [spectra.lin.Zcell];  % row vector, dim1=freq
@@ -54,7 +54,7 @@ function spectra = processEIS(simData,varargin)
 % MULTIPLE SOC SETPOINTS
 % Let:
 %   spectra = processEIS(simData);
-% where simData.param.socPct was set to [5 95]%.
+% where simData.arg.socPct was set to [5 95]%.
 %
 % 1. Fetch linear impedance spectra at all SOC setpoints:
 %    Z1 = reshape([spectra.lin.Zcell],size(spectra.lin)]; % matrix, dim1=soc, dim2=freq
@@ -89,7 +89,7 @@ end
 for kz = size(simData.ss,1):-1:1
     for kf = size(simData.ss,2):-1:1
         freqkData = simData.ss(kz,kf);
-        socPct = simData.param.socPct(kz);
+        socPct = simData.arg.socPct(kz);
     
         % Construct FFT frequency vector.
         fs = freqkData.param.fs;  % sampling rate [Sa/s]
@@ -139,12 +139,12 @@ for kz = size(simData.ss,1):-1:1
     end % for freq
 end % for soc
 
-spectra.freq  = simData.param.freq;
+spectra.freq  = simData.arg.freq;
 if isfield(simData,'xlocs')
     spectra.xlocs = simData.xlocs;
 else
     % An earlier version of simEIS did not include the xlocs field.
-    spectra.xlocs = simData.param.Vars;
+    spectra.xlocs = simData.arg.Vars;
 end
 spectra.xlocs.Iapp  = [];
 spectra.xlocs.Vcell = [];
@@ -167,9 +167,9 @@ if p.EvalLinTF
     var2tf.Vcell = @getVcellTF;
     var2tf.Zcell = @getZcellTF;
     
-    cellModel = convertCellModel(simData.param.cellModel,'LLPM');
-    socPct = simData.param.socPct;
-    TdegC = simData.param.TdegC;
+    cellModel = convertCellModel(simData.arg.cellModel,'LLPM');
+    socPct = simData.arg.socPct;
+    TdegC = simData.arg.TdegC;
     tfFreq = logspace( ...
         log10(min(spectra.freq)),log10(max(spectra.freq)),p.NumTFFreqPoints);
     ss = 1j*2*pi*tfFreq;
@@ -194,9 +194,9 @@ if p.EvalLinTF
     spectra.tfFreq = tfFreq;
 end
 
-spectra.cellModel = simData.param.cellModel;
-spectra.TdegC = simData.param.TdegC;
-spectra.socPct = simData.param.socPct;
+spectra.cellModel = simData.arg.cellModel;
+spectra.TdegC = simData.arg.TdegC;
+spectra.socPct = simData.arg.socPct;
 spectra.param = p;
 spectra.origin__ = 'processEIS';
 
@@ -213,7 +213,8 @@ end
 function VcellTF = getVcellTF(s,~,cellModel)
     Phise = tfPhiseInt(s,[0 3],cellModel);
     PhieTilde3 = tfPhie(s,3,cellModel);
-    VcellTF = -Phise(1,:) + Phise(2,:) + PhieTilde3;
+    Rc = getCellParams(cellModel,'const.Rc');
+    VcellTF = -Phise(1,:) + Phise(2,:) + PhieTilde3 - Rc;
 end
 
 function ZcellTF = getZcellTF(s,~,cellModel)

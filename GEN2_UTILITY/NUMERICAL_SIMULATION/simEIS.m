@@ -54,7 +54,7 @@ function simData = simEIS(varargin)
 %        x-locations (columns).
 %    xlocs = structure mapping variables to x-locations in the cell
 %      sandwich.
-%    param = structure of parameters supplied to the function.
+%    arg = structure of parameter values supplied to the function.
 %
 % -- Changelog --
 % 2023.06.11 | Support multiple SOC setpoints | Wesley Hileman
@@ -75,52 +75,52 @@ parser.addParameter('Nss',10,@(x)isscalar(x)&&isinteger(x)&&x>0);
 parser.addParameter('Verbose',false,@(x)isscalar(x)&&islogical(x));
 parser.addParameter('OptSimFOM',struct,@isstruct);
 parser.parse(varargin{:});
-p = parser.Results;  % structure of validated arguments
+arg = parser.Results;  % structure of validated arguments
 
-if isfield(p.OptSimFOM,'VcellOnly') && p.OptSimFOM.VcellOnly
-    p.Vars = struct; % only cell voltage is available!
+if isfield(arg.OptSimFOM,'VcellOnly') && arg.OptSimFOM.VcellOnly
+    arg.Vars = struct; % only cell voltage is available!
 end
 
-if isempty(p.I)
+if isempty(arg.I)
     % Use C/10 rate as default.
-    p.I = getCellParams(p.cellModel,'const.Q')/10;
+    arg.I = getCellParams(arg.cellModel,'const.Q')/10;
 end
 
 % Generate COMSOL model.
-if p.Verbose
+if arg.Verbose
     fprintf('Generating COMSOL model for EIS simulation...\n');
 end
-modelCOMSOL = genFOM(p.cellModel);
+modelCOMSOL = genFOM(arg.cellModel);
 
 % Run simulation at each SOC setpoint and frequency (backwards to avoid 
 % need to pre-allocate structure arrays).
-ff = p.freq(:);
-varnames = fieldnames(p.Vars);
+ff = arg.freq(:);
+varnames = fieldnames(arg.Vars);
 clear ssdata;
 xlocsStruct = struct;
-for kz = length(p.socPct):-1:1
+for kz = length(arg.socPct):-1:1
     for kf = length(ff):-1:1
         f0 = ff(kf);
     
         % Generate time vector.
-        kk = [0:p.Nt*p.Ns,(p.Nt*p.Ns+1):(p.Nt+p.Nss)*p.Ns]; % Discrete-time vector [sample number].      
-        fs = p.Ns*f0; % Sampling rate [Sa/s].
+        kk = [0:arg.Nt*arg.Ns,(arg.Nt*arg.Ns+1):(arg.Nt+arg.Nss)*arg.Ns]; % Discrete-time vector [sample number].      
+        fs = arg.Ns*f0; % Sampling rate [Sa/s].
         tt = kk/fs; % Time vector [s].
-        ss = kk>p.Nt*p.Ns; % Logical indicies to steady-state interval.
+        ss = kk>arg.Nt*arg.Ns; % Logical indicies to steady-state interval.
     
         % Perform simulation in COMSOL.
         simspec.time = tt;
-        simspec.mag = p.I;
+        simspec.mag = arg.I;
         simspec.freq = f0;
-        simspec.SOC0 = p.socPct(kz);
-        simspec.T = p.TdegC;
+        simspec.SOC0 = arg.socPct(kz);
+        simspec.T = arg.TdegC;
         simspec.TSHIFT = 0; % no need to shift for initial discontinuity (sine)
-        if p.Verbose
-            fprintf('Running SOC=%8.3f%% f=%8.3gHz (%d of %d)...\n', ...
-                p.socPct(kz),f0,length(ff)-kf+1,length(ff));
+        if arg.Verbose
+            fprintf('Running SOC=%8.3f%% f=%8.3gHz (%d of %d)...', ...
+                arg.socPct(kz),f0,length(ff)-kf+1,length(ff));
         end
-        [~,sim] = simFOM(modelCOMSOL,simspec,'InputType','sin',p.OptSimFOM);
-        if p.Verbose
+        [~,sim] = simFOM(modelCOMSOL,simspec,'InputType','sin',arg.OptSimFOM);
+        if arg.Verbose
             fprintf('done!\n');
         end
     
@@ -128,7 +128,7 @@ for kz = length(p.socPct):-1:1
         ssdata(kz,kf).param.f0 = f0;
         ssdata(kz,kf).param.fs = fs;
         ssdata(kz,kf).param.N = length(tt(ss));
-        ssdata(kz,kf).param.socPct = p.socPct(kz);
+        ssdata(kz,kf).param.socPct = arg.socPct(kz);
         ssdata(kz,kf).time = tt(ss);
         ssdata(kz,kf).time = ssdata(kz,kf).time - ssdata(kz,kf).time(1); % start time at zero
         ssdata(kz,kf).Iapp = sim.Iapp(ss);
@@ -137,7 +137,7 @@ for kz = length(p.socPct):-1:1
             varname = varnames{i};
             timePositionData = sim.(varname);
             xlocs = sim.xLocs.(varname);      % COMSOL mesh locations
-            xlocsDesired = p.Vars.(varname);  % desired x-locations
+            xlocsDesired = arg.Vars.(varname);  % desired x-locations
             if (ischar(xlocsDesired)||isstring(xlocsDesired))&&strcmpi(xlocsDesired,'mesh')
                 % Store variable at all mesh locations.
                 ssdata(kz,kf).(varname) = timePositionData(ss,:);
@@ -153,14 +153,14 @@ for kz = length(p.socPct):-1:1
     end % for freq
 end % for soc
 
-if p.Verbose
+if arg.Verbose
     fprintf('Finished full-order EIS simulation\n');
 end
 
 % Collect results.
 simData.ss = ssdata;
 simData.xlocs = xlocsStruct;
-simData.param = p;
+simData.arg = arg;
 simData.origin__ = 'simEIS';
 
 end
