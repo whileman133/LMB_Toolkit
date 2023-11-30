@@ -1,4 +1,4 @@
-% plotCompareROM_Lab.m
+% plotCompareROM_Lab_HalfCycleDischarge.m
 
 clear; close all; clc;
 addpath('..');

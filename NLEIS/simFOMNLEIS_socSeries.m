@@ -5,6 +5,7 @@
 % setpoints.
 %
 % -- Changelog --
+% 09.14.2023 | Update for gen2 toolkit | Wesley Hileman
 % 05.30.2023 | Simulate over multiple SOC setpoints | Wesley Hileman
 % 04.13.2023 | Allow using 'mesh' to specify all x-locs | Wesley Hileman
 % 04.09.2023 | Develop simEIS.m utility function | Wesley Hileman
@@ -14,38 +15,41 @@
 % 03.02.2023 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
-addpath(fullfile("..","UTILITY"));
-addpath(fullfile("..","XLSX_CELLDEFS"));
+addpath(fullfile('..','..'));
+TB.addpaths;
 
 % Constants.
 cellFile = 'cellLMO-P2DM.xlsx';  % Name of cell parameters spreadsheet.
 freq = logspace(-3,5,50);   % Frequency points to evalulate in the spectrum [Hz].
-socPct = 100:-5:5;          % Cell SOC setpoint(s) [%].
+socPct = [95 50 5];         % Cell SOC setpoint(s) [%].
 TdegC = 25;                 % Cell temperature [degC].
-I = 0.03;                   % Amplitude of Iapp sinusoids [A].
+I = 0.1; %0.03;                   % Amplitude of Iapp sinusoids [A].
 suffix = '';                % String to append to name of output data file.
 % Structure of additional options to pass to simFOM.
 OptSimFOM.FixExchangeCurrent = false;  % more realilistic when i0 varies
-OptSimFOM.VcellOnly = true;
+OptSimFOM.VcellOnly = false;
 
 % The following structure specifies which electrochemical variables to
 % store in addition to Vcell (field names) as well as the x-locations
 % where those variables should be evaluated (field values).
 % (Value of 'mesh' indicates all available x-locations should be stored.)
-% Vars.Phise = [0 3];
-% Vars.PhieTilde = 3;  % ground is at x=0+ (in the electrolyte)!
-% Vars.Thetae = 'mesh';
-% Vars.Thetass = 'mesh';
-% Vars.Eta = 'mesh';
-Vars = struct;  % no other variables except for Vcell
+Vars.Phis = 'mesh';
+Vars.Phise = 'mesh';
+Vars.PhieTilde = 'mesh';  % ground is at x=0+ (in the electrolyte)!
+Vars.Eta = 'mesh';
+Vars.Thetae = 'mesh';
+Vars.Thetass = 'mesh';
+Vars.Ifdl = 'mesh';
+Vars.If = 'mesh';
+Vars.Idl = 'mesh';
 
 % Load cell parameters.
 cellModel = loadCellModel(cellFile);
 
 % Run EIS simulation(s) in COMSOL at each SOC setpoint.
 clear socSeries;
-for k = length(socPct):-1:1
-    socSeries(k) = simEIS(cellModel,freq,socPct(k),TdegC, ...
+for idxSOC = length(socPct):-1:1
+    socSeries(idxSOC) = simEIS(cellModel,freq,socPct(idxSOC),TdegC, ...
         'Vars',Vars,'I',I,'Verbose',true,'OptSimFOM',OptSimFOM);
 end
 simData.socSeries = socSeries;

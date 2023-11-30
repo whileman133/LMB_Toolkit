@@ -6,31 +6,36 @@
 % 2023.04.05 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
-addpath(fullfile("..","TFS"));
-addpath(fullfile("..","UTILITY"));
-addpath(fullfile("..","XLSX_CELLDEFS"));
+addpath(fullfile('..','..'));
+TB.addpaths;
 
-simName = 'cellLMO-Lumped-MSMR-halfk0p-50pct-30mA-fixI0-AllVars';
-load(fullfile('simdata',[simName '.mat']));
+simName = 'cellLMO-P2DM-100mA-socSeries';
+seriesData = load(fullfile('simdata',[simName '.mat']));
+seriesData = seriesData.simData;
 
 % Constants.
 xxThetaePlot = 0:3;
 xxThetassPlot = [2 2.5 3];
 xxEtaPlot = [2 2.5 3];
 fThetaePlot = 0.001;
+socPctPlot = 50;
+
+[~,indSOC] = min(abs(seriesData.socPct-socPctPlot));
+simData = seriesData.socSeries(indSOC);
+modelName = simData.arg.cellModel.metadata.cell.name;
 
 % Compute linear and second-harmonic spectra from COMSOL data.
 % Also evalulate linear TFs of same variables at same x-locs for 
 % comparison to COMSOL simulation.
 spectra = processEIS(simData, ...
     'NumHarmonics',2,'EvalLinTF',true,'NumTFFreqPoints',200);
-tf = tfLMB(1j*2*pi*spectra.tfFreq,simData.param.cellModel,'Calc22',true, ...
-    'TdegC',simData.param.TdegC,'socPct',simData.param.socPct);
-xxThetae = spectra.xlocs.Thetae;
-xxPhise = spectra.xlocs.Phise;
-xxPhie = spectra.xlocs.PhieTilde;
-xxThetass = spectra.xlocs.Thetass;
-xxEta = spectra.xlocs.Eta;
+tf = tfLMB(1j*2*pi*spectra.tfFreq,simData.arg.cellModel,'Calc22',true, ...
+    'TdegC',simData.arg.TdegC,'socPct',simData.arg.socPct);
+xxThetae = spectra.xlocs.Thetae';
+xxPhise = spectra.xlocs.Phise';
+xxPhie = spectra.xlocs.PhieTilde';
+xxThetass = spectra.xlocs.Thetass';
+xxEta = spectra.xlocs.Eta';
 ZcellSim = [spectra.lin.Zcell];
 ZcellTF = [spectra.tf.Zcell];
 ThetaeSim = [spectra.lin.Thetae];
@@ -71,7 +76,7 @@ end
 figure;
 plot(real(ZcellTF),-imag(ZcellTF)); hold on;
 plot(real(ZcellSim),-imag(ZcellSim),'d');
-title(sprintf('Nyquist: Z_{cell} (%s)',simData.param.cellModel.name));
+title(sprintf('Nyquist: Z_{cell} (%s)',simData.arg.cellModel.metadata.cell.name));
 xlabel('Z'' [\Omega]');
 ylabel('-Z'''' [\Omega]');
 legend('TF','COMSOL','Location','best');
@@ -87,7 +92,7 @@ loglog(spectra.freq,abs(ZcellSim),'d');
 xlim([min(spectra.freq) max(spectra.freq)]);
 xlabel('Cyclic Frequency [Hz]');
 ylabel('|Z_{cell}| [\Omega]');
-title(sprintf('Bode Magnitude: Z_{cell} (%s)',simData.param.cellModel.name));
+title(sprintf('Bode Magnitude: Z_{cell} (%s)',simData.arg.cellModel.metadata.cell.name));
 legend('TF','COMSOL');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Zcell-BodeMag.eps']));
@@ -98,7 +103,7 @@ semilogx(spectra.freq,angle(ZcellSim)*180/pi,'d');
 xlim([min(spectra.freq) max(spectra.freq)]);
 xlabel('Cyclic Frequency [Hz]');
 ylabel('\angleZ_{cell} [deg]');
-title(sprintf('Bode Phase: Z_{cell} (%s)',simData.param.cellModel.name));
+title(sprintf('Bode Phase: Z_{cell} (%s)',simData.arg.cellModel.metadata.cell.name));
 legend('TF','COMSOL','Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Zcell-BodePhs.eps']));
@@ -145,7 +150,7 @@ ylabel('$|\tilde{\theta}_{e,1,1}|$ [$\mathrm{A}^{-1}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\theta}_{e,1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Thetae-BodeMag.eps']));
@@ -166,7 +171,7 @@ ylabel('$\angle\tilde{\theta}_{e,1,1}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\theta}_{e,1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Thetae-BodePhase.eps']));
@@ -233,7 +238,7 @@ ylabel('$|\tilde{\phi}_{s,e,1,1}|$ [$\mathrm{V}\,\mathrm{A}^{-1}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\phi}_{s,e,1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Phise-BodeMag.eps']));
@@ -254,7 +259,7 @@ ylabel('$\angle\tilde{\phi}_{s,e,1,1}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\phi}_{s,e,1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Phise-BodePhase.eps']));
@@ -265,7 +270,7 @@ labels1 = arrayfun(@(x)sprintf('x=%.1f TF',x),xxPhie, ...
     'UniformOutput',false);
 labels2 = arrayfun(@(x)sprintf('x=%.1f FOM',x),xxPhie, ...
     'UniformOutput',false);
-colors = cool(length(xxPhise));
+colors = cool(length(xxPhie));
 figure;
 for k = 1:length(xxPhie)
     plot(real(PhieTF(k,:)),-imag(PhieTF(k,:)), ...
@@ -300,7 +305,7 @@ ylabel('$|\tilde{\phi}_{e,1,1}|$ [$\mathrm{V}\,\mathrm{A}^{-1}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\phi}_{e,1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Phie-BodeMag.eps']));
@@ -321,7 +326,7 @@ ylabel('$\angle\tilde{\phi}_{e,1,1}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\phi}_{e,1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Phie-BodePhase.eps']));
@@ -368,7 +373,7 @@ ylabel('$|\tilde{\theta}_{ss,1,1}|$ [$\mathrm{A}^{-1}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\theta}_{ss,1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Thetass-BodeMag.eps']));
@@ -389,7 +394,7 @@ ylabel('$\angle\tilde{\theta}_{ss,1,1}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\theta}_{ss,1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Thetass-BodePhase.eps']));
@@ -436,7 +441,7 @@ ylabel('$|\tilde{\eta}_{1,1}|$ [$\mathrm{V}\,\mathrm{A}^{-1}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\eta}_{1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Eta-BodeMag.eps']));
@@ -457,7 +462,7 @@ ylabel('$\angle\tilde{\eta}_{1,1}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\eta}_{1,1}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Eta-BodePhase.eps']));
@@ -470,7 +475,7 @@ exportgraphics(gcf,fullfile(plotdir,['Eta-BodePhase.png']));
 figure;
 plot(real(Zcell2BVP),-imag(Zcell2BVP)); hold on;
 plot(real(Zcell2Sim),-imag(Zcell2Sim),'d');
-title(sprintf('Nyquist: Z_{cell,2,2} (%s)',simData.param.cellModel.name));
+title(sprintf('Nyquist: Z_{cell,2,2} (%s)',modelName));
 xlabel('Z'' [V A^{-2}]');
 ylabel('-Z'''' [V A^{-2}]');
 legend('BVP','COMSOL','Location','best');
@@ -486,7 +491,7 @@ loglog(spectra.freq,abs(Zcell2Sim),'d');
 xlim([min(spectra.freq) max(spectra.freq)]);
 xlabel('Cyclic Frequency [Hz]');
 ylabel('|Z_{cell,2,2}| [V A^{-2}]');
-title(sprintf('Bode Magnitude: Z_{cell,2,2} (%s)',simData.param.cellModel.name));
+title(sprintf('Bode Magnitude: Z_{cell,2,2} (%s)',modelName));
 legend('BVP','COMSOL');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Zcell2-BodeMag.eps']));
@@ -497,7 +502,7 @@ semilogx(spectra.freq,unwrap(angle(Zcell2Sim))*180/pi,'d');
 xlim([min(spectra.freq) max(spectra.freq)]);
 xlabel('Cyclic Frequency [Hz]');
 ylabel('\angleZ_{cell,2,2} [deg]');
-title(sprintf('Bode Phase: Z_{cell,2,2} (%s)',simData.param.cellModel.name));
+title(sprintf('Bode Phase: Z_{cell,2,2} (%s)',modelName));
 legend('BVP','COMSOL','Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Zcell2-BodePhs.eps']));
@@ -544,7 +549,7 @@ ylabel('$|\tilde{\theta}_{e,2,2}|$ [$\mathrm{A}^{-2}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\theta}_{e,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Thetae2-BodeMag.eps']));
@@ -566,7 +571,7 @@ ylabel('$\angle\tilde{\theta}_{e,2,2}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\theta}_{e,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Thetae2-BodePhase.eps']));
@@ -633,7 +638,7 @@ ylabel('$|\tilde{\phi}_{s,e,2,2}|$ [$\mathrm{V}\,\mathrm{A}^{-2}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\phi}_{s,e,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Phise2-BodeMag.eps']));
@@ -654,7 +659,7 @@ ylabel('$\angle\tilde{\phi}_{s,e,2,2}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\phi}_{s,e,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Phise2-BodePhase.eps']));
@@ -665,7 +670,7 @@ labels1 = arrayfun(@(x)sprintf('x=%.1f BVP',x),xxPhie, ...
     'UniformOutput',false);
 labels2 = arrayfun(@(x)sprintf('x=%.1f FOM',x),xxPhie, ...
     'UniformOutput',false);
-colors = cool(length(xxPhise));
+colors = cool(length(xxPhie));
 figure;
 for k = 1:length(xxPhie)
     plot(real(Phie2BVP(k,:)),-imag(Phie2BVP(k,:)), ...
@@ -700,7 +705,7 @@ ylabel('$|\tilde{\phi}_{e,2,2}|$ [$\mathrm{V}\,\mathrm{A}^{-2}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\phi}_{e,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Phie2-BodeMag.eps']));
@@ -721,7 +726,7 @@ ylabel('$\angle\tilde{\phi}_{e,2,2}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\phi}_{e,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Phie2-BodePhase.eps']));
@@ -746,7 +751,7 @@ for k = 1:length(xxThetassPlot)
 end
 title( ...
     sprintf('Nyquist: $\\tilde{\\theta}_{ss,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 xlabel('$\tilde{\theta}_{\mathrm{ss},2,2}''$ $[\mathrm{A}^{-2}]$','Interpreter','latex');
 ylabel('$-\tilde{\theta}_{\mathrm{ss},2,2}''''$ $[\mathrm{A}^{-2}]$','Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
@@ -770,7 +775,7 @@ ylabel('$|\tilde{\theta}_{ss,2,2}|$ [$\mathrm{A}^{-2}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\theta}_{ss,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Thetass2-BodeMag.eps']));
@@ -791,7 +796,7 @@ ylabel('$\angle\tilde{\theta}_{ss,2,2}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\theta}_{ss,2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Thetass2-BodePhase.eps']));
@@ -816,7 +821,7 @@ for k = 1:length(xxEtaPlot)
 end
 title( ...
     sprintf('Nyquist: $\\tilde{\\eta}_{2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 xlabel('$\tilde{\eta}_{2,2}''$ $[\mathrm{V}\,\mathrm{A}^{-2}]$','Interpreter','latex');
 ylabel('$-\tilde{\eta}_{2,2}''''$ $[\mathrm{V}\,\mathrm{A}^{-2}]$','Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
@@ -840,7 +845,7 @@ ylabel('$|\tilde{\eta}_{2,2}|$ [$\mathrm{V}\,\mathrm{A}^{-1}$]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Magnitude: $\\tilde{\\eta}_{2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Eta2-BodeMag.eps']));
@@ -861,7 +866,7 @@ ylabel('$\angle\tilde{\eta}_{2,2}$ [deg]', ...
     'Interpreter','latex');
 title( ...
     sprintf('Bode Phase: $\\tilde{\\eta}_{2,2}$ (%s)', ...
-    simData.param.cellModel.name),'Interpreter','latex');
+    modelName),'Interpreter','latex');
 legend(labels1{:},labels2{:},'NumColumns',2,'Location','best');
 thesisFormat([0.2 0.1 0.1 0.1]);
 exportgraphics(gcf,fullfile(plotdir,['Eta2-BodePhase.eps']));
