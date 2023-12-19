@@ -586,7 +586,7 @@ classdef MSMR < handle
         end
 
         function obj = LMO()
-            %LMO Construct a model for LMO from Verbrugge 2021
+            %LMO Construct a model for LMO from Verbrugge 2021.
             params.X = [1-0.60331 0.60331];
             params.U0 = [4.16756 4.02477];
             params.omega = [1.12446 1.71031];
