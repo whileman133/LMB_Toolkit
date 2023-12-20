@@ -133,8 +133,8 @@ if length(tiledLayout)==1
         figMargins = p.FigMarginInches;
     else
         % Infer figure size from number of tiles.
-        figWidth = nrows*p.AxesWidthInches;
-        figHeight = ncols*p.AxesWidthInches/p.AxesAspectRatio;
+        figWidth = ncols*p.AxesWidthInches;
+        figHeight = nrows*p.AxesWidthInches/p.AxesAspectRatio;
         figMargins = [0 0 0 0];
     end
 
@@ -311,7 +311,12 @@ end
 
 function xTickWidth = fudgeXTickHeight(ax,scale)
     % Hack to get the approximate height of the x-axis tick labels.
-    allTickLabels = strjoin(ax.XTickLabels(:)');
+    lab = ax.XTickLabels(:)';
+    if isempty(lab)
+        xTickWidth = 0;
+        return;
+    end
+    allTickLabels = strjoin(lab);
     phantom = text(0,0,allTickLabels, ...
         'FontSize',ax.FontSize,'FontName',ax.FontName,'Units','inches');
     xTickWidth = phantom.Extent(4) + scale*0.12; % fudge factor
@@ -320,7 +325,12 @@ end
 
 function yTickWidth = fudgeYTickWidth(ax,scale)
     % Hack to get the approximate width of the y-axis tick labels.
-    allTickLabels = strjoin(ax.YTickLabels(:)','\n');
+    lab = ax.YTickLabels(:)';
+    if isempty(lab)
+        yTickWidth = 0;
+        return;
+    end
+    allTickLabels = strjoin(lab,'\n');
     phantom = text(0,0,allTickLabels, ...
         'FontSize',ax.FontSize,'FontName',ax.FontName,'Units','inches');
     yTickWidth = phantom.Extent(3) + scale*0.12; % fudge factor
