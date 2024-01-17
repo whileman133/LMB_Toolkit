@@ -1,4 +1,4 @@
-function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,soc,current,TdegC,method)
+function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,socPct,current,TdegC,method)
     %GETPULSERESISTANCE Compute pulse-resistance at a set of SOC and pulse-
     % current setpoints for a parameterized LMB cell. Fast implementation!
     %
@@ -18,7 +18,7 @@ function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,soc,
     %
     % Input:
     %   model   = PulseModel instance containing LMB parameters.
-    %   soc     = state-of-charge setpoints over which to evalulate R0 [unitless].
+    %   socPct  = state-of-charge setpoints over which to evalulate R0 [%].
     %   current = pulse-current setpoints over which to evalulate R0 [A].
     %   method  = 'exact' or 'linear' (defaults to 'exact').
     %
@@ -43,6 +43,7 @@ function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,soc,
     % performance.
     %
     % -- Changelog --
+    % 01.06.2024 | Update for gen2 tookkit | Wesley Hileman
     % 09.10.2022 | Use linear approx to initialize bvp5c | Wesley Hileman
     % 08.16.2022 | Standardize model parameter names | Wesley Hileman
     % 03.18.2022 | Updated for LMB | 
@@ -50,6 +51,9 @@ function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,soc,
     % University of Colorado Colorado Springs
 
     % Initialize! ---------------------------------------------------------
+
+    model = convertCellModel(model,'LLPM');
+    soc = socPct/100;
 
     if nargin < 5
         method = 'exact';
@@ -73,11 +77,13 @@ function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,soc,
     if isfield(model,'function')
         % Toolbox model.
         hasReg = @(reg)isfield(model.function,reg);
+        getReg = @(reg)model.function.(reg);
         hasParam = @(reg,p)isfield(model.function,reg)&&isfield(model.function.(reg),p);
         getParam = @(reg,p)model.function.(reg).(p)(0,TdegC+273.15);
     else
         % Model parameters evalulated at setpoint.
         hasReg = @(reg)isfield(model,reg);
+        getReg = @(reg)model.(reg);
         hasParam = @(reg,p)isfield(model,reg)&&isfield(model.(reg),p);
         getParam = @(reg,p)model.(reg).(p);
     end
@@ -124,13 +130,14 @@ function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,soc,
     end
     
     % Determine the OCP values corresponding to the SOC setpoints.
-    msmr = ocp.MSMR(Xp, U0p, omegap, theta100p, theta0p);
+    electrode = MSMR(getReg('pos'));
     theta = theta0p + soc*(theta100p-theta0p);
-    Uocp = msmr.ocp('theta',theta,'T',TdegC,'npoints',100000);
+    ocpData = electrode.ocp('theta',theta,'TdegC',TdegC,'npoints',100000);
+    Uocp = ocpData.Uocp;
     
     % Precompute stuff to speed things up. Solvers evalulate equations 
     % many times, so anything we can precompute helps.
-    f = msmr.f(TdegC);
+    f = electrode.f(TdegC);
     K1p = (1-alphap)*f;
     K2p = -alphap*f;
 
@@ -149,7 +156,7 @@ function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,soc,
         guess = (Rctn*Rdln/(Rctn+Rdln) + Rfn)*iapp;  % Linearized solution!
         if useExact
             % Exact solution to nonlinear equation.
-            phi_se0(kc,:) = pr.fzeroFaster(@Neg_LiFluxBalanceEquation, guess);
+            phi_se0(kc,:) = fzeroFaster(@Neg_LiFluxBalanceEquation, guess);
         else
             % Linear approximation.
             phi_se0(kc,:) = guess;
@@ -291,7 +298,7 @@ function [R0, deltaV, phi_se0, phi_se2, phi_se3] = getPulseResistance(model,soc,
                     guessP = phi/Rfp;
                 end
                 try
-                    ifdl = pr.fzeroFaster(posFn,guessP,[],phi);
+                    ifdl = fzeroFaster(posFn,guessP,[],phi);
                 catch
                     error('could not find if+dl (1)')
                 end

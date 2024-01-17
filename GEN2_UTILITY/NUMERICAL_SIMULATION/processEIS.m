@@ -65,6 +65,7 @@ function spectra = processEIS(simData,varargin)
 %    Thetae3 = reshape(Thetae(ind,:),size(spectra.lin)); % matrix, dim1=soc, dim2=freq
 %
 % -- Changelog --
+% 2023.12.27 | Add Eta TF | Wesley Hileman
 % 2023.06.11 | Support multiple SOC setpoints | Wesley Hileman
 % 2023.04.05 | Created | Wesley Hileman <whileman@uccs.edu>
 
@@ -161,9 +162,10 @@ if p.EvalLinTF
     var2tf.Ifdl = @tfIfdl;
     var2tf.Phie = @getPhieTF;    % ground ref. at x=0- (at neg cc)
     var2tf.PhieTilde = @tfPhie;  % ground ref. at x=0+ (in electrolyte)
-    var2tf.Phis = @tfPhis;
+    var2tf.PhisTilde = @tfPhis;
     var2tf.Phise = @tfPhiseInt;
     var2tf.Thetass = @tfThetassInt;
+    var2tf.Eta = @tfEta;
     var2tf.Vcell = @getVcellTF;
     var2tf.Zcell = @getZcellTF;
     

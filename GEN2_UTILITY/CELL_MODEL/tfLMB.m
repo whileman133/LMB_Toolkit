@@ -290,7 +290,8 @@ p.Zdln = p.Rdln + ((p.Cdln/p.tauDLn)*(1+p.tauDLn*S)).^(1-p.nDLn)./p.Cdln./S;
 p.Zsen = p.Rfn + p.Zdln.*p.Rctn./(p.Zdln+p.Rctn);
 
 % Compute Zse2 (double the frequency!)
-p.Dskern2p = (p.Dsp./S/2).*((1+2*S*p.tauFp)/p.tauFp/p.Dsp).^(1-p.nFp);
+S2 = 2*S;
+p.Dskern2p = (p.Dsp./S2).*((1+S2*p.tauFp)/p.tauFp/p.Dsp).^(1-p.nFp);
 p.beta2p = sqrt(1./p.Dskern2p);
 p.Zs2p = ...
    p.Zs0*( ...
@@ -299,9 +300,9 @@ p.Zs2p = ...
      - 3*p.Dskern2p ...
    );
 p.Zs2p(ind0) = Inf;  % replace NaN at zero frequency
-p.Zdl2p = p.Rdlp + ((p.Cdlp/p.tauDLp)*(1+p.tauDLp*2*S)).^(1-p.nDLp)./p.Cdlp./S/2;
+p.Zdl2p = p.Rdlp + ((p.Cdlp/p.tauDLp)*(1+p.tauDLp*S2)).^(1-p.nDLp)./p.Cdlp./S2;
 p.Zse2p = p.Rfp + 1./(1./(p.Rctp + p.Zs2p) + 1./p.Zdl2p);
-p.Zdl2n = p.Rdln + ((p.Cdln/p.tauDLn)*(1+p.tauDLn*2*S)).^(1-p.nDLn)./p.Cdln./S/2;
+p.Zdl2n = p.Rdln + ((p.Cdln/p.tauDLn)*(1+p.tauDLn*S2)).^(1-p.nDLn)./p.Cdln./S2;
 p.Zse2n = p.Rfn + p.Zdl2n.*p.Rctn./(p.Zdl2n+p.Rctn);
 
 % Additional.
@@ -1259,7 +1260,7 @@ function data = tfLMB22(lindata,layerMode)
     LambdaD2 = (3600*p.qed*2*S/p.kappad/p.psi/p.T);
 
     % BVP solver options.
-    opts = bvpset('AbsTol',1e-6,'RelTol',1e-3);  % defaults
+    opts = bvpset('AbsTol',1e-9,'RelTol',1e-4);
 
     % Mesh points for BVP solver.
     zmesh = linspace(0,1,10);
@@ -1308,10 +1309,10 @@ function data = tfLMB22(lindata,layerMode)
     data.tfThetae = @(X)getThetae22(meta,X);
     data.tfIfdl = @(X)getIfdl22(meta,X,true);
     data.tfPhise = @(X)getPhise22(meta,X,true);
-    data.tfPhie = @(X)getPhie22(meta,X,true);
+    data.tfPhieTilde = @(X)getPhie22(meta,X,true);
     data.tfThetass = @(X)getThetass22(meta,X,true);
     data.tfEta = @(X)getEta22(meta,X,true);
-    data.tfVcell = @()getVcell22(meta);
+    data.tfZcell = @()getZcell22(meta);
     data.meta = meta;
 
     function soln = solveSingleInertLayer
@@ -1740,6 +1741,7 @@ function Eta = getEta22(meta,X,delinearize)
 end
 
 function [Phie, data] = getPhie22(meta,X,delinearize)
+    X = X(:).';
     [~, bins] = meta.param.split(X);
     Phie1 = zeros(meta.ns,length(X));
     
@@ -1774,12 +1776,12 @@ function [Phie, data] = getPhie22(meta,X,delinearize)
     data.Phie2 = Phie2;
 end
 
-function [Vcell, data] = getVcell22(meta)
+function [Zcell, data] = getZcell22(meta)
     Phise = getPhise22(meta,[meta.param.xlim.min meta.param.xlim.max],true);
     Phise0 = Phise(:,1);
     PhiseL = Phise(:,2);
     PhieL = getPhie22(meta,meta.param.xlim.max,true);
-    Vcell = -(PhiseL + PhieL - Phise0);
+    Zcell = -(PhiseL + PhieL - Phise0);
     data.Zneg = Phise0;
     data.Zpos = -PhiseL;
     data.Zel = -PhieL;

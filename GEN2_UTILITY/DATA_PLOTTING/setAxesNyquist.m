@@ -101,6 +101,10 @@ end
 xdata = xdata(~isnan(xdata));
 ydata = ydata(~isnan(ydata));
 
+% Remove Infs!
+xdata = xdata(~isinf(xdata));
+ydata = ydata(~isinf(ydata));
+
 % Check for empty vectors.
 if isempty(xdata) || isempty(ydata)
     warning('setAxesNyquist: Couldn''t determine x,y plot limits!');
