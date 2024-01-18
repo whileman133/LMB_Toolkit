@@ -1,6 +1,6 @@
-% simFOMNLEIS_socSeries.m
+% simFOMEIS_socSeries.m
 %
-% Simulate medium-signal sinusoidal response of the full-order LMB model 
+% Simulate small-signal sinusoidal response of the full-order LMB model 
 % in COMSOL and save results to disk. Simulates over multiple SOC
 % setpoints.
 %
@@ -20,11 +20,11 @@ TB.addpaths;
 
 % Constants.
 cellFile = 'cellLMO-P2DM.xlsx';  % Name of cell parameters spreadsheet.
-freq = logspace(-3,5,50);   % Frequency points to evalulate in the spectrum [Hz].
-socPct = [95 50 5];         % Cell SOC setpoint(s) [%].
-TdegC = 25;                 % Cell temperature [degC].
-I = 0.1; %0.03;                   % Amplitude of Iapp sinusoids [A].
-suffix = '';                % String to append to name of output data file.
+freq = logspace(-4,5,50); % Frequency points to evalulate in the spectrum [Hz].
+socPct = 10;               % Vector of cell SOC setpoint(s) [%].
+TdegC = 25;               % Cell temperature [degC].
+I = 0.001;                % Amplitude of Iapp sinusoids [A].
+suffix = '';              % String to append to name of output data file.
 % Structure of additional options to pass to simFOM.
 OptSimFOM.FixExchangeCurrent = false;  % more realilistic when i0 varies
 OptSimFOM.VcellOnly = false;
@@ -33,9 +33,9 @@ OptSimFOM.VcellOnly = false;
 % store in addition to Vcell (field names) as well as the x-locations
 % where those variables should be evaluated (field values).
 % (Value of 'mesh' indicates all available x-locations should be stored.)
-Vars.Phis = 'mesh';
+Vars.PhisTilde = 'mesh';  % debiased from vcell
 Vars.Phise = 'mesh';
-Vars.PhieTilde = 'mesh';  % ground is at x=0+ (in the electrolyte)!
+Vars.PhieTilde = 'mesh';  % ground is at x=0+ (in the electrolyte)
 Vars.Eta = 'mesh';
 Vars.Thetae = 'mesh';
 Vars.Thetass = 'mesh';

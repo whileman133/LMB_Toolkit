@@ -30,6 +30,7 @@ parser = inputParser;
 parser.addRequired('XSpan',is2Vector);
 parser.addRequired('InsetPosition',is2Vector);
 parser.addOptional('ReductionFactor',2.8,@(x)isnumeric(x)&&isscalar(x)&&x>1);
+parser.addParameter('YSpan',[],is2Vector);
 parser.addParameter('Links','auto',isLinks);
 parser.addParameter('Axes',gca(),@(x)isgraphics(x,'axes'));
 parser.addParameter('ScaleFactor',1.75);
@@ -76,20 +77,23 @@ w = arg.Axes.Position(3)/arg.ReductionFactor;
 h = arg.Axes.Position(4)/arg.ReductionFactor;
 InsetPosition = [x0 y0 w h];
 
-% Determine yspan from data.
 xspan = arg.XSpan;
-yspan = [+inf -inf];
-for line = findall(arg.Axes,'Type','line')'
-    span = xspan(1)<=line.XData&line.XData<=xspan(2); % logical indicies to x-span
-    ymin = min(line.YData(span));
-    ymax = max(line.YData(span));
-    if ymin<yspan(1)
-        yspan(1) = ymin;
-    end
-    if ymax>yspan(2)
-        yspan(2) = ymax;
-    end
-end % for
+yspan = arg.YSpan;
+if isempty(yspan)
+    % Determine yspan from data.
+    yspan = [+inf -inf];
+    for line = findall(arg.Axes,'Type','line')'
+        span = xspan(1)<=line.XData&line.XData<=xspan(2); % logical indicies to x-span
+        ymin = min(line.YData(span));
+        ymax = max(line.YData(span));
+        if ymin<yspan(1)
+            yspan(1) = ymin;
+        end
+        if ymax>yspan(2)
+            yspan(2) = ymax;
+        end
+    end % for
+end
 
 % Create inset axes.
 insetAx = copyobj(arg.Axes,fig);

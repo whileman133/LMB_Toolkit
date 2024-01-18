@@ -74,6 +74,7 @@
 % and informational purposes only.
 %
 % -- Changelog --
+% 2023.12.17 | Distinquish between Phis and PhisTilde=Phis-Vcell | Wes H.
 % 2023.04.20 | Add option to retain only Vcell | Wesley Hileman
 % 2023.04.09 | Modify for LMB | Wesley Hileman <whileman@uccs.edu>
 % 2023.04.04 | Add 'InputType' parameter | Wesley Hileman <whileman@uccs.edu>
@@ -332,6 +333,7 @@ function [FOM,FOMout] = simFOM(genData,simData,varargin)
     FOMout.If           = [negIf0 posIf];
     FOMout.Idl          = [negIdl0 posIdl];
     FOMout.Phis         = posPhis;
+    FOMout.PhisTilde    = posPhis - data_pos.d1(:,end); % debias from cell cell voltage
     FOMout.Phise        = [negPhise0 posPhise];
     FOMout.Thetass      = posThetass;
     FOMout.Eta          = [negEta0 posEta];
@@ -344,6 +346,7 @@ function [FOM,FOMout] = simFOM(genData,simData,varargin)
     FOMout.xLocs.If         = [locs_neg0; locs_pos];
     FOMout.xLocs.Idl        = [locs_neg0; locs_pos];
     FOMout.xLocs.Phis       = locs_pos;
+    FOMout.xLocs.PhisTilde  = locs_pos;
     FOMout.xLocs.Phise      = [locs_neg0; locs_pos];
     FOMout.xLocs.Thetass    = locs_pos;
     FOMout.xLocs.Eta        = [locs_neg0; locs_pos];

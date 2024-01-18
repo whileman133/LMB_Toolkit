@@ -5,9 +5,9 @@ function data = runSensitivityStudy(spec,fcn,varargin)
 %   FCN for several sets of parameter values specified by SPEC, a structure
 %   with the following fields:
 %     spec.defaults = structure of unperterbed parameter values
-%     spec.values = structure of values to sweep through for each parameter
+%     spec.singl.values = structure of values to sweep through for each parameter
 %       in column-vector format (MSMR parameters can have more than one column)
-%     spec.joint = (optional) structure specifying joint groups of parameter 
+%     spec.joint.values = (optional) structure specifying joint groups of parameter 
 %       values to sweep through. e.g.:
 %         joint.grp1.psi = [values for psi]
 %         joint.grp1.kD =  [values for kD]

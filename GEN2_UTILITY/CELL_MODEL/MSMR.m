@@ -328,9 +328,9 @@ classdef MSMR < handle
                 i0j = k0.*xj.^(omega.*alpha).*(X-xj).^(omega.*(1-alpha));
                 i0j = i0j./(X/2).^omega; % normalize!
                 i0 = sum(i0j,1);
-                Rct2Inv = sum(i0j.*((1-alpha).^2-alpha.^2))*ocpData.f;
+                Rct2Inv = sum(i0j.*((1-alpha).^2-alpha.^2),1)*ocpData.f;
             elseif all(isfield(params,{'k0Spline','k0Theta','alphaSpline'}))
-                % Cubic spline charge-transfer resistance.
+                % Cubic spline charge-transfer resistance.,
                 theta = params.k0Theta;
                 k0 = params.k0Spline;
                 alpha = params.alphaSpline;

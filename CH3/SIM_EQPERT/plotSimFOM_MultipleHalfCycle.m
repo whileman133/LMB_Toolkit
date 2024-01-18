@@ -54,10 +54,9 @@ end
 figure;
 lab1 = arrayfun(@(I)sprintf('COMSOL'),simData.IavgC,'UniformOutput',false);
 lab2 = arrayfun(@(I)sprintf('DC Model @ %+.2fC',I),simData.IavgC,'UniformOutput',false);
-plot(UocpThetaAvg,VcellNorm); hold on;
-plot(UocpThetaAvg,VcellHat,':');
-set(gca,'xdir','reverse');
-xlabel('Fractional Lithium Composition, $\theta_\mathrm{s}$', ...
+plot(UocpSocAvgPct,VcellNorm); hold on;
+plot(UocpSocAvgPct,VcellHat,':');
+xlabel('Average SOC, $z_\mathrm{avg}$ [\%]', ...
     'Interpreter','latex');
 ylabel('Cell voltage, v_{cell} [V]');
 title(sprintf('Half-Cycle Dis/charge (%s)',cellName));
@@ -72,9 +71,8 @@ print(fullfile(plotdir,'hc-dis'),'-dpng');
 figure;
 % subplot(211);
 lab = arrayfun(@(I)sprintf('Iavg=%+.2fC',I),simData.IavgC,'UniformOutput',false);
-plot(UocpThetaAvg,(VcellHat-VcellTrue)*1000); hold on;
-set(gca,'xdir','reverse');
-xlabel('Fractional Lithium Composition, $\theta_\mathrm{s}$', ...
+plot(UocpSocAvgPct,(VcellHat-VcellTrue)*1000); hold on;
+xlabel('Average SOC, $z_\mathrm{avg}$ [\%]', ...
     'Interpreter','latex');
 ylabel('Prediction error, $\hat{v}_{cell}-v_{cell}$ [mV]','Interpreter','latex');
 title(sprintf('Prediction Error of dc Model'));
@@ -95,10 +93,9 @@ print(fullfile(plotdir,'vcell-error'),'-depsc');
 print(fullfile(plotdir,'vcell-error'),'-dpng');
 
 figure; 
-plot(UocpThetaAvg,UocpTrue); hold on;
-plot(UocpThetaAvg,UocpEst,':');
-set(gca,'xdir','reverse');
-xlabel('Fractional Lithium Composition, $\theta_\mathrm{s}$', ...
+plot(UocpSocAvgPct,UocpTrue); hold on;
+plot(UocpSocAvgPct,UocpEst,':');
+xlabel('Average SOC, $z_\mathrm{avg}$ [\%]', ...
     'Interpreter','latex');
 ylabel('U_{ocp} [V vs. Li/Li+]');
 title(sprintf('OCP Estimate (%.3fmV RMSE)',UocpRMSE*1000));
@@ -108,10 +105,9 @@ print(fullfile(plotdir,'OCPEst'),'-depsc');
 print(fullfile(plotdir,'OCPEst'),'-dpng');
 
 figure;
-plot(RdcThetaAvg,RcellTrue); hold on;
-plot(RdcThetaAvg,RdcEst,':');
-set(gca,'xdir','reverse');
-xlabel('Fractional Lithium Composition, $\theta_\mathrm{s}$', ...
+plot(RdcSocAvgPct,RcellTrue); hold on;
+plot(RdcSocAvgPct,RdcEst,':');
+xlabel('Average SOC, $z_\mathrm{avg}$ [\%]', ...
     'Interpreter','latex');
 ylabel('R_{dc} [\Omega]');
 title(sprintf('DC Resistance Estimate (%.3fm\\Omega RMSE)',RcellRMSE*1000));
