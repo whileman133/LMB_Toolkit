@@ -51,6 +51,7 @@ parser.addOptional('outModelType',[],isModelType);
 parser.addParameter('SolidDiffusionModel',[],@(x)isstruct(x)||ischar(x));
 parser.addParameter('KineticsModel',[],@(x)isstruct(x)||ischar(x));
 parser.addParameter('MakeMSMROCP',true,@(x)isscalar(x)&&islogical(x));
+parser.addParameter('LegacyExpandEff',true,@(x)isscalar(x)&&islogical(x));
 parser.parse(inModel,outModelType,varargin{:});
 arg = parser.Results; % structure of validated arguments
 
@@ -83,9 +84,10 @@ else
     % Map models to "reduction" factor; we can't perform
     % the conversion when redfac.(outModelType) <= redfac.(inModelType).
     redfac.P2DM = 0;
-    redfac.WRM = 1;
-    redfac.RLWRM = 2;
-    redfac.LLPM = 3;
+    redfac.RLP2DM = 1;
+    redfac.WRM = 2;
+    redfac.RLWRM = 3;
+    redfac.LLPM = 4;
     redfacIN = redfac.(inModelType);
     redfacOUT = redfac.(outModelType);
     if redfacOUT <= redfacIN
@@ -96,12 +98,14 @@ else
     % OK to convert.
     if strcmp(inModelType,'P2DM') && strcmp(outModelType,'WRM')
         outModel = genWRM(inModel);
+    elseif strcmp(inModelType,'RLP2DM') && strcmp(outModelType,'RLWRM')
+        outModel = genWRM(inModel);
     elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'RLWRM')
         tmpWRM = genWRM(inModel);
         outModel = genRLWRM(tmpWRM);
     elseif strcmp(inModelType,'WRM') && strcmp(outModelType,'RLWRM')
         outModel = genRLWRM(inModel);
-    elseif strcmp(inModelType,'P2DM') && strcmp(outModelType,'LLPM')
+    elseif any(strcmp(inModelType,{'P2DM','RLP2DM'})) && strcmp(outModelType,'LLPM')
         tmp = genWRM(inModel);
         outModel = genLLPM(tmp,arg);
     elseif any(strcmp(inModelType,{'WRM','RLWRM'})) && strcmp(outModelType,'LLPM')
@@ -122,14 +126,18 @@ outModel = convertSubModels(outModel,arg.SolidDiffusionModel,arg.KineticsModel);
 end
 
 function WRM = genWRM(P2DM)
-%GENWORM Convert P2DM to WRM.
+%GENWORM Convert P2DM to WRM, or RLP2DM to RLWRM.
 
 R = TB.const.R;
 F = TB.const.F;
 
 WRM = struct;
 WRM.metadata = P2DM.metadata;
-WRM.metadata.cell.type = 'WRM';
+if isfield(P2DM.parameters,'eff')
+    WRM.metadata.cell.type = 'RLWRM';
+else
+    WRM.metadata.cell.type = 'WRM';
+end
 WRM.metadata.cell.lumpedParams = true;
 WRM.parameters = struct;
 
@@ -397,7 +405,7 @@ function LLPM = genLLPM(WORM,arg)
 %GENLLPM Convert WORM or RLWORM to LLPM.
 
 cellModel = WORM;
-if strcmp(WORM.metadata.cell.type,'RLWRM')
+if any(strcmp(WORM.metadata.cell.type,{'RLWRM','RLP2DM'})) && arg.LegacyExpandEff
     % Expand eff into dll and sep for legacy implemtation
     % of genFOM. The layers will have identical parameters
     % to emulate a single eff layer.
