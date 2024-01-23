@@ -11,11 +11,11 @@ TB.addpaths;
 
 
 % Constants ---------------------------------------------------------------
-TdegC = 25;
-truth = MSMR.NMC622();
+TdegC = 25;             % temperature [degC]
+truth = MSMR.NMC622();  % true MSMR model of electrode
 J = truth.J;   % Number of galleries to fit (assume foud by trial-and-error)
-w = 0.1;       % Weight of differential capacity in cost function
-Usep = 0.005;  % Minimum required separation of gallery potentials U0j [V]
+w = 0.1;       % Weight of differential capacity in cost function [-]
+Usep = 0.005;  % Minimum required separation of gallery potentials U0 [V]
 tries = 1000;  % Number of independent runs of the optimization
 
 
