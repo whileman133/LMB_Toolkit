@@ -1,4 +1,4 @@
-% testFitMSMR.m
+% testFitMSMR_C6.m
 %
 % Verify the MSMR model regression using synthetic data.
 %
@@ -8,15 +8,17 @@
 clear; close all; clc;
 addpath('..');
 TB.addpaths;
+rng(0);  % make results repeatable
 
 
 % Constants ---------------------------------------------------------------
 TdegC = 25;             % temperature [degC]
-truth = MSMR.NMC622();  % true MSMR model of electrode
+truth = MSMR.C6();  % true MSMR model of electrode
 J = truth.J;   % Number of galleries to fit (assume foud by trial-and-error)
 w = 0.1;       % Weight of differential capacity in cost function [-]
 Usep = 0.005;  % Minimum required separation of gallery potentials U0 [V]
 tries = 1000;  % Number of independent runs of the optimization
+verbose = true;
 
 
 % Generate synthetic OCP --------------------------------------------------
@@ -30,7 +32,7 @@ ocp.dZ = (1./ocpData.dUocp)/(truth.thetamax-truth.thetamin); % !!! important to 
 
 % Optimization control ----------------------------------------------------
 % Genetic algorithm and fmincon parameters
-gaPopulationSize = 200;
+gaPopulationSize = 300;
 gaIterations = 200;
 fminconIterations = 5000;
 
@@ -42,26 +44,21 @@ fminconIterations = 5000;
 % * bounds can be imposed on the individual galleries by making
 %   U0, X, and omega column vectors; the optimization is garenteed to
 %   preserve the order of the gallery potentials U0
-lb.U0 = 3;         ub.U0 = 5;
-lb.X  = 0.1;       ub.X  = 0.4;
-lb.omega = 0.1;    ub.omega = 10;
-lb.thetamin = 0;   ub.thetamin = 0.2;
+lb.U0 = 0.05;      ub.U0 = 0.4;
+lb.X  = 0.05;      ub.X  = 0.5;
+lb.omega = 0.05;   ub.omega = 10;
+lb.thetamin = 0;   ub.thetamin = 0.1;
 lb.thetamax = 0.9; ub.thetamax = 1.0;
 
 
 % Regress MSMR model ------------------------------------------------------
 
-% Perform regression a number of times.
-clear data;
-for k = tries:-1:1
-    fprintf('Running #%5d... ',tries-k+1);
-    data(k) = fitMSMR(ocp,J, ...
-        'lb',lb,'ub',ub,'w',w,'Usep',Usep, ...
-        'gaPopulationSize',gaPopulationSize, ...
-        'gaIterations',gaIterations, ...
-        'fminconIterations',fminconIterations,'verbose',false);
-    fprintf('done!\n');
-end
+data = fitMSMR(ocp,J, ...
+    'lb',lb,'ub',ub,'w',w,'Usep',Usep, ...
+    'gaPopulationSize',gaPopulationSize, ...
+    'gaIterations',gaIterations, ...
+    'fminconIterations',fminconIterations, ...
+    'verbose',verbose);
 
 % Save results to disk.
-save('testFitMSMR.mat','data','truth');
+save('demoFitMSMR_C6.mat','data','truth');

@@ -8,12 +8,14 @@ function data = fitMSMR(ocp, J, varargin)
 %
 % -- Usage --
 % data = FITMSMR(ocp,J)
+% data = FITMSMR(ocp,J)
 % data = FITMSMR(...,'initial',init,'eps',eps)
 % data = FITMSMR(...,'lb',lb,'ub',lb)
 % data = FITMSMR(...,'initial',init,'lb',lb,'ub',lb)
 % data = FITMSMR(...,'fix',fix)
 % data = FITMSMR(...,'Usep',Usep)
 % data = FITMSMR(...,'w',w)
+% data = FITMSMR(...,'Verbose',verb)
 %
 % -- Input --
 % ocp   = struct or struct array of OCP data (see fields below)
@@ -32,6 +34,7 @@ function data = fitMSMR(ocp, J, varargin)
 % Usep  = minimum required separation of gallery potentials U0j [V]
 % w     = relative weight placed on agreement of differential capacity 
 %         vs OCP in the cost function [-]
+% verb  = enables console output and plots when true, suppresses when false
 %
 % ocp is a struct or struct array with the following fields:
 %
@@ -51,7 +54,7 @@ function data = fitMSMR(ocp, J, varargin)
 % -- Output --
 % The output, DATA, is a struct with the following fields:
 %
-%   .est       the best-fit MSMR model found
+%   .params    parameter values of the regressed MSMR model
 %   .Jcost     cost associated with the best fit
 %
 % -- Changelog --
@@ -70,6 +73,8 @@ F = 96485.3329;     % Faraday constant [C/mol]
 
 % Parse arguments.
 parser = inputParser;
+parser.addRequired('ocp',@(x)isstruct(x));
+parser.addRequired('J',@(x)x>0)
 parser.addParameter('initial',[],@(x)isstruct(x)||isa(x,'MSMR')||isempty(x));
 parser.addParameter('eps',0.5,@(x)isstruct(x)||isscalar(x)&&x>=0);
 parser.addParameter('lb',struct,@isstruct);
@@ -82,7 +87,9 @@ parser.addParameter('gaIterations',500,@(x)x>=1);
 parser.addParameter('fminconIterations',500,@(x)x>=1);
 parser.addParameter('verbose',true,@islogical);
 parser.addParameter('weighting',[],@isstruct);
-parser.parse(varargin{:});
+parser.addParameter('vmin',[],@(x)isscalar(x)&&isnumeric(x)||isempty(x));
+parser.addParameter('vmax',[],@(x)isscalar(x)&&isnumeric(x)||isempty(x));
+parser.parse(ocp,J,varargin{:});
 arg = parser.Results;
 initial = parser.Results.initial;
 eps = parser.Results.eps;
@@ -205,6 +212,41 @@ end
 Aeq = pack(sumX,fix)';
 Beq = 1;
 
+% Configure live plot.
+if verbose
+    clear line_OcpLab line_OcpMod line_dOcpLab line_dOcpMod;
+    figure;
+    for ke = length(ocp):-1:1
+        TdegC = ocp(ke).TdegC;
+        Ulab = ocp(ke).U;
+        Zlab = ocp(ke).Z;
+        dZlab = abs(ocp(ke).dZ); 
+        vmin = min(Ulab);
+        vmax = max(Ulab);
+        subplot(ke,2,2*(ke-1)+1);
+        line_OcpLab(ke) = plot(NaN,NaN,'k:'); hold on;
+        line_OcpMod(ke) = plot(NaN,NaN,'m');
+        xlabel('Relative Composition, $\tilde{\theta}_\mathrm{s}$', ...
+            'Interpreter','latex');
+        ylabel('$U_\mathrm{ocp}$ [$\mathrm{V}$]','Interpreter','latex');
+        title(sprintf('Open-Circuit Potential (%.2f\\circC)',TdegC));
+        legend('Lab','Model');
+        xlim([0 1]);
+        ylim([vmin vmax]);
+        subplot(ke,2,2*(ke-1)+2);
+        line_dOcpLab(ke) = plot(NaN,NaN,'k:'); hold on;
+        line_dOcpMod(ke) = plot(NaN,NaN,'m');
+        xlabel(['Absolute Differential Capacity, ' ...
+            '$\mathrm{d}\tilde{\theta}_\mathrm{s}/\mathrm{d}U$ ' ...
+            '[$\mathrm{V}^{-1}$]'], ...
+            'Interpreter','latex');
+        ylabel('$U_\mathrm{ocp}$ [$\mathrm{V}$]','Interpreter','latex');
+        title(sprintf('Differential Capacity (%.2f\\circC)',TdegC));
+        ylim([vmin vmax]);
+    end
+    thesisFormat;
+end
+
 % Configure and perform hybrid Genetic Algorithm optimization.
 if verbose
     display = 'iter';
@@ -226,6 +268,7 @@ options = optimoptions(@ga,...
     'FunctionTolerance', 1e-10,...
     'MaxStallGenerations', 100,...
     'HybridFcn', {@fmincon,optionsHybrid});
+bestJ = Inf;
 [vect, Jcost] = ga(@cost,ndim,A,B,Aeq,Beq,lb,ub,[],options);
 est = unpack(vect,fix);
 
@@ -235,8 +278,18 @@ est.U0    = est.U0(ind);
 est.X     = est.X(ind);
 est.omega = est.omega(ind);
 
+% !!! Important: We need to compute theta min/max from the voltage limits of 
+% the cell (if present), NOT the values in the estimate, as lab data 
+% may have been augmented with additional data collected over wider 
+% lithiation range.
+if ~isempty(arg.vmin) && ~isempty(arg.vmax)
+    ocpTmp = MSMR(est).ocp('voltage',[arg.vmin arg.vmax]);
+    est.thetamin = min(ocpTmp.theta);
+    est.thetamax = max(ocpTmp.theta);
+end
+
 % Collect output.
-data.est = est;
+data.params = est;
 data.Jcost = Jcost;
 data.origin__ = 'fitMSMR';
 data.arg__ = arg;
@@ -249,20 +302,22 @@ function Jcost = cost(vect)
     % and laboratory measurements (more than one
     % laboratory-derived OCP estimate may be supplied).
     Jcost = 0;
-    for idxEstimate = 1:length(ocp)
-        TdegC = ocp(idxEstimate).TdegC;
-        Ulab = ocp(idxEstimate).U;
-        Zlab = ocp(idxEstimate).Z;
-        dZlab = abs(ocp(idxEstimate).dZ); % !!! use absolute diff cap
+    clear dat;
+    for ie = length(ocp):-1:1
+        TdegC = ocp(ie).TdegC;
+        Ulab = ocp(ie).U;
+        Zlab = ocp(ie).Z;
+        dZlab = abs(ocp(ie).dZ); % !!! use absolute diff cap
 
         % Evalulate MSMR model over same Uocp vector as lab data.
         % (We have to re-evalulate the model prediction for each
         % OCP estimate, as the temperature T may differ.)
+        % **Do not use the MSMR class, it is very slow in loops.**
         U0 = params.U0;
         X = params.X;
         omega = params.omega;
-        Umod = Ulab(:)';
         f = F/R/(TdegC+273.15);
+        Umod = Ulab(:)';
         gj = exp(f*(Umod-U0)./omega);
         xj = X./(1+gj);
         Zmod = sum(xj,1);
@@ -288,6 +343,33 @@ function Jcost = cost(vect)
 
         % Compute cost.
         Jcost = Jcost + sum(zResid.^2) + w*sum(dzResid.^2);
+
+        % Store data in case plots need to update.
+        if verbose
+            tmp = struct;
+            tmp.Zlab = Zlab;
+            tmp.Ulab = Ulab;
+            tmp.dZlab = dZlab;
+            tmp.Zmod = Zmod;
+            tmp.Umod = Umod;
+            tmp.dZmod = dZmod;
+            tmp.rmse = rms(zResid);
+            dat(ie) = tmp;
+        end
+    end
+
+    if Jcost < bestJ
+        bestJ = Jcost;
+        % Update plots.
+        if verbose
+            for ie = 1:length(dat)
+                set(line_OcpLab(ie),'XData',Zlab,'Ydata',Ulab);
+                set(line_dOcpLab(ie),'XData',dZlab,'Ydata',Ulab);
+                set(line_OcpMod(ie),'XData',Zmod,'Ydata',Umod);
+                set(line_dOcpMod(ie),'XData',dZmod,'Ydata',Umod);
+            end
+            drawnow;
+        end
     end
 end
 

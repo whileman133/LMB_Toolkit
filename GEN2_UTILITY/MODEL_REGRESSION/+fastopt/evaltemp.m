@@ -20,6 +20,10 @@ paramnames = fieldnames(modelspec.params);
 for k = 1:length(paramnames)
     paramname = paramnames{k};
     meta = modelspec.params.(paramname);
+    if isfield(meta,'fix') && ~any(meta.fixmask) && ~isfield(flatmodel,paramname)
+        % OK to omit fixed parameters
+        continue;
+    end
     value = flatmodel.(paramname);
     
     if strcmpi(meta.tempfcn,'fix')
