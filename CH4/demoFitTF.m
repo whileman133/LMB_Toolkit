@@ -1,4 +1,9 @@
 % demoFitTF.m
+%
+% Verify the TF model regression using synthetic data.
+%
+% -- Changelog --
+% 2024.02.03 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
 addpath('..');
@@ -7,7 +12,8 @@ rng(0);  % make results repeatable
 
 % Constants.
 synthCell = 'cellLMO-P2DM.xlsx';
-deltaPct = 50; % amount by which initial estimate can differ from truth [%] 
+useParallel = true; % run regression using parallel processing
+deltaPct = 50; % amount by which initial estimates can differ from truth [%] 
 TdegC = [15 25 40]; % temperature setpoints [degC]
 socPct = 100:-5:5; % SOC setpoints [%]
 freq = logspace(-4,5,100); % frequency points [Hz]
@@ -21,7 +27,14 @@ ptmp.const.W = 2;
 rlwrm = setCellParam(rlwrm,ptmp);
 
 % Setup fixed parameters.
-fix.pos.sigma = 500;  % TF model very insensitive to sigma
+truth = getCellParams(rlwrm);
+fix.neg.Rf  = 0;                  % Lump with package resistance
+fix.neg.Rdl = 0;                  % Rdl<<Rct, so assume Rdl~=0 for neg
+fix.pos.sigma = truth.pos.sigma;  % TF model very insensitive to sigma
+% Since nDL=nF=1, corresponding time constants are meaningless.
+fix.neg.tauDL = truth.neg.tauDL;
+fix.pos.tauDL = truth.pos.tauDL;
+fix.pos.tauF = truth.pos.tauF;
 
 % Fetch true OCP parameters (assume already known for TF regression).
 ocp = getCellParams( ...
@@ -77,6 +90,10 @@ for kr = 1:length(regs)
     end
 end
 init = setCellParam(p2dm,p);
+
+% Regress TF model.
 regspec = regTF('msmr',eis,ocp,init,'fix',fix);
-fitdata = fitTF(regspec,'UseParallel',true);
+fitdata = fitTF(regspec,'UseParallel',useParallel);
+
+% Save results.
 save('demoFitTF.mat','init','regspec','fitdata','p2dm','rlwrm');

@@ -18,7 +18,7 @@ truth = getCellParams(rlwrm,'TdegC',TrefdegC);
 truth.pkg.R0 = truth.pkg.R0 + truth.neg.Rf;  % fit model lumps Rfn with R0
 
 % Compare estimates to truth.
-clear names est tru pctErr lb ub;
+clear names est tru pctErr lb ub EactKJ;
 cursor = 1;
 rnames = fieldnames(estimates);
 for kr = 1:length(rnames)
@@ -42,6 +42,11 @@ for kr = 1:length(rnames)
             pctErr(cursor) = 100*(est(cursor)-tru(cursor))./tru(cursor);
             lb(cursor) = lwr(km);
             ub(cursor) = upr(km);
+            if isfield(sparse.(rname),[pname '_Eact'])
+                EactKJ(cursor) = sparse.(rname).([pname '_Eact'])/1000;
+            else
+                EactKJ(cursor) = NaN;
+            end
             cursor = cursor + 1;
         end
     end
@@ -52,6 +57,7 @@ tru = tru.';
 pctErr = pctErr.';
 lb = lb.';
 ub = ub.';
+EactKJ = EactKJ.';
 tab = table;
 tab.Name = names;
 tab.Estimate = est;
@@ -59,6 +65,7 @@ tab.Truth = tru;
 tab.PctError = pctErr;
 tab.LowerBound = lb;
 tab.UpperBound = ub;
+tab.EactKJ = EactKJ;
 
 % Save results to spreadsheet.
 writetable(tab,'demoFitTF.xlsx');
