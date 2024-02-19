@@ -646,7 +646,7 @@ classdef MSMR < handle
                 [~, idxZValley] = findpeaks(-dzdv_Z);
                 if(length(idxVPeaks) <= maxJ && ...
                    length(idxZValley) <= length(idxVPeaks)-1)
-                    break;
+                   break;
                 end
             end
 

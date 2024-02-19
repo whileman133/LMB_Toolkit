@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" viewBox="10.8 8.16 530.55406 255.14" width="530.55406" height="255.14">
+  <defs>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="FilledArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
+      <g>
+        <path d="M 8 0 L 0 -3 L 0 3 Z" fill="currentColor" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <marker orient="auto" overflow="visible" markerUnits="strokeWidth" id="StickArrow_Marker" stroke-linejoin="miter" stroke-miterlimit="10" viewBox="-1 -4 10 8" markerWidth="10" markerHeight="8" color="black">
+      <g>
+        <path d="M 8 0 L 0 0 M 0 -3 L 8 0 L 0 3" fill="none" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </marker>
+    <linearGradient x1="0" x2="1" id="Gradient" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ebebeb"/>
+      <stop offset=".62833355" stop-color="#aaa"/>
+      <stop offset="1" stop-color="#5e5e5e"/>
+    </linearGradient>
+    <linearGradient id="Obj_Gradient" xl:href="#Gradient" gradientTransform="translate(241.2 248.4) scale(111.6)"/>
+  </defs>
+  <g id="Canvas_1" stroke="none" stroke-dasharray="none" fill="none" fill-opacity="1" stroke-opacity="1">
+    <title>Canvas 1</title>
+    <g id="Canvas_1_Layer_1">
+      <title>Layer 1</title>
+      <g id="Group_18">
+        <g id="Graphic_15"/>
+        <g id="Group_7">
+          <g id="Graphic_2">
+            <path d="M 28.07841 34.29643 L 28.07841 54.8041 C 28.07841 55.599116 28.655 56.24595 29.363677 56.24595 L 57.036324 56.24595 C 57.745 56.24595 58.32159 55.599116 58.32159 54.8041 L 58.32159 34.29643 C 58.32159 33.501416 57.745 32.854953 57.036324 32.854953 L 29.363345 32.854953 C 28.655 32.854953 28.07841 33.501416 28.07841 34.29643 Z M 50.76171 28.800374 L 50.76171 32.0842 L 54.45548 32.0842 L 54.45548 28.800374 L 50.76171 28.800374 Z M 31.94286 32.083825 L 35.636627 32.083825 L 35.636627 28.8 L 31.94286 28.8 L 31.94286 32.083825 Z M 35.54979 36.732987 C 35.54979 36.945737 35.395744 37.11855 35.2061 37.11855 L 32.374387 37.11855 C 31.9219 37.11855 31.9219 36.347423 32.374387 36.347423 L 35.2061 36.347423 C 35.39541 36.347423 35.54979 36.519863 35.54979 36.732987 Z M 51.19357 37.11855 C 50.74108 37.11855 50.74108 36.347423 51.19357 36.347423 L 52.2659 36.347423 L 52.2659 35.14445 C 52.2659 34.637206 52.953284 34.636833 52.953284 35.14445 L 52.953284 36.347423 L 54.025614 36.347423 C 54.4781 36.347423 54.4781 37.11855 54.025614 37.11855 L 52.953284 37.11855 L 52.953284 38.321525 C 52.953284 38.82914 52.2659 38.828767 52.2659 38.321525 L 52.2659 37.11855 Z" fill="#0096e1"/>
+          </g>
+          <g id="Graphic_3">
+            <text transform="translate(15.8 57.98298)" fill="black">
+              <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="5.0849996" y="10">Fresh Cell</tspan>
+            </text>
+          </g>
+        </g>
+      </g>
+      <g id="Graphic_4">
+        <rect x="90" y="25.200002" width="64.8" height="50.4" fill="white"/>
+        <rect x="90" y="25.200002" width="64.8" height="50.4" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(91 31.980003)" fill="black">
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="13.535" y="10">Perform </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="8.625" y="22.28">Fresh-Cell </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="12.605" y="34.559998">Protocol</tspan>
+        </text>
+      </g>
+      <g id="Graphic_6">
+        <rect x="169.2" y="25.2" width="64.8" height="50.4" fill="#c0ffff"/>
+        <rect x="169.2" y="25.2" width="64.8" height="50.4" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(170.2 25.840003)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="18.16" y="10">Set of </tspan>
+          <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="8.25" y="22.28">Parameter </tspan>
+          <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="9.455" y="34.559998">Values for </tspan>
+          <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="9.085" y="46.839996">Fresh Cell</tspan>
+        </text>
+      </g>
+      <g id="Graphic_8">
+        <rect x="90" y="90" width="64.8" height="50.4" fill="white"/>
+        <rect x="90" y="90" width="64.8" height="50.4" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(91 102.92)" fill="black">
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="5.3749996" y="10">Incremental </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="19.175" y="22.28">aging</tspan>
+        </text>
+      </g>
+      <g id="Group_17">
+        <g id="Graphic_16"/>
+        <g id="Group_9">
+          <g id="Graphic_11">
+            <path d="M 186.47841 99.09643 L 186.47841 119.6041 C 186.47841 120.39912 187.055 121.04595 187.76368 121.04595 L 215.43633 121.04595 C 216.145 121.04595 216.7216 120.39912 216.7216 119.6041 L 216.7216 99.09643 C 216.7216 98.30142 216.145 97.65495 215.43633 97.65495 L 187.76335 97.65495 C 187.055 97.65495 186.47841 98.30142 186.47841 99.09643 Z M 209.16171 93.60037 L 209.16171 96.8842 L 212.85548 96.8842 L 212.85548 93.60037 L 209.16171 93.60037 Z M 190.34286 96.88383 L 194.03663 96.88383 L 194.03663 93.6 L 190.34286 93.6 L 190.34286 96.88383 Z M 193.9498 101.53299 C 193.9498 101.74574 193.79575 101.91855 193.6061 101.91855 L 190.7744 101.91855 C 190.3219 101.91855 190.3219 101.14742 190.7744 101.14742 L 193.6061 101.14742 C 193.79541 101.14742 193.9498 101.31986 193.9498 101.53299 Z M 209.59357 101.91855 C 209.14108 101.91855 209.14108 101.14742 209.59357 101.14742 L 210.6659 101.14742 L 210.6659 99.94445 C 210.6659 99.43721 211.35329 99.43683 211.35329 99.94445 L 211.35329 101.14742 L 212.42562 101.14742 C 212.8781 101.14742 212.8781 101.91855 212.42562 101.91855 L 211.35329 101.91855 L 211.35329 103.12153 C 211.35329 103.62914 210.6659 103.62877 210.6659 103.12153 L 210.6659 101.91855 Z" fill="black"/>
+          </g>
+          <g id="Graphic_10">
+            <text transform="translate(174.2 122.78298)" fill="black">
+              <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="5.7349996" y="10">Aged Cell</tspan>
+            </text>
+          </g>
+        </g>
+      </g>
+      <g id="Graphic_12">
+        <rect x="248.4" y="90" width="64.8" height="50.4" fill="white"/>
+        <rect x="248.4" y="90" width="64.8" height="50.4" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(249.4 96.78)" fill="black">
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="13.535" y="10">Perform </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="9.085" y="22.28">Aged-Cell </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="12.605" y="34.559998">Protocol</tspan>
+        </text>
+      </g>
+      <g id="Group_63">
+        <g id="Graphic_55">
+          <rect x="252" y="21.6" width="64.8" height="50.4" fill="#e3e3e3"/>
+          <rect x="252" y="21.6" width="64.8" height="50.4" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_13">
+          <rect x="248.4" y="25.2" width="64.8" height="50.4" fill="#e3e3e3"/>
+          <rect x="248.4" y="25.2" width="64.8" height="50.4" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(249.4 25.840003)" fill="black">
+            <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="15.66" y="10">Sets of </tspan>
+            <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="8.25" y="22.28">Parameter </tspan>
+            <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="9.455" y="34.559998">Values for </tspan>
+            <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="7.235" y="46.839996">Aged Cells</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Line_19">
+        <line x1="75.6" y1="50.4" x2="81.98" y2="50.4" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Line_20">
+        <path d="M 43.2 75.6 L 43.2 115.2 L 81.98 115.2" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Line_25">
+        <line x1="154.8" y1="115.2" x2="161.18" y2="115.2" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Line_26">
+        <line x1="234" y1="115.2" x2="240.38" y2="115.2" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Line_28">
+        <path d="M 201.6 140.4 L 201.6 162 L 122.4 162 L 122.4 148.42" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Graphic_33">
+        <text transform="translate(134.6 163.44298)" fill="black">
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x=".7249996" y="10">Repeat until </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="4.3449996" y="22.28">end-of-life</tspan>
+        </text>
+      </g>
+      <g id="Line_34">
+        <line x1="154.8" y1="50.4" x2="161.18" y2="50.4" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Line_35">
+        <line x1="280.8" y1="90" x2="280.8" y2="83.62" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Graphic_62">
+        <rect x="336.6" y="25.200002" width="64.8" height="50.4" fill="white"/>
+        <rect x="336.6" y="25.200002" width="64.8" height="50.4" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        <text transform="translate(337.6 31.980003)" fill="black">
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x=".7549996" y="10">Categorize by </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="2.9599996" y="22.28">LLI and LAM </tspan>
+          <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="2.6999996" y="34.559998">(for example)</tspan>
+        </text>
+      </g>
+      <g id="Group_75">
+        <g id="Graphic_65">
+          <rect x="417.6" y="26.554047" width="122.4" height="122.4" fill="white"/>
+          <rect x="417.6" y="26.554047" width="122.4" height="122.4" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_37">
+          <rect x="432" y="51.75405" width="18" height="18" fill="#c0ffff"/>
+          <rect x="432" y="51.75405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_38">
+          <rect x="453.6" y="51.75405" width="18" height="18" fill="#ebebeb"/>
+          <rect x="453.6" y="51.75405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_39">
+          <rect x="475.2" y="51.75405" width="18" height="18" fill="#c1c1c1"/>
+          <rect x="475.2" y="51.75405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_40">
+          <rect x="496.8" y="51.75405" width="18" height="18" fill="#aaa"/>
+          <rect x="496.8" y="51.75405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_44">
+          <rect x="432" y="73.35405" width="18" height="18" fill="#ebebeb"/>
+          <rect x="432" y="73.35405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_43">
+          <rect x="453.6" y="73.35405" width="18" height="18" fill="#c1c1c1"/>
+          <rect x="453.6" y="73.35405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_42">
+          <rect x="475.2" y="73.35405" width="18" height="18" fill="#aaa"/>
+          <rect x="475.2" y="73.35405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_41">
+          <rect x="496.8" y="73.35405" width="18" height="18" fill="#929292"/>
+          <rect x="496.8" y="73.35405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_48">
+          <rect x="432" y="94.95405" width="18" height="18" fill="#c1c1c1"/>
+          <rect x="432" y="94.95405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_47">
+          <rect x="453.6" y="94.95405" width="18" height="18" fill="#aaa"/>
+          <rect x="453.6" y="94.95405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_46">
+          <rect x="475.2" y="94.95405" width="18" height="18" fill="#929292"/>
+          <rect x="475.2" y="94.95405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_45">
+          <rect x="496.8" y="94.95405" width="18" height="18" fill="#797979"/>
+          <rect x="496.8" y="94.95405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_52">
+          <rect x="432" y="116.55405" width="18" height="18" fill="#aaa"/>
+          <rect x="432" y="116.55405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_51">
+          <rect x="453.6" y="116.55405" width="18" height="18" fill="#929292"/>
+          <rect x="453.6" y="116.55405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_50">
+          <rect x="475.2" y="116.55405" width="18" height="18" fill="#797979"/>
+          <rect x="475.2" y="116.55405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_49">
+          <rect x="496.8" y="116.55405" width="18" height="18" fill="#424242"/>
+          <rect x="496.8" y="116.55405" width="18" height="18" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_53">
+          <text transform="translate(433.4 31.565025)" fill="black">
+            <tspan font-family="Helvetica Neue" font-style="italic" font-size="8" fill="black" x=".4160023" y="8">Loss of Li inventory (LLI)</tspan>
+          </text>
+        </g>
+        <g id="Graphic_54">
+          <text transform="translate(534.98903 38.754048) rotate(90)" fill="black">
+            <tspan font-family="Helvetica Neue" font-style="italic" font-size="8" fill="black" x="3.1400015" y="8">Loss of active material (LAM)</tspan>
+          </text>
+        </g>
+        <g id="Line_60">
+          <line x1="432" y1="44.55405" x2="508.66" y2="44.55405" marker-end="url(#StickArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".6"/>
+        </g>
+        <g id="Line_61">
+          <line x1="522" y1="51.75405" x2="522" y2="128.41405" marker-end="url(#StickArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".6"/>
+        </g>
+      </g>
+      <g id="Graphic_64">
+        <text transform="translate(422.6 152.93703)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="2.7750008" y="10">Array of Parameter Sets</tspan>
+        </text>
+      </g>
+      <g id="Line_71">
+        <line x1="313.2" y1="50.4" x2="328.58" y2="50.4" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width=".8"/>
+      </g>
+      <g id="Line_74">
+        <path d="M 201.6 25.2 L 201.6 10.8 L 324 10.8 L 324 37.8 L 328.58 37.8" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Line_76">
+        <path d="M 401.4 50.4 L 409.5 50.4 L 409.5 50.296276 L 409.58 50.296276" marker-end="url(#FilledArrow_Marker)" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width=".8"/>
+      </g>
+      <g id="Group_84">
+        <g id="Graphic_82">
+          <rect x="219.6" y="198" width="140.4" height="64.8" fill="white"/>
+          <rect x="219.6" y="198" width="140.4" height="64.8" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+        </g>
+        <g id="Graphic_80">
+          <rect x="241.2" y="205.2" width="111.6" height="14.399999" fill="white"/>
+          <rect x="241.2" y="205.2" width="111.6" height="14.399999" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(242.2 206.26)" fill="black">
+            <tspan font-family="Helvetica Neue" font-style="italic" font-size="10" fill="black" x="3.0399992" y="10">Lab/Numerical Process</tspan>
+          </text>
+        </g>
+        <g id="Graphic_79">
+          <rect x="241.2" y="223.2" width="111.6" height="14.399999" fill="#c0ffff"/>
+          <rect x="241.2" y="223.2" width="111.6" height="14.399999" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(242.2 224.26)" fill="black">
+            <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="16.555" y="10">Fresh-Cell Model</tspan>
+          </text>
+        </g>
+        <g id="Graphic_78">
+          <text transform="translate(221 250.6) rotate(-90)" fill="black">
+            <tspan font-family="Helvetica Neue" font-weight="bold" font-size="10" fill="black" x="2.4200008" y="10">Legend</tspan>
+          </text>
+        </g>
+        <g id="Graphic_83">
+          <rect x="241.2" y="241.2" width="111.6" height="14.399999" fill="url(#Obj_Gradient)"/>
+          <rect x="241.2" y="241.2" width="111.6" height="14.399999" stroke="gray" stroke-linecap="round" stroke-linejoin="round" stroke-width="1"/>
+          <text transform="translate(242.2 242.26)" fill="black">
+            <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="17.205" y="10">Aged-Cell Model</tspan>
+          </text>
+        </g>
+      </g>
+      <g id="Graphic_87">
+        <text transform="translate(339.8 149)" fill="black">
+          <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="9.2605" y="10">Embed in </tspan>
+          <tspan font-family="Helvetica Neue" font-size="10" fill="black" x="5.9355" y="22.28">application</tspan>
+        </text>
+      </g>
+      <g id="Graphic_86">
+        <path d="M 410.4 123.12001 L 410.4 114.48 L 403.2 114.48 L 403.2 111.6 L 396 118.8 L 403.2 126.00001 L 403.2 123.12001 Z" fill="black"/>
+      </g>
+      <g id="Graphic_85">
+        <path d="M 358.18494 112.59493 L 354.2879 116.49196 C 354.5515 117.04302 354.5508 117.71358 354.28517 118.26328 C 353.842 119.18308 352.65725 119.68497 351.65346 119.26707 C 350.9986 118.99461 350.5083 118.3616 350.41067 117.661 C 350.3212 117.02185 350.55407 116.34788 351.01704 115.90061 C 351.39125 115.54006 351.9075 115.33111 352.42577 115.32633 C 352.43464 115.32633 352.4435 115.32633 352.4524 115.32633 C 352.7515 115.32906 353.04716 115.40281 353.3169 115.53324 C 353.31825 115.53119 353.3203 115.52846 353.32235 115.5264 L 357.41946 111.4293 C 357.5246 111.34326 357.63797 111.26814 357.7691 111.2422 C 357.8128 111.23332 357.85785 111.23332 357.90223 111.22922 L 362.68288 111.22922 L 362.68288 109.18067 C 362.6938 109.07892 362.7061 108.97581 362.7505 108.88431 C 362.8174 108.74501 362.9321 108.63097 363.06937 108.56542 C 363.19297 108.50533 363.2319 108.51284 363.36573 108.49782 L 365.4143 108.49782 L 365.4143 105.08288 C 365.41497 105.05351 365.4143 105.04668 365.417 105.01732 C 365.44706 104.7114 365.7045 104.44304 366.0145 104.40549 C 366.078 104.39729 366.09304 104.40071 366.11352 104.40071 C 366.1429 104.40207 366.1504 104.40139 366.17908 104.40549 C 366.4843 104.44236 366.74653 104.70594 366.77657 105.01732 C 366.7793 105.04668 366.7793 105.05351 366.78 105.08288 L 366.78 108.49782 L 369.5114 108.49782 L 369.5114 105.08288 C 369.51208 105.05351 369.51208 105.04668 369.5148 105.01732 C 369.54417 104.7114 369.8016 104.44304 370.1123 104.40549 C 370.1758 104.39729 370.19083 104.40071 370.21063 104.40071 C 370.24 104.40207 370.2475 104.40139 370.27687 104.40549 C 370.5814 104.44236 370.84364 104.70594 370.87437 105.01732 C 370.8771 105.04668 370.8764 105.05351 370.8771 105.08288 L 370.8771 108.49782 L 373.6085 108.49782 L 373.6085 105.08288 C 373.60987 105.05351 373.6092 105.04668 373.6119 105.01732 C 373.64196 104.7114 373.8994 104.44304 374.2094 104.40549 C 374.2729 104.39729 374.28794 104.40071 374.30843 104.40071 C 374.3378 104.40207 374.3446 104.40139 374.374 104.40549 C 374.6792 104.44236 374.94143 104.70594 374.97147 105.01732 C 374.9742 105.04668 374.9742 105.05351 374.9749 105.08288 L 374.9749 108.49782 L 377.02344 108.49782 L 377.17504 108.51489 C 377.32117 108.56542 377.4632 108.63643 377.55743 108.75457 C 377.62094 108.83514 377.666 108.9287 377.68922 109.02839 C 377.70015 109.07824 377.70015 109.12945 377.7063 109.18067 L 377.7063 111.22922 L 389.31545 111.22922 L 389.46705 111.2463 C 389.51553 111.26336 389.56538 111.27429 389.6118 111.29682 C 389.88973 111.43066 390.0495 111.76253 389.98123 112.06367 C 389.92387 112.31427 389.71697 112.5205 389.46705 112.57785 C 389.4179 112.58878 389.366 112.58946 389.31545 112.59493 L 377.7063 112.59493 L 377.7063 115.32633 L 389.31545 115.32633 L 389.46705 115.3434 C 389.51553 115.36047 389.56538 115.37208 389.6118 115.39393 C 390.0188 115.5906 390.13556 116.22838 389.74087 116.54317 C 389.66098 116.60736 389.56743 116.65243 389.46705 116.67496 C 389.4179 116.68657 389.366 116.68657 389.31545 116.69203 L 377.7063 116.69203 L 377.7063 119.42344 L 382.48626 119.42344 L 382.6194 119.4371 C 382.66243 119.45007 382.7068 119.45895 382.7478 119.47602 C 382.8584 119.52177 382.8782 119.54908 382.96903 119.62352 L 387.0668 123.72131 C 387.15286 123.82578 387.2273 123.93982 387.25324 124.07093 C 387.2621 124.11463 387.2621 124.1597 387.2669 124.20408 L 387.2669 131.83973 C 387.7599 132.01932 388.18533 132.38396 388.41887 132.85376 C 388.69542 133.4096 388.7002 134.09246 388.4298 134.65308 C 388.0433 135.45475 387.10097 135.94981 386.19687 135.77637 C 385.3665 135.61726 384.67275 134.89208 384.5546 134.05012 C 384.46516 133.41165 384.698 132.73768 385.16167 132.29041 C 385.3713 132.0876 385.626 131.9326 385.9012 131.83563 L 385.9012 124.48678 L 382.20355 120.78983 L 377.7063 120.78983 L 377.7063 122.83838 C 377.70015 122.88891 377.70015 122.94081 377.68922 122.98997 C 377.64347 123.19073 377.5028 123.36554 377.3198 123.45363 C 377.1955 123.51304 377.1573 123.50621 377.02344 123.52123 L 374.9749 123.52123 L 374.9749 126.37692 C 375.47474 126.55924 375.9063 126.93208 376.1378 127.4128 C 376.4041 127.96523 376.4041 128.63784 376.1378 129.18958 C 375.7513 129.99125 374.80896 130.487 373.90486 130.31356 C 373.0745 130.15377 372.38074 129.42926 372.2626 128.5873 C 372.17315 127.94884 372.406 127.27418 372.86966 126.82692 C 373.0793 126.62479 373.334 126.46978 373.6085 126.37214 L 373.6085 123.52123 L 370.8771 123.52123 L 370.8771 130.7499 L 374.57474 134.44754 L 381.12055 134.44754 C 381.1711 134.453 381.223 134.453 381.27283 134.46461 C 381.66683 134.55406 381.92495 135.03411 381.7358 135.42675 C 381.64703 135.61112 381.4729 135.75042 381.27283 135.79617 C 381.223 135.8071 381.1711 135.8071 381.12055 135.81324 L 374.29204 135.81324 C 374.15683 135.79959 374.02368 135.77227 373.91237 135.69784 C 373.8755 135.67326 373.8434 135.64116 373.8086 135.61317 L 369.71147 131.51606 C 369.62543 131.4109 369.551 131.29686 369.52437 131.16644 C 369.51617 131.12205 369.51617 131.07698 369.5114 131.0326 L 369.5114 123.52123 L 366.78 123.52123 L 366.78 132.1156 L 373.20903 138.54465 L 384.65704 138.54465 C 384.7622 138.24693 384.9343 137.9731 385.16167 137.75322 C 385.5352 137.39268 386.04937 137.18373 386.5704 137.17895 C 386.57927 137.17895 386.58814 137.17895 386.597 137.17895 C 387.3536 137.18646 388.08427 137.64328 388.41887 138.31658 C 388.69542 138.87242 388.7002 139.55595 388.4298 140.11589 C 388.0433 140.91824 387.10097 141.41262 386.19687 141.23986 C 385.50036 141.10602 384.9008 140.57477 384.65567 139.91035 L 372.92565 139.91035 C 372.79113 139.89738 372.65797 139.86938 372.54667 139.79563 C 372.5091 139.77037 372.4777 139.73896 372.44287 139.71028 L 365.61436 132.88176 C 365.5283 132.7766 365.4532 132.66325 365.42726 132.53214 C 365.4184 132.48844 365.4184 132.44337 365.4143 132.39898 L 365.4143 123.52123 L 363.36573 123.52123 C 363.3145 123.51509 363.2633 123.51509 363.21345 123.50416 C 363.0127 123.45841 362.83857 123.31774 362.7505 123.13474 C 362.6904 123.01046 362.6979 122.97222 362.68288 122.83838 L 362.68288 120.78983 L 360.91702 120.78983 L 358.5851 123.12108 L 358.5851 129.6669 C 358.57962 129.71743 358.57962 129.76932 358.568 129.81917 C 358.45876 130.29922 357.73767 130.55597 357.36824 130.093 C 357.30474 130.01242 357.25967 129.91887 357.23645 129.81917 C 357.22553 129.76932 357.22485 129.71743 357.2194 129.6669 L 357.2194 122.83838 C 357.23304 122.70318 357.26035 122.57002 357.3348 122.45872 C 357.35937 122.42184 357.39146 122.38975 357.41946 122.3556 L 360.15086 119.62352 C 360.25602 119.53748 360.36938 119.46305 360.5005 119.4371 C 360.5442 119.42822 360.58926 119.42822 360.63364 119.42344 L 362.68288 119.42344 L 362.68288 116.69203 L 359.5513 116.69203 L 354.48798 121.75538 L 354.48798 140.03463 C 354.9885 140.21695 355.4194 140.59047 355.65087 141.07052 C 355.9172 141.62294 355.9172 142.29555 355.65087 142.8473 C 355.2077 143.7671 354.02296 144.269 353.01916 143.85109 C 352.3609 143.57726 351.86856 142.93811 351.77433 142.23205 C 351.69033 141.60177 351.9191 140.93804 352.37387 140.4935 C 352.58624 140.2866 352.843 140.12818 353.12227 140.02985 L 353.12227 121.47268 C 353.13525 121.33747 353.16325 121.20432 353.237 121.09301 C 353.26226 121.05614 353.29367 121.02404 353.32235 120.98922 L 358.78516 115.5264 C 358.8903 115.44037 359.00367 115.36594 359.1348 115.3393 C 359.1785 115.33111 359.22355 115.33111 359.26794 115.32633 L 362.68288 115.32633 L 362.68288 112.59493 L 358.18494 112.59493 Z M 353.80035 141.27605 C 353.49716 141.27947 353.2083 141.50618 353.13935 141.80458 C 353.06765 142.11528 353.24587 142.46422 353.5395 142.5885 C 353.91575 142.7476 354.4122 142.49085 354.4791 142.06816 C 354.53987 141.68918 354.23532 141.28561 353.8188 141.27605 C 353.81264 141.27605 353.8065 141.27605 353.80035 141.27605 Z M 386.57927 138.54465 C 386.27745 138.54738 385.98997 138.77135 385.91895 139.06908 C 385.8452 139.37978 386.02206 139.73144 386.3184 139.85709 C 386.69603 140.01688 387.19383 139.75671 387.2587 139.33198 C 387.31675 138.95368 387.0088 138.5542 386.597 138.54465 C 386.59156 138.54465 386.5854 138.54465 386.57927 138.54465 Z M 386.57927 133.08184 C 386.27745 133.08457 385.98997 133.30854 385.91895 133.60558 C 385.8452 133.91696 386.02206 134.26863 386.3184 134.39428 C 386.69603 134.55406 387.19383 134.29321 387.2587 133.86916 C 387.31675 133.49086 387.0088 133.09071 386.597 133.08184 C 386.59156 133.08184 386.5854 133.08184 386.57927 133.08184 Z M 374.28726 127.61834 C 373.98544 127.62107 373.69796 127.84505 373.62694 128.14277 C 373.5532 128.45347 373.73005 128.80514 374.0264 128.93078 C 374.40402 129.09057 374.90182 128.82904 374.9667 128.40635 C 375.02474 128.02805 374.71677 127.6279 374.305 127.61834 C 374.29955 127.61834 374.2934 127.61834 374.28726 127.61834 Z M 372.92565 119.42344 C 372.9598 119.42276 372.96867 119.42344 373.00213 119.41934 C 373.31214 119.38452 373.57026 119.12094 373.6044 118.81707 C 373.6085 118.78361 373.6078 118.77473 373.6085 118.74059 L 373.6085 113.27778 C 373.6078 113.24363 373.6085 113.23544 373.6044 113.2013 C 373.57095 112.90426 373.3292 112.65365 373.04037 112.60449 C 373.0069 112.59902 372.99803 112.59902 372.96457 112.59561 C 372.9516 112.59561 372.93863 112.59493 372.92565 112.59493 L 367.46284 112.59493 C 367.4287 112.59561 367.4205 112.59561 367.38636 112.59902 C 367.07703 112.63385 366.81823 112.89743 366.7841 113.2013 C 366.78067 113.23544 366.78067 113.24363 366.78 113.27778 L 366.78 118.74059 C 366.78067 118.77473 366.78067 118.78361 366.7841 118.81707 C 366.8189 119.12708 367.0825 119.3852 367.38636 119.41934 C 367.4205 119.42344 367.4287 119.42276 367.46284 119.42344 Z M 352.43464 116.69203 C 352.13214 116.69545 351.84534 116.91874 351.775 117.21646 C 351.70058 117.52716 351.8781 117.87951 352.1738 118.00447 C 352.5521 118.16426 353.0492 117.90341 353.1141 117.48004 C 353.17212 117.10106 352.8669 116.7016 352.4524 116.69203 C 352.44693 116.69203 352.4408 116.69203 352.43464 116.69203 Z" fill="#333"/>
+      </g>
+    </g>
+  </g>
+</svg>

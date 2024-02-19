@@ -672,6 +672,10 @@ methods(Static,Access=protected)
     
     function valueSlider = toSliderValue(value,lwr,upr,logscale)
         %TOSLIDERVALUE Convert absolute value to percent value for slider.
+        ind = lwr==upr;
+        if any(ind)
+            upr(ind) = lwr(ind)+1;
+        end
         if logscale
             valueSlider = ... 
                 100*(log10(value)-log10(lwr))./(log10(upr)-log10(lwr));

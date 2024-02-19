@@ -200,14 +200,14 @@ for s = 1:length(secNames)
 
     if strcmp(secMeta.type,'Electrode3D')
         % Copy OCP.
-        if isfield(P2DM.parameters.(secName),'Uocv')
-            WRM.parameters.(secName).Uocv = P2DM.parameters.(secName).Uocv;
+        if isfield(P2DM.parameters.(secName),'Uocp')
+            WRM.parameters.(secName).Uocp = P2DM.parameters.(secName).Uocp;
         end
-        if isfield(P2DM.parameters.(secName),'dUocv')
-            WRM.parameters.(secName).dUocv = P2DM.parameters.(secName).dUocv;
+        if isfield(P2DM.parameters.(secName),'dUocp')
+            WRM.parameters.(secName).dUocp = P2DM.parameters.(secName).dUocp;
         end
-        if isfield(P2DM.parameters.(secName),'d2Uocv')
-            WRM.parameters.(secName).d2Uocv = P2DM.parameters.(secName).d2Uocv;
+        if isfield(P2DM.parameters.(secName),'d2Uocp')
+            WRM.parameters.(secName).d2Uocp = P2DM.parameters.(secName).d2Uocp;
         end
         if isfield(P2DM.parameters.(secName),'U0')
             WRM.parameters.(secName).U0 = P2DM.parameters.(secName).U0;
@@ -448,9 +448,8 @@ for s = 1:length(secNames)
                 LLPM.function.(secName).(paramName) = ... 
                     numericParam2function(param,LLPM.const.T);
             case 'LUT'
-                error(['Not implemented: %s.%s\n' ...
-                    'LUT value not yet implmented.'], ...
-                    secName,paramName);
+                LLPM.function.(secName).(paramName) = ...
+                    lut2function(param);
             case 'Function'
                 error(['Not implemented: %s.%s\n' ...
                     'Function value not yet implemented.'], ...
@@ -534,6 +533,16 @@ else
 end
 
 end % numeric2function()
+
+function fcn = lut2function(param)
+%LUT2FUNCTION Convert lookup table to function.
+
+str = sprintf( ...
+    '@(x,T) (interp1(%s,%s,x,''linear'',''extrap''))',...
+    mat2str(param.Value.x),mat2str(param.Value.y));
+fcn = str2func(str);
+
+end
 
 function [Uocp, dUocp] = makeOCP(sec)
 %MAKEDOCP Make electrode-level OCP function from MSMR parameter values.

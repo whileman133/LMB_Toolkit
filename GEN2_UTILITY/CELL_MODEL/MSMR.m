@@ -4,19 +4,14 @@ classdef MSMR < handle
     %
     % -- Usage --
     %
-    % electrode = MSMR(params,'pos') constructs an MSMR model from the
-    %   parameter structure PARAMS for a positive porous electrode
-    %   (thetamin=theta100 and thetamax=theta0). PARAMS is a structure of
-    %   parameters describing the positive electrode. The parameter values
-    %   may either be functions (in which case they will be evalulated at
-    %   the default SOC and temperature, which can be changed by keyword
+    % electrode = MSMR(params') constructs an MSMR model from the
+    %   parameter structure PARAMS. PARAMS is a structure of
+    %   parameters describing the negative/positive electrode. The parameter 
+    %   values may either be functions (in which case they will be evalulated 
+    %   at the default SOC and temperature, which can be changed by keyword
     %   arguments) or numeric values. The following vector parameters are 
     %   required: U0, X, and omega. The following scalar parameters are 
-    %   also required: theta0 and theta100.
-    %
-    % electrode = MSMR(params,'neg') constructs an MSMR model from the
-    %   parameter structure PARAMS for a negative porous electrode
-    %   (thetamin=theta0 and thetamax=theta100).
+    %   also required: theta0 and theta100 (OR thetamin and thetamax).
     %
     % electrode = MSMR(...,'TdegC',TdegC) sets the temperature setpoint to 
     %   TdegC instead of the default 25degC. This option is used only to
@@ -136,6 +131,32 @@ classdef MSMR < handle
                 obj.Wj = obj.Wj(idx);
                 obj.sortidx = idx;
             end
+        end
+
+        % Define aliases to legacy parameter names.
+        function ret = U0(obj)
+            ret = obj.Uj0;
+        end
+        function ret = X(obj)
+            ret = obj.Xj;
+        end
+        function ret = omega(obj)
+            ret = obj.Wj;
+        end
+        function ret = thetamin(obj)
+            ret = obj.zmin;
+        end
+        function ret = thetamax(obj)
+            ret = obj.zmax;
+        end
+        
+        function s = toStruct(obj)
+            %TOSTRUCT Convert this MSMR object to a scalar structure.
+            s.U0        = obj.U0;
+            s.X         = obj.X;
+            s.omega     = obj.omega;
+            s.thetamin  = obj.thetamin;
+            s.thetamax  = obj.thetamax;
         end
 
         function ocpData = ocp(obj, varargin)

@@ -9,8 +9,10 @@
 *.EPS
 *.png
 *.PNG
+*.pxd
 
 # Don't commit MATLAB autosave files.
 *.asv
 
 ~*
+*.jpg
