@@ -37,7 +37,7 @@ for k = 1:length(fitData.Zmodel)
     cellName = cellName{1};
     TdegC = TdegCvect(k);
     nsoc = length(fitData.socPctTrue{k});
-    indSOC = [1 3:4:nsoc-2 nsoc];
+    indSOC = [1 3 nsoc-2 nsoc];
     nsocPlot = length(indSOC);
     freq = fitData.freq{k};
     Zlab = fitData.Zlab{k};
@@ -53,10 +53,9 @@ for k = 1:length(fitData.Zmodel)
     
     figure;
     l = tiledlayout(ceil(nsocPlot/2),2);
-    l.Title.String = sprintf( ...
-        'Linear Impedance (%.0f\\circC)',TdegC);
-    l.XLabel.String = 'Z'' [\Omega]';
-    l.YLabel.String = '-Z'''' [\Omega]';
+    l.Title.String = sprintf('zcell');
+    l.XLabel.String = 're';
+    l.YLabel.String = '-im';
     for j = 1:nsocPlot
         ind = indSOC(j);
         zlab = Zlab(:,ind);
@@ -65,15 +64,26 @@ for k = 1:length(fitData.Zmodel)
         plot(real(zmod),-imag(zmod),'r'); hold on;
         plot(real(zlab),-imag(zlab),'b.');
         %plot(real(zmod(indbreakf(ind))),-imag(zmod(indbreakf(ind))),'k+');
-        title(sprintf('%.0f%% SOC',fitData.socPctTrue{k}(ind)));
+        title(sprintf('SOC%.0f',fitData.socPctTrue{k}(ind)));
         setAxesNyquist;
     end
     legend('Model','Lab','Location','northwest');
-    thesisFormat('FigSizeInches',[5 6],'FigMarginInches',[.1 .1 .1 .1]);
-    set(gcf,'Color',[239, 229, 195]/255);
-    set(gcf, 'InvertHardcopy', 'off');
+    thesisFormat('FigSizeInches',[8 7],'FigMarginInches',[.1 .1 .1 .1]);
+    %set(gcf,'Color',[239, 229, 195]/255);
+    %set(gcf, 'InvertHardcopy', 'off');
     print(fullfile(plotdir,sprintf('Z-Nyq-%.0fdegC',TdegC)),'-depsc');
     print(fullfile(plotdir,sprintf('Z-Nyq-%.0fdegC',TdegC)),'-dpng');
+
+    lab = arrayfun( ...
+        @(kz)sprintf('%.0f%%',fitData.socPctTrue{k}(kz)),indSOC, ...
+        'UniformOutput',false);
+    figure; colororder(cool(nsoc));
+    plot(real(Zmodel),-imag(Zmodel)); hold on;
+    plot(real(Zlab),-imag(Zlab),'.');
+    legend(lab{:},'Location','best');
+    thesisFormat;
+    print(fullfile(plotdir,sprintf('Z-Nyq-SINGLE-%.0fdegC',TdegC)),'-depsc');
+    print(fullfile(plotdir,sprintf('Z-Nyq-SINGLE-%.0fdegC',TdegC)),'-dpng');
 end
 
 return;
