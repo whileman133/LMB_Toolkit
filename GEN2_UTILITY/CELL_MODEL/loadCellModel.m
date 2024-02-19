@@ -23,9 +23,9 @@ if ~exist(filename,'file')
 end
 
 paramTable = loadSpreadsheet(filename,'Parameters');
-sectionStruct = sectionParameterTable(paramTable);
-modelStruct = buildModelStruct(sectionStruct);
-modelStruct = convertParameterValues(modelStruct);
+sectionStruct = sectionParameterTable(paramTable,arg);
+modelStruct = buildModelStruct(sectionStruct,arg);
+modelStruct = convertParameterValues(modelStruct,arg);
 modelStruct.type__ = 'cellModel';
 modelStruct.origin__ = 'loadCellModel';
 modelStruct.arg__ = arg;
@@ -53,7 +53,7 @@ catch ME
 end % catch
 end % loadSpreadsheet()
 
-function sectionStruct = sectionParameterTable(paramTable)
+function sectionStruct = sectionParameterTable(paramTable,~)
 %SECTIONPARAMETERTABLE Divide parameter table into sections.
 
 secioningCol = paramTable.Sectioning;
@@ -82,7 +82,7 @@ end
 
 end % sectionParameterTable()
 
-function modelStruct = buildModelStruct(sectionStruct)
+function modelStruct = buildModelStruct(sectionStruct,~)
 %BUILDMODEL Create cell model structure from section structure.
 
 % Collect cell/section metadata and parameter properties.
@@ -117,7 +117,7 @@ end % for
 
 end % buildModelStruct()
 
-function modelStruct = convertParameterValues(modelStruct)
+function modelStruct = convertParameterValues(modelStruct, arg)
 %CONVERTPARAMETERVALUES Convert parameter-value strings to native MATLAB.
 
 FUNCTION_PARAMETER_NAMES = {'thetas','thetae'};
@@ -137,9 +137,20 @@ for s = 1:length(sectionNames)
         valueDouble = str2double(valueString);
         if startsWith(valueString,'#')
             % Lookup table (LUT).
-            error(['Not implemented: %s.%s\n' ...
-                'LUT value not yet implmented.'], ...
-                secName,paramName);
+            parts = split(valueString(2:end),'(');
+            sheet = parts{1};
+            varname = parts{2}(1:end-1); % name of independent var
+            tabData = readtable(arg.filename, ...
+                'Sheet',sheet, ...
+                'ReadVariableNames',false);
+            tabData = table2array(tabData);
+            tabData1 = tabData(:,1);  % independent variable
+            tabData2 = tabData(:,2);  % dependent variable
+            valueStruct.type = 'LUT';
+            valueStruct.isScalar = false;
+            valueStruct.independentVariable = varname;
+            valueStruct.x = tabData1;
+            valueStruct.y = tabData2;
         elseif ~isnan(valueDouble)
             % Scalar numeric.
             value = valueDouble;
@@ -301,12 +312,13 @@ for s = 1:length(sectionNames)
 
         % Validate diffusivity / collect diffusivity metadata.
         if isfield(modelStruct.parameters.(sec.name),'Dsref')
-            if ~isMSMR
-                error( ...
-                    ['Diffusivity improperly configured: ''%s'' (%s).\n' ...
-                     'Non-MSMR models cannot use Dsref; specify Ds instead.'], ...
-                    sec.name,sec.type);
-            end
+            % OK: can still use Baker-Vergrugge (MSMR) diffusivity model
+            % if ~isMSMR
+            %     error( ...
+            %         ['Diffusivity improperly configured: ''%s'' (%s).\n' ...
+            %          'Non-MSMR models cannot use Dsref; specify Ds instead.'], ...
+            %         sec.name,sec.type);
+            % end
              modelStruct.metadata.section.(sec.name).solidDiffusion.type = 'msmr';
         elseif isfield(modelStruct.parameters.(sec.name),'Ds')
             modelStruct.metadata.section.(sec.name).solidDiffusion.type = 'fixed';

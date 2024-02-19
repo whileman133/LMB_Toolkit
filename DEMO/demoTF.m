@@ -17,7 +17,7 @@ addpath('..');
 TB.addpaths;
 
 % Constants.
-cellsheet = 'cellLMO-RLP2DM.xlsx';  % spreadsheet with param values
+cellsheet = 'cellNMC30-RLP2DM.xlsx';  % spreadsheet with param values
 freq = logspace(-3.5,5,100);          % vector of frequency points [Hz]
 socPct = 10;  % soc at which to evalulate impedance [%]
 TdegC  = 25;  % temperature at which to evalulate impedance [degC]

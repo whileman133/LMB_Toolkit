@@ -216,7 +216,7 @@ end
 function [outStruct, totalParamCount] = getGen1Params(arg,paramsStruct)
 
 T = arg.TdegC+273.15;
-theta = arg.cellModel.function.pos.soc(arg.socPct/100);
+thetap = arg.cellModel.function.pos.soc(arg.socPct/100);
 totalParamCount = 0;
 
 secNames = fieldnames(paramsStruct);
@@ -230,7 +230,7 @@ for s = 1:secCount
     for p = 1:paramCount
         paramName = paramNames{p};
         paramFcn = arg.cellModel.function.(secName).(paramName);
-        outStruct.(secName).(paramName) = paramFcn(theta,T);
+        outStruct.(secName).(paramName) = paramFcn(thetap,T);
     end % for param
 end % for sec
 

@@ -62,6 +62,7 @@ function p = getParameterValues(model,TdegC,socPct,S,calc11,calc22)
 T = TdegC+273.15;
 R = 8.3144598;      % Molar gas constant [J/mol K]
 F = 96485.3329;     % Faraday constant [C/mol]
+f = F/R/T;
 
 % Get lithiation of positive electrode.
 if isfield(model,'function')
@@ -108,9 +109,11 @@ p.Rfp         = getParam('pos','Rf');
 p.Rdlp        = getParam('pos','Rdl');
 p.Cdlp        = getParam('pos','Cdl');
 p.nDLp        = getParam('pos','nDL');
-p.tauDLp       = getParam('pos','tauDL');
+p.tauDLp      = getParam('pos','tauDL');
 p.theta0p     = getParam('pos','theta0');
 p.theta100p   = getParam('pos','theta100');
+p.k0p         = getParam('pos','k0');
+p.alphap      = getParam('pos','alpha');
 p.Rfn         = getParam('neg','Rf');
 p.Rdln        = getParam('neg','Rdl');
 p.Cdln        = getParam('neg','Cdl');
@@ -246,11 +249,10 @@ p.Rct2invn = F*p.k0n*((1-p.alphan).^2-p.alphan.^2)/R/T;
 if isParam('pos','Ds')
     % Ds already pre-computed for speed.
     p.Dsp = getParam('pos','Ds');
-else
+elseif isParam('pos','Dsref')
     % Ds not precomputed; compute here.
-    electrode = MSMR(getReg('pos'));
-    dataDs = electrode.Ds(getReg('pos'),'npoints',10000,'TdegC',TdegC);
-    p.Dsp = interp1(dataDs.theta,dataDs.Ds,p.thetap,'linear','extrap');
+    Dsref = getParam('pos','Dsref');
+    p.Dsp = Dsref.*(-f.*thetap.*(1-thetap).*p.dUocpp);
 end
 
 % Quantities needed to evalulate dc gain.
