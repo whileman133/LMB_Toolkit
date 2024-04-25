@@ -1,5 +1,5 @@
 function [etaTF,aux] = tfEta(s,locs,cellData)
-%TFPHIS
+%TFETA
 
 cellData = tfCommon(s,cellData);
 [tfVals, data] = cellData.common.tfData.h11.tfEta(locs);
