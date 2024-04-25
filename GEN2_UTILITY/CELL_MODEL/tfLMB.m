@@ -112,8 +112,12 @@ p.nDLp        = getParam('pos','nDL');
 p.tauDLp      = getParam('pos','tauDL');
 p.theta0p     = getParam('pos','theta0');
 p.theta100p   = getParam('pos','theta100');
-p.k0p         = getParam('pos','k0');
-p.alphap      = getParam('pos','alpha');
+if isParam('pos','k0')
+    p.k0p         = getParam('pos','k0');
+end
+if isParam('pos','alpha')
+    p.alphap      = getParam('pos','alpha');
+end
 p.Rfn         = getParam('neg','Rf');
 p.Rdln        = getParam('neg','Rdl');
 p.Cdln        = getParam('neg','Cdl');
@@ -250,9 +254,14 @@ if isParam('pos','Ds')
     % Ds already pre-computed for speed.
     p.Dsp = getParam('pos','Ds');
 elseif isParam('pos','Dsref')
-    % Ds not precomputed; compute here.
+    % Ds not precomputed; compute here using Baker-Verbrugge Relationship.
     Dsref = getParam('pos','Dsref');
     p.Dsp = Dsref.*(-f.*thetap.*(1-thetap).*p.dUocpp);
+else
+    % Ds not precomputed; compute here using lookup table.
+    electrode = MSMR(getReg('pos'));
+    dsData = electrode.Ds(getReg('pos'),'npoints',10000,'TdegC',TdegC);
+    p.Dsp = interp1(dsData.theta,dsData.Ds,p.thetap,'linear','extrap');
 end
 
 % Quantities needed to evalulate dc gain.

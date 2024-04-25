@@ -12,7 +12,7 @@
 % 2023.06.29 | Created | Wesley Hileman <whileman@uccs.edu>
 
 clear; close all; clc;
-addpath('..');
+addpath(fullfile('..','..'));
 TB.addpaths();
 
 % Constants.
@@ -20,12 +20,12 @@ eisExpirementNames = {
     'EIS-Cell395534_15degC'  % directories w/ raw EIS data
     'EIS-Cell395534_25degC'
 };
-ocpExpirementName = 'FinalFit-SionFresh_0C01';  % file w/ regressed OCP data
+ocpExpirementName = 'Fit-SionFresh_0C01';  % file w/ regressed OCP data
 initialCellModelName = 'cellSionGuess-P2DM';    % model w/ initial param values
 solidDiffusionModel = 'linear';  % selects solid diffusion model for porous electrode
 kineticsModel = 'linear';        % selects kinetics model for porous electrode
-useParallel = false;              % enable/disable parallel processing
-prefix = '202310_';
+useParallel = false;             % enable/disable parallel processing
+prefix = '';
 
 % Load lab impedance spectra.
 clear spectra;
@@ -36,7 +36,7 @@ end
 % Load lab OCP.
 warning('off','MATLAB:dispatcher:UnresolvedFunctionHandle');
 ocpData = load( ...
-    fullfile(TB.const.OCPROOT,'labdata','fitstruct',ocpExpirementName));
+    fullfile('..','ocp','labdata','fitstruct',ocpExpirementName));
 [TdegC,indTemp] = max(ocpData.study.testTemperatures); % use highest temp.
 ocpfit = ocpData.study.tests(indTemp);
 warning('on','MATLAB:dispatcher:UnresolvedFunctionHandle');

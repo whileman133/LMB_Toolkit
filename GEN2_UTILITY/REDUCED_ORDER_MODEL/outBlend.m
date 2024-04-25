@@ -474,7 +474,7 @@ function ROMout = outBlend(simData,ROM,varargin)
     ROMout.posPhis(k+1,:) = yk(ROM.ind.posPhis) + ROMout.Vcell(k+1);
 
     % Correct Vcell for tab resistance (must do after Phis computation!).
-     ROMout.Vcell(k+1) =  ROMout.Vcell(k+1) - Iapp*Rc;
+    ROMout.Vcell(k+1) =  ROMout.Vcell(k+1) - Iapp*Rc;
     
     % Function outputs: voltage and updated cell state
     Vcell = ROMout.Vcell(k+1);
