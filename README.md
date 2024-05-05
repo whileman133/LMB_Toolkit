@@ -9,3 +9,5 @@ This is the MATLAB toolkit developed for the M.S.E.E. thesis entitled "Modeling 
 - `DEMO/`: MATLAB scripts demonstrating usage of the toolkit.
 
 Note: The MATLAB LiveLink is required to run the COMSOL simulations.
+
+The thesis is available open-access at <https://www.proquest.com/dissertations-theses/physics-based-modeling-parameter-estimation/docview/3050214167/se-2>.
