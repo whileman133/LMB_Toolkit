@@ -7,3 +7,5 @@ This is the MATLAB toolkit developed for the M.S.E.E. thesis entitled "Modeling 
 - `GEN2_XLSX_CELLDEFS/`: Excel spreadsheets containing parameter values for simulation cells.
 - `GEN2_XLSX_XRACTL/`: Excel spreadsheets configuring the Hybrid Realization Algorithm (HRA) for model-order reduction.
 - `DEMO/`: MATLAB scripts demonstrating usage of the toolkit.
+
+Note: The MATLAB LiveLink is required to run the COMSOL simulations.
