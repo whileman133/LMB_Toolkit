@@ -10,4 +10,4 @@ This is the MATLAB toolkit developed for the M.S.E.E. thesis entitled "Modeling 
 
 Note: The MATLAB LiveLink is required to run the COMSOL simulations.
 
-The thesis is available open-access at <https://www.proquest.com/dissertations-theses/physics-based-modeling-parameter-estimation/docview/3050214167/se-2>.
+More information can be found in the open-access thesis at <https://www.proquest.com/dissertations-theses/physics-based-modeling-parameter-estimation/docview/3050214167/se-2>.
