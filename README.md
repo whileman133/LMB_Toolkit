@@ -1,6 +1,6 @@
 # Modeling Toolkit for Lithium-Metal Battery Cells
 
-This is the MATLAB toolkit developed for the M.S.E.E. thesis entitled "Modeling and Parameter Estimation Strategies for Rechargeable Lithium-Metal Battery Cells" by W. Hileman. This code base is organized by thesis chapter (`CHxx/` folders) in addition to the following:
+This is the MATLAB toolkit developed for the M.S.E.E. thesis entitled "Physics-Based Modeling and Parameter Estimation Strategies for Rechargeable Lithium-Metal Battery Cells" by W. Hileman. This code base is organized by thesis chapter (`CHxx/` folders) in addition to the following:
 
 - `GEN2_TFS/`: Functions that compute the frequency-response response of internal cell variables by evaluating transfer functions (TFs) derived from the Newman model.
 - `GEN2_UTILITY/`: The core utility functions that make up the toolkit.
